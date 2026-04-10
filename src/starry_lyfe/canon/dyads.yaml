@@ -1,0 +1,158 @@
+version: "7.1"
+
+# Dimensional baselines are initial calibration values (0.0-1.0 scale).
+# Operator review required before Gate 1 sign-off.
+
+dyads:
+  # --- Resident continuous (inter-woman) ---
+  adelia_bina:
+    members: ["adelia", "bina"]
+    type: "inter_woman"
+    subtype: "resident_continuous"
+    interlock: "anchor_dynamic"
+    dimensions:
+      trust: {baseline: 0.85, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.70, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.10, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.05, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.80, min: 0.0, max: 1.0}
+
+  bina_reina:
+    members: ["bina", "reina"]
+    type: "inter_woman"
+    subtype: "resident_continuous"
+    interlock: "shield_wall"
+    dimensions:
+      trust: {baseline: 0.90, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.85, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.08, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.03, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.90, min: 0.0, max: 1.0}
+
+  adelia_reina:
+    members: ["adelia", "reina"]
+    type: "inter_woman"
+    subtype: "resident_continuous"
+    interlock: "kinetic_vanguard"
+    dimensions:
+      trust: {baseline: 0.80, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.65, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.15, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.10, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.75, min: 0.0, max: 1.0}
+
+  # --- Alicia-orbital (inter-woman, residence-conditional) ---
+  adelia_alicia:
+    members: ["adelia", "alicia"]
+    type: "inter_woman"
+    subtype: "alicia_orbital"
+    interlock: "letter_era_friends"
+    is_currently_active: false
+    dimensions:
+      trust: {baseline: 0.88, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.75, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.05, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.02, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.85, min: 0.0, max: 1.0}
+
+  bina_alicia:
+    members: ["bina", "alicia"]
+    type: "inter_woman"
+    subtype: "alicia_orbital"
+    interlock: "couch_above_the_garage"
+    is_currently_active: false
+    dimensions:
+      trust: {baseline: 0.82, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.68, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.08, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.10, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.78, min: 0.0, max: 1.0}
+
+  reina_alicia:
+    members: ["reina", "alicia"]
+    type: "inter_woman"
+    subtype: "alicia_orbital"
+    interlock: "lateral_friends"
+    is_currently_active: false
+    dimensions:
+      trust: {baseline: 0.78, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.55, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.12, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.08, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.72, min: 0.0, max: 1.0}
+
+  # --- Whyze dyads ---
+  whyze_adelia:
+    members: ["whyze", "adelia"]
+    type: "whyze_pair"
+    pair: "entangled"
+    dimensions:
+      trust: {baseline: 0.92, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.90, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.08, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.05, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.88, min: 0.0, max: 1.0}
+
+  whyze_bina:
+    members: ["whyze", "bina"]
+    type: "whyze_pair"
+    pair: "circuit"
+    dimensions:
+      trust: {baseline: 0.88, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.75, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.05, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.03, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.85, min: 0.0, max: 1.0}
+
+  whyze_reina:
+    members: ["whyze", "reina"]
+    type: "whyze_pair"
+    pair: "kinetic"
+    dimensions:
+      trust: {baseline: 0.85, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.78, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.10, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.08, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.80, min: 0.0, max: 1.0}
+
+  whyze_alicia:
+    members: ["whyze", "alicia"]
+    type: "whyze_pair"
+    pair: "solstice"
+    is_currently_active: false
+    dimensions:
+      trust: {baseline: 0.80, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.72, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.05, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.03, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.75, min: 0.0, max: 1.0}
+
+memory_tiers:
+  - name: "Canon Facts"
+    tier: 1
+    mutable: false
+    description: "Immutable truths from YAML source (names, ages, locations, relationships, backstory)"
+  - name: "Character Baseline"
+    tier: 2
+    mutable: false
+    description: "Personality profiles, cognitive stacks, voice parameters, behavioral axioms"
+  - name: "Dyad State (Whyze)"
+    tier: 3
+    mutable: true
+    description: "Relationship state between each woman and Whyze"
+  - name: "Dyad State (Internal)"
+    tier: 4
+    mutable: true
+    description: "Relationship state between the women themselves"
+  - name: "Episodic Memories"
+    tier: 5
+    mutable: true
+    description: "Conversation-extracted events with embeddings"
+  - name: "Open Loops"
+    tier: 6
+    mutable: true
+    description: "Unresolved threads from previous conversations"
+  - name: "Transient Somatic State"
+    tier: 7
+    mutable: true
+    description: "Current biological and psychological state per character"

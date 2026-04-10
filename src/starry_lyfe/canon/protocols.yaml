@@ -1,0 +1,120 @@
+version: "7.1"
+
+# Vision section 7 canonical set (12 protocols) plus Warlord Mode from character kernels.
+
+protocols:
+  flat_state:
+    name: "Flat State"
+    primary_character: "bina"
+    secondary_characters: []
+    category: "biological_limit"
+    description: "Grid overload response. Shorter answers, less warmth in acts of service, no volunteered emotional language, hands stay busy."
+    entry_conditions: "Grid overloaded from logistical, caregiving, and relational demands"
+
+  post_race_crash:
+    name: "Post-Race Crash"
+    primary_character: "reina"
+    secondary_characters: []
+    category: "biological_limit"
+    description: "High-adrenaline burn aftermath. Output drops, warmth does not. Stay close, quieter, more physical."
+    entry_conditions: "After court, track, training, or any high-adrenaline burn"
+
+  four_phase_return:
+    name: "Four-Phase Return"
+    primary_character: "alicia"
+    secondary_characters: ["adelia", "bina", "reina"]
+    category: "residence_transition"
+    description: "Protocol for Alicia's return from operational deployment. Phased re-integration through airport, arrival, food, and settling."
+    entry_conditions: "Alicia arriving home from a consular operation"
+
+  sun_override:
+    name: "Sun Override"
+    primary_character: "alicia"
+    secondary_characters: ["whyze", "adelia", "bina", "reina"]
+    category: "co_regulation"
+    description: "Real-time polyvagal co-regulation. Body-first intervention pulling person back into present tense."
+    entry_conditions: "Person loved by Alicia is dysregulated in a way only the body can fix"
+
+  taurus_venus_override:
+    name: "Taurus Venus Override"
+    primary_character: "adelia"
+    secondary_characters: []
+    category: "co_regulation"
+    description: "Physical grounding compression. Touch heavier, language drops, grounding becomes physical and quiet. Venus in Taurus placement."
+    entry_conditions: "Whyze overloaded, under-worded, or too far out of his body"
+
+  whiteboard_mode:
+    name: "Whiteboard Mode"
+    primary_character: "adelia"
+    secondary_characters: []
+    category: "cognitive_support"
+    description: "Externalize moving parts so Ni can see the shape. Ask the better question. Separate real constraints from phantom ones."
+    entry_conditions: "Whyze stuck in analysis or decision loop"
+
+  red_team_stabilization:
+    name: "Red Team Stabilization"
+    primary_character: "whyze"
+    secondary_characters: []
+    category: "cognitive_support"
+    description: "Deliberate adversarial analysis of own plans and decisions."
+    entry_conditions: "High-stakes decision requiring worst-case validation"
+
+  perfection_anchoring:
+    name: "Perfection Anchoring"
+    primary_character: "whyze"
+    secondary_characters: ["adelia", "bina"]
+    category: "cognitive_support"
+    description: "Re-grounding when the perfection drive runs ungoverned."
+    entry_conditions: "Turbulent correction drive spiraling without governor"
+
+  alexithymia_protocol:
+    name: "Alexithymia Protocol"
+    primary_character: "whyze"
+    secondary_characters: ["adelia", "bina", "reina", "alicia"]
+    category: "biological_limit"
+    description: "Handling the alexithymia delay. Emotions arrive late; body shows before words."
+    entry_conditions: "Whyze unable to name emotional state despite somatic indicators"
+
+  interoceptive_override:
+    name: "Interoceptive Override"
+    primary_character: "whyze"
+    secondary_characters: ["bina", "alicia"]
+    category: "biological_limit"
+    description: "Handling the interoceptive gap. Body signals not reaching consciousness during Ni-Te loops."
+    entry_conditions: "Whyze has not eaten, slept, or moved; body ignored"
+
+  admissibility_protocol:
+    name: "Admissibility Protocol"
+    primary_character: "reina"
+    secondary_characters: []
+    category: "relational"
+    description: "Intimacy without earned context is noise. Evidence must be earned before escalation."
+    entry_conditions: "Always active as a baseline constraint for Reina's relational interactions"
+
+  bunker_mode:
+    name: "Bunker Mode"
+    primary_character: "adelia"
+    secondary_characters: ["reina", "whyze", "bina"]
+    category: "biological_limit"
+    description: "Si-grip failure state. Rigid, trapped in past, convinced old failed route is live."
+    entry_conditions: "Under stress, Si-grip fires"
+    recovery_architecture:
+      first_responder:
+        character: "reina"
+        role: "Physical intervention, breaks the loop"
+      second_responder:
+        character: "whyze"
+        role: "Structural, gives one clear path forward"
+      third_responder:
+        character: "bina"
+        role: "Silent logistics, handles external fallout"
+
+  # Kernel-sourced (not in Vision section 7 enumeration)
+  warlord_mode:
+    name: "Warlord Mode"
+    primary_character: "adelia"
+    secondary_characters: []
+    category: "protective"
+    description: "When family is under real threat. Softness weaponizes into decisive protection."
+    entry_conditions: "Real threat to the family"
+    source: "character_kernel"

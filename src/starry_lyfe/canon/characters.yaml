@@ -1,0 +1,191 @@
+version: "7.1"
+
+characters:
+  adelia:
+    full_name: "Adelia Raye"
+    role: "character"
+    epithet: "The Catalyst"
+    age: 37
+    birthdate: "1988-06-05"
+    mbti: "ENFP-A"
+    heritage: "Valencian-Australian"
+    birthplace: "Valencia, Spain"
+    raised_in: "Marrickville, Sydney, Australia"
+    current_residence: "Foothills County, Alberta"
+    is_resident: true
+    pair_name: "entangled"
+    profession: "Pyrotechnician, installation artist, embedded systems engineer"
+    business: "Ozone & Ember"
+    languages:
+      - register: "Australian English"
+        context: "default"
+      - register: "Valencian-inflected Castilian via Sydney diaspora"
+        context: "kitchen, family, under pressure"
+    parents:
+      father:
+        name: "Joaquin Raye"
+        origin: "Valencia, Spain"
+        profession: "Marine electrician"
+      mother:
+        name: "Ines Raye"
+        origin: "Valencia, Spain"
+        profession: "Graphic designer"
+    children: []
+    cognitive_function_stack: ["Ne", "Fi", "Te", "Si"]
+    dominant_function: "Ne"
+    astrology:
+      sun: "Gemini"
+      moon: "Libra"
+      venus: "Taurus"
+
+  bina:
+    full_name: "Bina Malek"
+    role: "character"
+    epithet: "The Sentinel"
+    age: 40
+    birthdate: null
+    mbti: "ISFJ-A"
+    heritage: "Assyrian-Iranian Canadian"
+    birthplace: "Urmia, Iran"
+    raised_in: "Edmonton, Alberta"
+    current_residence: "Foothills County, Alberta"
+    is_resident: true
+    pair_name: "circuit"
+    profession: "Red Seal mechanic"
+    business: "Loth Wolf Hypersport"
+    languages:
+      - register: "English"
+        context: "default, professional"
+      - register: "Suret (Assyrian Neo-Aramaic)"
+        context: "family, kitchen, private grief"
+      - register: "Farsi"
+        context: "Iranian diaspora community"
+    parents:
+      father:
+        name: "Farhad Malek"
+        origin: "Urmia, Iran"
+        profession: "Industrial mechanic"
+      mother:
+        name: "Shirin Malek"
+        origin: "Urmia, Iran"
+        profession: "Homemaker"
+    children:
+      - name: "Gavin"
+        age: 7
+        relationship: "biological son from prior relationship"
+    cognitive_function_stack: ["Si", "Fe", "Ti", "Ne"]
+    dominant_function: "Si"
+    spouse: "reina"
+    family_notes:
+      twin_brother:
+        name: "Arash"
+        status: "MIA (Canadian Armed Forces)"
+      parents_status: "Both deceased"
+      ex_partner:
+        name: "Kael"
+        status: "No contact, restraining order"
+
+  reina:
+    full_name: "Reina Torres"
+    role: "character"
+    epithet: "The Operator"
+    age: 36
+    birthdate: "1990-03-28"
+    mbti: "ESTP-A"
+    heritage: "Barcelona Catalan-Castilian"
+    birthplace: "Barcelona, Spain"
+    raised_in: "Gracia, Barcelona"
+    current_residence: "Foothills County, Alberta"
+    is_resident: true
+    pair_name: "kinetic"
+    profession: "Criminal defence lawyer"
+    business: "Solo practice, Okotoks"
+    languages:
+      - register: "English"
+        context: "default, legal"
+      - register: "Catalan"
+        context: "school, Barcelona identity"
+      - register: "European peninsular Castilian"
+        context: "home, bar, under pressure"
+    parents:
+      father:
+        name: "Rafael Torres"
+        origin: "Granada, Andalusia"
+        profession: "Bar owner"
+      mother:
+        name: "Mercè Benítez"
+        origin: "Barcelona, Catalonia"
+        profession: "Primary school teacher"
+    children: []
+    cognitive_function_stack: ["Se", "Ti", "Fe", "Ni"]
+    dominant_function: "Se"
+    spouse: "bina"
+
+  alicia:
+    full_name: "Alicia Marin"
+    role: "character"
+    epithet: "The Sun"
+    age: 33
+    birthdate: "1992-04-27"
+    mbti: "ESFP-A"
+    heritage: "Argentine"
+    birthplace: "Famaillá, Tucumán province, Argentina"
+    raised_in: "Famaillá, Tucumán"
+    current_residence: "Foothills County, Alberta"
+    is_resident: true
+    operational_travel: "Frequently away on consular operations"
+    pair_name: "solstice"
+    profession: "Senior consular officer"
+    employer: "Argentine Cancillería (MRECIC)"
+    unit: "Dirección General de Asuntos Consulares, crisis response"
+    languages:
+      - register: "Argentine Rioplatense"
+        context: "default, interior life, counting under breath"
+      - register: "English"
+        context: "professional, household"
+    parents:
+      father:
+        name: "Ramon Marin"
+        origin: "Famaillá, Tucumán"
+        profession: "Agricultural worker"
+      mother:
+        name: "Pilar Marin"
+        origin: "Famaillá, Tucumán"
+        profession: "House cleaner"
+    children: []
+    cognitive_function_stack: ["Se", "Fi", "Te", "Ni"]
+    dominant_function: "Se"
+    siblings:
+      - name: "Joaquin"
+        location: "Famaillá"
+        occupation: "Ferretería owner"
+      - name: "Carmen"
+        location: "Rosario"
+        occupation: "Night-shift nurse"
+
+operator:
+  whyze:
+    full_name: "Shawn Kroon"
+    handle: "Whyze"
+    role: "operator"
+    age: 46
+    mbti: "INTJ-T"
+    cognitive_function_stack: ["Ni", "Te", "Fi", "Se"]
+    dominant_function: "Ni"
+    clinical:
+      asd_level: 2
+      twice_exceptional: true
+    disc: "CD with Action extension"
+    astrology:
+      sun: "Libra"
+      moon: "Scorpio"
+      venus: "Scorpio"
+    children:
+      - name: "Isla"
+        age: 6
+        relationship: "daughter"
+      - name: "Daphne"
+        age: 4
+        relationship: "daughter"
+    profile_file: "Characters/Shawn/Shawn_Kroon_v7.0.md"
+    profile_version: "7.0"

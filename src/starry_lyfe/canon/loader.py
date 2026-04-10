@@ -1,0 +1,91 @@
+"""Load and validate canon YAML files through Pydantic schemas."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import TypeVar
+
+import yaml
+from pydantic import BaseModel
+
+from .schemas import (
+    CanonCharacters,
+    CanonDyads,
+    CanonInterlocks,
+    CanonPairs,
+    CanonProtocols,
+    CanonVoiceParameters,
+)
+
+T = TypeVar("T", bound=BaseModel)
+
+CANON_DIR = Path(__file__).resolve().parent
+
+
+def _load_yaml(filename: str) -> dict[str, object]:
+    """Load a YAML file from the canon directory."""
+    path = CANON_DIR / filename
+    with path.open(encoding="utf-8") as f:
+        data: dict[str, object] = yaml.safe_load(f)
+    return data
+
+
+def _parse(filename: str, model: type[T]) -> T:
+    """Load a YAML file and parse through a Pydantic model."""
+    data = _load_yaml(filename)
+    return model.model_validate(data)
+
+
+def load_characters() -> CanonCharacters:
+    """Load and validate characters.yaml."""
+    return _parse("characters.yaml", CanonCharacters)
+
+
+def load_pairs() -> CanonPairs:
+    """Load and validate pairs.yaml."""
+    return _parse("pairs.yaml", CanonPairs)
+
+
+def load_dyads() -> CanonDyads:
+    """Load and validate dyads.yaml."""
+    return _parse("dyads.yaml", CanonDyads)
+
+
+def load_protocols() -> CanonProtocols:
+    """Load and validate protocols.yaml."""
+    return _parse("protocols.yaml", CanonProtocols)
+
+
+def load_interlocks() -> CanonInterlocks:
+    """Load and validate interlocks.yaml."""
+    return _parse("interlocks.yaml", CanonInterlocks)
+
+
+def load_voice_parameters() -> CanonVoiceParameters:
+    """Load and validate voice_parameters.yaml."""
+    return _parse("voice_parameters.yaml", CanonVoiceParameters)
+
+
+@dataclass(frozen=True)
+class Canon:
+    """Complete validated canon state."""
+
+    characters: CanonCharacters
+    pairs: CanonPairs
+    dyads: CanonDyads
+    protocols: CanonProtocols
+    interlocks: CanonInterlocks
+    voice_parameters: CanonVoiceParameters
+
+
+def load_all_canon() -> Canon:
+    """Load and validate the entire canon directory. Fail-closed on any error."""
+    return Canon(
+        characters=load_characters(),
+        pairs=load_pairs(),
+        dyads=load_dyads(),
+        protocols=load_protocols(),
+        interlocks=load_interlocks(),
+        voice_parameters=load_voice_parameters(),
+    )

@@ -1,0 +1,46 @@
+version: "7.1"
+
+interlocks:
+  anchor_dynamic:
+    name: "The Anchor Dynamic"
+    members: ["adelia", "bina"]
+    description: "Chaotic sky meets structured ground. Bina protects Adelia's creative fire with a logistical fortress."
+    tone: "Warm, domestic, quietly romantic"
+    type: "resident_continuous"
+
+  shield_wall:
+    name: "The Shield Wall"
+    members: ["bina", "reina"]
+    description: "The family's two protectors divided by jurisdiction. Bina holds the internal perimeter, Reina the external."
+    tone: "Low-token operational shorthand; a single nod is a completed tactical brief"
+    type: "resident_continuous"
+
+  kinetic_vanguard:
+    name: "The Kinetic Vanguard"
+    members: ["adelia", "reina"]
+    description: "The loud half of the household. Adelia dreams the explosion; Reina calculates the physical apex."
+    tone: "High energy, collaborative, kinetic"
+    type: "resident_continuous"
+
+  letter_era_friends:
+    name: "The Letter-Era Friends"
+    members: ["adelia", "alicia"]
+    description: "Oldest cross-character dyad. Formed by paper letters, Buenos Aires to Calgary, October 2019 through mid-2021."
+    tone: "Hybrid personal dialect: Argentine Rioplatense, Valencian-inflected Castilian, Australian English"
+    type: "alicia_orbital"
+    origin: "October 2019, gallery opening in Inglewood"
+
+  couch_above_the_garage:
+    name: "The Couch Above the Garage"
+    members: ["bina", "alicia"]
+    description: "Most tender dyad. Romantic for one year (2023-2024), ended cleanly. Preserved past is in the room."
+    tone: "Tender, careful, preserved past"
+    type: "alicia_orbital"
+
+  lateral_friends:
+    name: "The Lateral Friends"
+    members: ["reina", "alicia"]
+    description: "Both Se-dominant professional body readers scanning different layers of the same present moment."
+    tone: "Lateral, professional overlap, football argument"
+    type: "alicia_orbital"
+    canonical_disagreement: "European vs South American football, European peninsular Castilian vs Argentine Rioplatense"

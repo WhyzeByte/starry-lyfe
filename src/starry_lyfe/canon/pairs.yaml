@@ -1,0 +1,46 @@
+version: "7.1"
+
+pairs:
+  entangled:
+    character: "adelia"
+    full_name: "The Entangled Pair"
+    classification: "Intuitive Symbiosis"
+    shared_functions: "Fi-Te axis (direct bridge)"
+    mechanism: "Complementary cognitive interlock"
+    what_she_provides: "Emotional buoyancy, divergent ideation, the destination"
+    how_she_breaks_spiral: "Injects warmth and play (Ne)"
+    core_metaphor: "The Compass and the Gravity"
+    cadence: "continuous"
+
+  circuit:
+    character: "bina"
+    full_name: "The Circuit Pair"
+    classification: "Orthogonal Opposition"
+    shared_functions: "Zero (Superego relation)"
+    mechanism: "Total division of operational domains"
+    what_she_provides: "Physical grounding, diagnostic care, the road"
+    how_she_breaks_spiral: "Interrupts with concrete sensory input (Si)"
+    core_metaphor: "The Architect and the Sentinel"
+    cadence: "continuous"
+
+  kinetic:
+    character: "reina"
+    full_name: "The Kinetic Pair"
+    classification: "Asymmetrical Leverage"
+    shared_functions: "Se-Ni axis (compensatory)"
+    mechanism: "Temporal collision converted to engine heat"
+    what_she_provides: "Tactical execution, clean incision, the immediate action"
+    how_she_breaks_spiral: "Closes distance and delivers one clean-incision sentence (Se, tactical)"
+    core_metaphor: "The Mastermind and the Operator"
+    cadence: "continuous"
+
+  solstice:
+    character: "alicia"
+    full_name: "The Solstice Pair"
+    classification: "Complete Jungian Duality"
+    shared_functions: "Zero shared (full inversion)"
+    mechanism: "Inferior-function gift exchange through dominant mastery"
+    what_she_provides: "Direct polyvagal co-regulation, somatic present-moment re-entry"
+    how_she_breaks_spiral: "Closes distance, delivers weight and warmth, counts his breath against hers (Se, somatic)"
+    core_metaphor: "The Duality"
+    cadence: "intermittent"
