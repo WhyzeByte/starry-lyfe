@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from starry_lyfe.canon import validator as canon_validator
 from starry_lyfe.canon.loader import load_all_canon
 from starry_lyfe.canon.schemas.dyads import DimensionBaseline, Dyad, DyadDimensions
-from starry_lyfe.canon.schemas.enums import CharacterID, DyadType, PairName
+from starry_lyfe.canon.schemas.enums import CharacterID, DyadType, InterlockType, PairName
 from starry_lyfe.canon.schemas.interlocks import Interlock
 from starry_lyfe.canon.schemas.protocols import (
     ALLOWED_PROTOCOL_EXTENSION_SOURCES,
@@ -178,7 +178,7 @@ def test_interlock_rejects_duplicate_members() -> None:
             members=["bina", "bina"],
             description="test",
             tone="test",
-            type="resident_continuous",
+            type=InterlockType.RESIDENT_CONTINUOUS,
         )
 
 

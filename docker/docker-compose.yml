@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: starry-lyfe-db
+    environment:
+      POSTGRES_DB: starry_lyfe
+      POSTGRES_USER: starry_lyfe
+      POSTGRES_PASSWORD: changeme
+    ports:
+      - "5432:5432"
+    volumes:
+      - starry-lyfe-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U starry_lyfe -d starry_lyfe"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - starry-lyfe-net
+
+volumes:
+  starry-lyfe-pgdata:
+
+networks:
+  starry-lyfe-net:

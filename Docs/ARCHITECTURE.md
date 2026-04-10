@@ -1,47 +1,75 @@
 # Starry-Lyfe v7.1 Architecture
 
-**Version:** 0.2.0
+**Version:** 0.3.0
 
 ## Overview
 
-Starry-Lyfe is a character AI backend for four v7.1 persona kernels (Adelia Raye, Bina Malek, Reina Torres, Alicia Marin). Phase 1 (current) establishes the canon YAML single source of truth with Pydantic v2 validation and drift prevention. Planned later phases will add: memory service (Phase 2), context assembly (Phase 3), Whyze-Byte validation (Phase 4), scene director (Phase 5), Dreams engine (Phase 6), and HTTP service on port 8001 (Phase 7).
+Starry-Lyfe is a character AI backend for four v7.1 persona kernels (Adelia Raye, Bina Malek, Reina Torres, Alicia Marin). Current implementation covers Phase 1 (canon YAML) and Phase 2 (memory service). Planned later phases: context assembly (Phase 3), Whyze-Byte validation (Phase 4), scene director (Phase 5), Dreams engine (Phase 6), HTTP service on port 8001 (Phase 7).
 
 ## Module Registry
 
-### `src/starry_lyfe/canon/` -- Single Source of Truth
+### `src/starry_lyfe/canon/` -- Single Source of Truth (Phase 1)
 
 | Module | Purpose | Protocol Droid |
 |--------|---------|---------------|
-| `canon/__init__.py` | Package marker | -- |
-| `canon/loader.py` | Load YAML files through Pydantic schemas; `load_all_canon()` returns typed `Canon` object | GNK (config) |
-| `canon/validator.py` | Cross-file referential integrity; count assertions; CLI entry point | GNK (config) |
-| `canon/schemas/__init__.py` | Re-exports root schema models | -- |
-| `canon/schemas/enums.py` | Shared StrEnum types: CharacterID, PairName, MBTIType, CognitiveFunction, ThinkingEffort, DyadType, DyadSubtype, PairCadence, InterlockType, ProtocolCategory | -- |
-| `canon/schemas/characters.py` | `CanonCharacters` model: 4 characters + 1 operator | -- |
-| `canon/schemas/pairs.py` | `CanonPairs` model: 4 Whyze-to-character pairs | -- |
-| `canon/schemas/dyads.py` | `CanonDyads` model: 10 dyads + 7 memory tier definitions | -- |
-| `canon/schemas/protocols.py` | `CanonProtocols` model: 12+ named protocols with Vision section 7 validation | -- |
-| `canon/schemas/interlocks.py` | `CanonInterlocks` model: 6 cross-partner interlocks | -- |
-| `canon/schemas/voice_parameters.py` | `CanonVoiceParameters` model: per-character inference parameters | -- |
+| `canon/loader.py` | Load YAML files through Pydantic schemas; `load_all_canon()` returns typed `Canon` object | GNK |
+| `canon/validator.py` | Cross-file referential integrity; count assertions; CLI entry point | GNK |
+| `canon/schemas/enums.py` | Shared StrEnum types for all canon models | -- |
+| `canon/schemas/characters.py` | `CanonCharacters`: 4 characters + 1 operator | -- |
+| `canon/schemas/pairs.py` | `CanonPairs`: 4 Whyze-to-character pairs | -- |
+| `canon/schemas/dyads.py` | `CanonDyads`: 10 dyads + 7 memory tier definitions | -- |
+| `canon/schemas/protocols.py` | `CanonProtocols`: 12+ protocols with Vision section 7 validation | -- |
+| `canon/schemas/interlocks.py` | `CanonInterlocks`: 6 cross-partner interlocks | -- |
+| `canon/schemas/voice_parameters.py` | `CanonVoiceParameters`: per-character inference parameters | -- |
+
+### `src/starry_lyfe/db/` -- Memory Service (Phase 2)
+
+| Module | Purpose | Protocol Droid |
+|--------|---------|---------------|
+| `db/base.py` | SQLAlchemy DeclarativeBase, `starry_lyfe` schema constant | -- |
+| `db/config.py` | Database and embedding settings from env vars | GNK |
+| `db/engine.py` | Async engine, session factory, pgvector init, lifecycle | R5 |
+| `db/models/canon_facts.py` | Tier 1: Canon Facts (immutable, seeded from YAML) | R5 |
+| `db/models/character_baseline.py` | Tier 2: Character Baselines (immutable at runtime) | R5 |
+| `db/models/dyad_state_whyze.py` | Tier 3: Dyad State Whyze (4 dyads, 5 dimensions) | R5 |
+| `db/models/dyad_state_internal.py` | Tier 4: Dyad State Internal (6 dyads, Alicia-orbital persistence) | R5 |
+| `db/models/episodic_memory.py` | Tier 5: Episodic Memories (pgvector embeddings, HNSW index) | R5 |
+| `db/models/open_loop.py` | Tier 6: Open Loops (TTL, resolution, expiry) | R5 |
+| `db/models/transient_somatic.py` | Tier 7: Transient Somatic State (exponential decay) | R5 |
+| `db/decay.py` | Exponential decay pure function for Tier 7 | -- |
+| `db/embed.py` | EmbeddingService protocol + Ollama implementation | BD-1 |
+| `db/seed.py` | Canon YAML to DB seeding pipeline (Tiers 1-4, 7) | R5, GNK |
+| `db/retrieval.py` | Per-tier retrieval API with read-time decay | R5 |
 
 ### Canon YAML Files
 
 | File | Contents |
 |------|----------|
 | `characters.yaml` | 4 characters (Adelia, Bina, Reina, Alicia) + operator (Whyze) |
-| `pairs.yaml` | 4 pairs (Entangled, Circuit, Kinetic, Solstice) from Vision section 5 |
+| `pairs.yaml` | 4 pairs (Entangled, Circuit, Kinetic, Solstice) |
 | `dyads.yaml` | 10 dyads (6 inter-woman + 4 Whyze) + 7 memory tier definitions |
 | `protocols.yaml` | 13 named protocols (12 Vision section 7 + Warlord Mode) |
-| `interlocks.yaml` | 6 cross-partner interlocks from Vision section 6 |
-| `voice_parameters.yaml` | Per-character temperature, thinking effort, sampling parameters |
+| `interlocks.yaml` | 6 cross-partner interlocks |
+| `voice_parameters.yaml` | Per-character temperature, thinking effort, sampling |
 
 ## Data Model
 
-Phase 1 defines canonical structured data. Database schema (Phase 2) and context assembly (Phase 3) are pending.
+Seven memory tiers in PostgreSQL schema `starry_lyfe`:
+
+| Tier | Table | Mutability | Row Count |
+|------|-------|-----------|-----------|
+| 1 | `canon_facts` | Immutable | N (flattened canon) |
+| 2 | `character_baselines` | Immutable at runtime | 4 |
+| 3 | `dyad_state_whyze` | Mutable (episodic extraction) | 4 |
+| 4 | `dyad_state_internal` | Mutable (episodic extraction) | 6 |
+| 5 | `episodic_memories` | Mutable (grows, decays) | Variable |
+| 6 | `open_loops` | Mutable (TTL expiry) | Variable |
+| 7 | `transient_somatic_states` | Mutable (exponential decay) | 4 |
 
 ## Infrastructure
 
-- Python 3.11+, Pydantic v2, PyYAML
-- mypy --strict, ruff, pytest
-- Port 8001 (Phase 7)
-- PostgreSQL + pgvector (Phase 2)
+- Python 3.11+, Pydantic v2, SQLAlchemy 2.0+ async, asyncpg, pgvector
+- PostgreSQL 16 via Docker (pgvector/pgvector:pg16)
+- Alembic for migrations
+- mypy --strict, ruff, pytest, pytest-asyncio
+- Embedding via Ollama API (nomic-embed-text, 768 dimensions)

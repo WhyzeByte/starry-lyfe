@@ -1,0 +1,56 @@
+name: Phase 2 Gate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: starry_lyfe
+          POSTGRES_USER: starry_lyfe
+          POSTGRES_PASSWORD: changeme
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U starry_lyfe -d starry_lyfe"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      STARRY_LYFE__DB__HOST: localhost
+      STARRY_LYFE__DB__PORT: "5432"
+      STARRY_LYFE__DB__NAME: starry_lyfe
+      STARRY_LYFE__DB__USER: starry_lyfe
+      STARRY_LYFE__DB__PASSWORD: changeme
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install -e .
+
+      - name: Run Alembic migrations
+        run: python -m alembic upgrade head
+
+      - name: Seed database
+        run: python -m starry_lyfe.db.seed
+
+      - name: Run integration tests
+        run: python -m pytest tests/integration -v

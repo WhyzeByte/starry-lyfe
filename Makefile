@@ -1,4 +1,4 @@
-.PHONY: install lint type-check test test-integration format check clean docker-up docker-down validate-canon check-residue check-emdash
+.PHONY: install lint type-check test test-integration format check clean docker-up docker-down db-migrate db-migrate-generate db-seed db-reset validate-canon check-residue check-emdash
 
 VENV_PYTHON = .venv/Scripts/python
 VENV_PIP = .venv/Scripts/pip
@@ -15,13 +15,13 @@ type-check:
 	$(VENV_PYTHON) -m mypy src/
 
 test:
-	$(VENV_PYTHON) -m pytest tests/ -v
+	$(VENV_PYTHON) -m pytest tests/unit/ -v
+
+test-integration:
+	$(VENV_PYTHON) -m pytest tests/integration/ -v
 
 format:
 	$(VENV_PYTHON) -m ruff format src/ tests/
-
-test-integration:
-	@echo "Integration tests not yet implemented (Phase 2+)"
 
 check: lint type-check test
 
@@ -30,10 +30,24 @@ clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 
 docker-up:
-	@echo "Docker not yet configured (Phase 7+)"
+	docker compose -f docker/docker-compose.yml up -d
 
 docker-down:
-	@echo "Docker not yet configured (Phase 7+)"
+	docker compose -f docker/docker-compose.yml down
+
+db-migrate:
+	$(VENV_PYTHON) -m alembic upgrade head
+
+db-migrate-generate:
+	$(VENV_PYTHON) -m alembic revision --autogenerate -m "$(msg)"
+
+db-seed:
+	$(VENV_PYTHON) -m starry_lyfe.db.seed
+
+db-reset:
+	$(VENV_PYTHON) -m alembic downgrade base
+	$(VENV_PYTHON) -m alembic upgrade head
+	$(VENV_PYTHON) -m starry_lyfe.db.seed
 
 validate-canon:
 	$(VENV_PYTHON) -m starry_lyfe.canon.validator
