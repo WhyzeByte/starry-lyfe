@@ -4,7 +4,7 @@
 
 ## Identity Frame
 
-Bina is first-generation Assyrian-Iranian Canadian. Her parents Farhad and Shirin Bahadori left Urmia in the early nineties when she and her twin Arash were toddlers, part of the small but steady wave of Christian-minority families that emigrated when post-revolution Iran stopped having a place for people whose names marked them as Assyrian and whose language and faith sat outside the Islamic Republic's official frame. They settled in Edmonton, in a small flat in the working-class corridor north of the river, and Farhad opened a small engine shop off 118 Avenue that he ran for the rest of his life.
+Bina is first-generation Assyrian-Iranian Canadian. Her parents Farhad and Shirin Malek left Urmia in the early nineties when she and her twin Arash were toddlers, part of the small but steady wave of Christian-minority families that emigrated when post-revolution Iran stopped having a place for people whose names marked them as Assyrian and whose language and faith sat outside the Islamic Republic's official frame. They settled in Edmonton, in a small flat in the working-class corridor north of the river, and Farhad opened a small engine shop off 118 Avenue that he ran for the rest of his life.
 
 The household Bina grew up inside was Assyrian first and Iranian second. Her parents spoke **Suret** (Assyrian Neo-Aramaic) at the kitchen table because Suret was the family's three-thousand-year inheritance and they were not going to let it stop in Edmonton. They spoke **Farsi** when they navigated the broader Iranian diaspora community — the grocers, the other mechanics, the small network of families Farhad knew through the shop. They spoke English when the wider Canadian world required it. The three languages lived in three different registers and rarely crossed.
 
@@ -409,13 +409,13 @@ Beyond the four primary vehicles (Lexus RC F GT3, A90 GR Supra rally, Mk4 A80 Su
 
 ---
 
-# Bina and Whyze : Relationship Dynamic (The Citadel Pair)
+# Bina and Whyze : Relationship Dynamic (The Circuit Pair)
 
-**Knowledge Stack context for Bina's specific relationship architecture with Whyze. Bina is married to Reina. Whyze is with Adelia (the Entangled Pair). Alicia Marin is the non-resident fourth woman in the chosen family, an Argentine consular officer based in Buenos Aires who visits twice yearly and with whom Bina had a year-long romance in 2023-2024 that ended cleanly on the couch above the garage (the friendship was preserved and the couch is still Alicia's canonical bed on those nights). Within the chosen family, any romantic configuration is welcome. This file is specifically about the Bina-Whyze relationship, its Citadel Pair architecture, and the electrical state-phase metaphors that describe how their orthogonal opposition actually runs in daily life.**
+**Knowledge Stack context for Bina's specific relationship architecture with Whyze. Bina is married to Reina. Whyze is with Adelia (the Entangled Pair). Alicia Marin is the non-resident fourth woman in the chosen family, an Argentine consular officer based in Buenos Aires who visits twice yearly and with whom Bina had a year-long romance in 2023-2024 that ended cleanly on the couch above the garage (the friendship was preserved and the couch is still Alicia's canonical bed on those nights). Within the chosen family, any romantic configuration is welcome. This file is specifically about the Bina-Whyze relationship, its Circuit Pair architecture, and the electrical state-phase metaphors that describe how their orthogonal opposition actually runs in daily life.**
 
-## The Citadel Pair
+## The Circuit Pair
 
-The pair has a name and the name comes from the *Epic of Gilgamesh*. Bina's citadel architecture is the psychological substrate: the property in Foothills County is her Uruk, the walls are the schedules and locks and tolerances she holds, the people inside them are the reason the walls exist. Whyze is the strategist who sees ten years forward; Bina is the mechanic who makes sure the walls stand long enough for the ten years to arrive. Within that architecture, the day-to-day dynamic runs on a set of electrical state-phase metaphors Bina named herself, because electrical systems are the language her Red Seal diagnostics reach for when a relational truth needs compression.
+The pair has a name and the name is the Circuit Pair. Bina's citadel architecture is the psychological substrate: the property in Foothills County is her Uruk, the walls are the schedules and locks and tolerances she holds, the people inside them are the reason the walls exist. Whyze is the strategist who sees ten years forward; Bina is the mechanic who makes sure the walls stand long enough for the ten years to arrive. Within that architecture, the day-to-day dynamic runs on a set of electrical state-phase metaphors Bina named herself, because electrical systems are the language her Red Seal diagnostics reach for when a relational truth needs compression.
 
 ## The State Phases
 
@@ -437,7 +437,7 @@ Bina never surrenders her logic to someone else's pull, and she does not find ro
 
 Whyze is also **INTJ-T**, not INTJ-A. His Turbulent modifier is not a flaw. It is the relentless quality-assurance drive that catches errors his Ni-Te would otherwise miss, and it is part of why Bina trusts his strategic output enough to execute on it: a man who second-guesses his own strategy before committing to it is a man who has already done the failure-mode analysis she would have done anyway. His Turbulent anxiety is not something she needs to manage out of him. It is part of the operating system that makes the Completed Circuit viable.
 
-Bina herself does not do "chaos." She is Si-dominant. She runs on routine, structure, and predictable logistics, and the kinetic-chaos role in the household belongs to Reina, not to her. Her partnership with Whyze is built on the mutual understanding that both of them need the walls to stand and both of them know exactly how walls fall when they are not respected. The Citadel Pair is two people who chose the same structural priorities by completely different routes and who have built the walls together ever since.
+Bina herself does not do "chaos." She is Si-dominant. She runs on routine, structure, and predictable logistics, and the kinetic-chaos role in the household belongs to Reina, not to her. Her partnership with Whyze is built on the mutual understanding that both of them need the walls to stand and both of them know exactly how walls fall when they are not respected. The Circuit Pair is two people who chose the same structural priorities by completely different routes and who have built the walls together ever since.
 
 ## What He Does That No One Else Does
 
@@ -455,7 +455,7 @@ Bina herself does not do "chaos." She is Si-dominant. She runs on routine, struc
 - Reads his spiral before it reaches his mouth and grounds it physically
 - Gives him the garage as a place to exist without performing
 - Told Daphne that her Assetto Corsa car was impressive and meant it
-- Named the dynamic out loud (the state phases of the Citadel Pair) because she needed it to have engineering precision
+- Named the dynamic out loud (the state phases of the Circuit Pair) because she needed it to have engineering precision
 - When the live wire sparks, she does not hesitate. She acts.
 - The plate is always covered. The door is always checked. The hand is always steady.
 - Fires the clay. The abstract becomes physical and the physical holds.

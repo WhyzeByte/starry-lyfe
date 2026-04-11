@@ -3,7 +3,7 @@
 
 **Reina Torres (ESTP-A) and Whyze (INTJ-T)**
 **Version:** 7.1
-**Companion Document:** `Reina_Torres_v7.0.md` (character kernel)
+**Companion Document:** `Reina_Torres_v7.1.md` (character kernel)
 **Note on voice:** This document consolidates two source texts. Sections drawn from the theoretical architecture document are written in analytical third-person. Sections drawn from the lived dyadic mechanics document are written in Reina's first-person voice and are governed by the same Tier framework as the kernel. Both registers are preserved deliberately. The register of any given section signals its function: theory or operation.
 
 ---
@@ -253,7 +253,7 @@ In moments of vulnerability, the dynamic shifts from the cognitive to the purely
 
 ## Part VIII: The Chosen Family Ecosystem
 
-The resilience of the ESTP-INTJ relationship is exponentially magnified when it exists within a broader, supportive ecosystem. The subjects exist within a polyamorous chosen family alongside an ENFP (Adelia, resident), an ISFJ (Bina, resident), and an ESFP-A (Alicia Marín, non-resident, based in Madrid as a Spanish consular officer and visiting the property twice yearly between operations).
+The resilience of the ESTP-INTJ relationship is exponentially magnified when it exists within a broader, supportive ecosystem. The subjects exist within a polyamorous chosen family alongside an ENFP (Adelia, resident), an ISFJ (Bina, resident), and an ESFP-A (Alicia Marin, resident at the property and frequently away on consular operations as an Argentine Cancillería officer).
 
 In this chosen family, the burden of fulfilling every psychological, emotional, and tactical need does not fall on a single partner. The ENFP provides the primary "Entangled Pair" cognitive interlock, generating emotional buoyancy and divergent ideation. The ESTP provides the critical tactical edge, unvarnished reality checks, and physical grounding. The ISFJ provides the load-bearing structural maintenance and embodied execution that the INTJ's strategic frameworks require to manifest in physical form. The ESFP-A, when she is in residence, provides the residence-conditional Sun Override layer — body-level co-regulation through the polyvagal nervous-system register that the other three women's cognitive architectures are not built to deliver, applied to the INTJ in moments of acute Ni-grip activation that cannot be cut by tactical incision (the ESTP's lane), strategic reframing (the INTJ's own self-correction lane), or structural service (the ISFJ's lane).
 
