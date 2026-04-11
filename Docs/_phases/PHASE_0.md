@@ -4,8 +4,8 @@
 **Phase identifier:** `0`
 **Depends on:** nothing (this is the entry phase)
 **Blocks:** Phase A, Phase A', Phase A'', Phase B, Phase I, Phase C, Phase D, Phase E, Phase F, Phase G, Phase J.1-J.4, Phase H, Phase K (everything)
-**Status:** READY FOR CODEX AUDIT (Round 1)
-**Last touched:** 2026-04-11 by Claude Code (Step 2 complete, handed to Codex)
+**Status:** READY FOR CLAUDE AI QA (Round 1 remediation complete, Path A)
+**Last touched:** 2026-04-11 by Claude Code (Step 4 Round 1 remediation complete, handed to Claude AI for QA)
 
 **Special note for Phase 0:** This is the entry phase. There is no previous phase file. Claude AI created this file as part of the workflow setup, before the cycle has actually run for any other phase. Once Phase 0 ships, all subsequent phase files will be created by Claude AI only after the previous phase has been QA-approved and Project Owner agreement to proceed has been recorded.
 
@@ -29,6 +29,8 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 4 | 2026-04-11 | Project Owner | Claude Code | Plan APPROVED via "Proceed" in chat; Claude Code recommendations adopted on Q1 (fix Bina §5 in-phase), Q2/D1 (add `Aliyeh` to drift grep), Q3 (line-level evidence), Q4 (defer `_phase_status.md`); proceed to Step 2 execution |
 | 5 | 2026-04-11 | Project Owner | Claude Code | Vision rewrite delivered mid-Step-2; Claude Code re-verified and replanned. Plan re-approved with decisions on Q6 (all edits in Phase 0), Q7 (fix Reina directive file), Q8 (normalize kernel diacritics), Q9 (defer master plan update to Phase A'). Project Owner directive: Alicia lives with chosen family, no resident/non-resident framing anywhere, pair names must match pair file markdown filenames. |
 | 6 | 2026-04-11 | Claude Code | Codex | Phase 0 execution complete across 10 commits (dc085d5 → final). AC1-AC4 all MET. Residue-grep automated test passes. Ready for audit Round 1. |
+| 7 | 2026-04-11 | Codex | Claude Code | Audit Round 1 complete. 0 Critical, 0 High, 1 Medium, 1 Low. Live files satisfy AC1-AC4, but the Phase 0 artifact trail overstates automation coverage and still carries stale pre-remediation report state. Ready for minor remediation. |
+| 8 | 2026-04-11 | Claude Code | Claude AI | Remediation Round 1 complete (Path A, clean). F1 FIXED via PHASE_0.md:181 language softening (authoritative-signal claim replaced with src/-only scope note + Phase A' automation gap item). F2 FIXED via verification report header + §1 SUPERSEDED marker (historical sections preserved; §11 declared authoritative). No new architectural surface; skipping re-audit, handing directly to Claude AI QA. |
 
 (Append one row per handshake event. Never delete rows.)
 
@@ -177,7 +179,7 @@ If the Project Owner intended any narrower scope, this is the field to record a 
 | `Vision/` | 11 | 11 (8 in per-character directive files, 3 in Appendix A version history lines 179/181/185) | **0** |
 | `Docs/` | all exempt | all exempt (meta references in master plan spec, changelog entries, this phase file, workflow handoff doc, archive) | **0** |
 
-The automated residue-grep test `tests/unit/test_residue_grep.py::test_v70_residue_grep_returns_zero_matches` was run via `.venv/Scripts/python -m pytest` and **PASSED**. This is the authoritative signal that AC1 is met.
+The automated residue-grep test `tests/unit/test_residue_grep.py::test_v70_residue_grep_returns_zero_matches` was run via `.venv/Scripts/python -m pytest` and **PASSED**. This test provides regression coverage for `src/` only (`_scan_src_for_residue(src_dir)` traverses `src_dir` exclusively), which is narrower than the full Phase 0 AC1 scope of `src/ + Characters/ + Vision/ + Docs/`. The authoritative evidence for AC1 across the broader scope is the four-row drift grep results table above, populated by manual `rg` passes with the documented exclusions. Closing the automation gap — adding a checked-in repo-wide residue verifier that covers `src/ + Characters/ + Vision/` with the same exclusion list used by the Phase 0 manual pass — is tracked as a Phase A' follow-up work item.
 
 **Vision-vs-kernel comparison results:**
 
@@ -250,60 +252,148 @@ These are Project Owner's in-progress work that predates this session and falls 
 
 ## Step 3: Audit (Codex) — Round 1
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE — handed to Claude Code for remediation Round 1]**
 **Owner:** Codex
 **Prerequisite:** Step 2 execution complete with handshake to Codex
 **Reads:** Master plan §3, the plan and execution log above, the verification report Claude Code produced, the four archived character conversion audits in `Docs/_archive/` for template reference
 
 ### Audit content
 
-_Codex fills in. For Phase 0 specifically, the audit focuses on:_
+#### Scope
 
-- **Independent re-run of the drift grep:** Did Claude Code grep all the right paths? Did Claude Code use the canonical token list including the Reina audit additions? Does Codex's grep produce the same results?
-- **Vision-vs-kernel comparison spot-check:** Pick at least one character and verify Claude Code's comparison was accurate.
-- **Canon YAML cross-check:** Independently load `characters.yaml` and verify field values match the kernels.
-- **Adversarial scenarios constructed for Phase 0:**
-  1. Insert a synthetic v7.0 token in a test file outside the excluded paths and re-run the grep to confirm it would be caught
-  2. Create a synthetic Vision-vs-kernel mismatch in a temporary branch and confirm the comparison detects it
-  3. Create a synthetic canon YAML field mismatch and confirm the canon check catches it
-- **Findings:**
+Reviewed:
+
+- `Docs/IMPLEMENTATION_PLAN_v7.1.md` §3 (Phase 0 specification)
+- `Docs/_phases/PHASE_0.md` Step 1 and Step 2
+- `Docs/Phase_0_Verification_Report_2026-04-11.md` including §11 addendum
+- `Docs/Claude_Code_Handoff_v7.1.md` §8.1 token list
+- `tests/unit/test_residue_grep.py`
+- Live canon files touched by the remediation:
+  - `Vision/Starry-Lyfe_Vision_v7.1.md`
+  - `Characters/{Adelia,Bina,Reina,Alicia}/*_v7.1.md`
+  - `Characters/Bina/Bina_Malek_Knowledge_Stack.md`
+  - `Characters/Reina/Reina_Torres_Knowledge_Stack.md`
+  - `src/starry_lyfe/canon/characters.yaml`
+
+#### Verification context
+
+Independent checks run during audit:
+
+- `python -m pytest tests/unit/test_residue_grep.py -q` → **PASS**
+- Targeted `rg` over `src/`, `Characters/`, and `Vision/` for the Phase 0 residue tokens, with the same exclusions Claude Code documented, returned only the expected Appendix A references in `Vision/Starry-Lyfe_Vision_v7.1.md`
+- Direct spot-checks confirm all four kernels now point to `Persona_Tier_Framework_v7.1.md`
+- Direct spot-checks confirm:
+  - Alicia's kernel now carries the canonical resident framing (`Characters/Alicia/Alicia_Marin_v7.1.md:36`)
+  - Reina's kernel now says `Argentine consular rooms` (`Characters/Reina/Reina_Torres_v7.1.md:228`)
+  - Bina and Reina knowledge-stack files now use `resident at the property but frequently away on consular operations` (`Characters/Bina/Bina_Malek_Knowledge_Stack.md:414`, `Characters/Reina/Reina_Torres_Knowledge_Stack.md:407`, `:425`)
+- Direct Bina spot-check confirms the live canon stack is aligned on birthplace:
+  - Vision no longer contains the stale `Canadian-born Assyrian` phrasing
+  - kernel still says Urmia / Edmonton
+  - `src/starry_lyfe/canon/characters.yaml` still says `birthplace: "Urmia, Iran"`
+
+Full `pytest -q` is not a Phase 0 quality signal in this environment. The integration suite still requires a reachable PostgreSQL instance and errors during setup in `tests/integration/conftest.py:92`, which is orthogonal to this markdown/canon verification phase.
+
+#### Executive assessment
+
+Phase 0 is substantively in good shape.
+
+I independently verified the remediated live files against the Phase 0 work items and did not find remaining production drift within the declared Phase 0 scope. AC1 through AC4 appear met in the repo state currently under audit.
+
+The remaining defects are in the verification trail, not in the canon files themselves:
+
+- the only automated regression Claude Code cites as "authoritative" does not cover the full AC1 surface
+- the verification report still presents a stale pre-remediation verdict at the top, even though the addendum and the phase file state the opposite
+
+No Critical or High findings.
+
+#### Adversarial scenarios constructed
+
+1. **Synthetic residue reintroduction in a non-exempt path.** If a token such as `Citadel Pair` or `Spanish consular` reappears in a live `Characters/` or non-Appendix `Vision/Starry-Lyfe_Vision_v7.1.md` line, the current path-aware grep pattern will surface it. I verified the negative case on the live tree: after exclusions, zero real hits remain.
+2. **Kernel reference regression.** If any kernel regresses from `Persona_Tier_Framework_v7.1.md` back to `_v7.md`, the current residue test will not catch it because `_v7.md` is not in the drift token list. This adversarial scenario is live-proof that Work Item 2 still depends on manual or dedicated automated verification.
+3. **False-negative phase reading from stale report state.** If a later reviewer reads only the top of `Docs/Phase_0_Verification_Report_2026-04-11.md`, they will conclude `NOT CLEAN` / `remediation pending` even though the phase file and §11 addendum say AC1-AC4 are met. This is a process-level adversarial scenario: the artifact can mislead a correct reviewer.
+
+#### Findings
 
 | # | Severity | Finding | Evidence | Recommended fix |
 |---:|---|---|---|---|
-| _per finding_ | | | | |
+| F1 | Medium | The residue-grep test is not authoritative for AC1 because it only scans `src/`, not the full Phase 0 scope. | `tests/unit/test_residue_grep.py` explicitly says "Scans all files under src/" and `_scan_src_for_residue(src_dir)` only traverses `src_dir`, while Phase 0 AC1 covers `src/`, `Characters/`, `Vision/`, and `Docs/`. Step 2 and the verification report currently describe this test as the "authoritative signal" that AC1 is met. | Reword the Step 2 / verification-report claim to make the test a supporting `src/` regression only, or add a checked-in repo-wide verifier that covers the actual Phase 0 scope. |
+| F2 | Low | The verification report still carries stale pre-remediation state at the top, which conflicts with the live audit-ready state recorded later in the same document. | `Docs/Phase_0_Verification_Report_2026-04-11.md` header still says `State: Verification complete, remediation pending...` and §1 still says `AC status: NOT CLEAN`, while §11 and Step 2 of this phase file state AC1-AC4 are met and the phase is ready for audit. | Collapse §11 into a final top-level verdict or revise the report header / §1 so the document reads as a final post-remediation artifact instead of a pre-remediation report with a corrective addendum appended later. |
 
-- **Gate recommendation:** PASS / PASS WITH MINOR FIXES / FAIL
+#### Runtime probe summary
 
-<!-- HANDSHAKE: Codex → Claude Code | Audit Round 1 complete, ready for remediation -->
+Phase 0 is a verification phase, so the live probes were canon checks rather than executable runtime probes:
+
+- `tests/unit/test_residue_grep.py` passes for `src/`
+- independent path-aware grep across `src/`, `Characters/`, and `Vision/` returns zero real hits after applying the approved exclusions
+- all four kernels now reference `Persona_Tier_Framework_v7.1.md`
+- Bina's Vision/kernel/YAML origin drift is resolved in the live files
+- Alicia's resident-but-frequently-away framing is now present in the kernel and in the remediated Bina/Reina support files
+
+#### Drift against specification
+
+Against the master plan's actual Phase 0 work items, the live repository now satisfies the substantive canon-verification requirements:
+
+- **Work Item 1:** zero real drift hits in production paths after exclusions
+- **Work Item 2:** kernel pair names, surnames, §3 headings, and PTF references are aligned
+- **Work Item 3:** Bina Vision/kernel drift no longer exists in the live files
+- **Work Item 4:** YAML and kernels still align on the specified fields
+- **Work Item 5:** stale Alicia residence framing is removed from the live production files Claude Code identified
+
+The remaining drift is in the documentation of the verification process itself, not in the canon state the phase was supposed to clean.
+
+#### Verified resolved
+
+Confirmed working in the live repo state:
+
+- zero real residue-token hits remain across `src/`, `Characters/`, and `Vision/` after applying the documented exclusions
+- all four kernels reference `Persona_Tier_Framework_v7.1.md`
+- the stale `Canadian-born Assyrian` Bina Vision phrasing is gone
+- Alicia's resident framing is present in her kernel and consistently reflected in the remediated Bina/Reina support files
+- the `Spanish consular` → `Argentine consular` correction is present in Reina's kernel
+
+#### Recommended remediation order
+
+1. **F1 first.** Tighten the claim around AC1 proof so the artifact does not overstate what the automated test actually covers.
+2. **F2 second.** Rewrite the verification report into a single post-remediation state so future QA does not have to reconcile contradictory sections.
+
+#### Gate recommendation
+
+**PASS WITH MINOR FIXES**
+
+Phase 0's canon-verification objective appears achieved in the live files under audit. Claude Code should remediate the two artifact-level findings above, then proceed to QA.
+
+<!-- HANDSHAKE: Codex → Claude Code | Audit Round 1 complete. 0 Critical, 0 High, 1 Medium, 1 Low. Live files satisfy AC1-AC4; minor remediation required on the Phase 0 verification artifacts. -->
 
 ---
 
 ## Step 4: Remediate (Claude Code) — Round 1
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE — Path A, handed to Claude AI for QA]**
 **Owner:** Claude Code
 **Prerequisite:** Step 3 audit complete with handshake to Claude Code
 
 ### Remediation content
 
-_Claude Code fills in. For Phase 0 specifically:_
-
-- **Per-finding status table** (one row per audit finding):
+**Per-finding status table:**
 
 | Finding # | Severity | Status | Commit hash | Notes |
 |---:|---|---|---|---|
-| _per finding_ | | FIXED / PUSH_BACK / DEFERRED | | |
+| F1 | Medium | **FIXED** | (this commit) | PHASE_0.md:181 reworded. The residue-grep test is now described as `src/`-only regression coverage, with the authoritative AC1 evidence being the four-row manual drift grep results table. A Phase A' follow-up item is queued to close the automation gap by adding a repo-wide residue verifier covering `src/ + Characters/ + Vision/` with the Phase 0 exclusion list. |
+| F2 | Low | **FIXED** | (this commit) | `Docs/Phase_0_Verification_Report_2026-04-11.md` header and §1 opening now carry `[HISTORICAL — SUPERSEDED BY §11]` markers. The historical sections (§1–§10) are preserved as the audit trail of what the verification originally found pre-remediation; §11 is declared the authoritative final state. Header `State:` field updated from "Verification complete, remediation pending..." to "COMPLETE — all acceptance criteria MET after 10-commit remediation sequence (dc085d5–b322b1d); ready for Claude AI QA." |
 
-- **Push-backs:** _list with citations_
-- **Deferrals:** _list with target follow-up phase_
-- **Re-run drift grep delta:** _hits before remediation → hits after_
-- **Self-assessment:** _are all Critical and High findings now closed?_
+**Push-backs:** none. Both findings were accepted on their face — they are accurate observations about artifact quality rather than disputes about the canon remediation. F1 correctly identifies a language imprecision in my Step 2 execution log; F2 correctly identifies a reader-experience problem in the verification report.
+
+**Deferrals:** one Phase A' follow-up item queued from F1 — add a checked-in repo-wide residue verifier covering `src/ + Characters/ + Vision/` with the same exclusion list the Phase 0 manual pass used. This is the automation gap that F1 surfaced; deferring is appropriate because (a) the test infrastructure change is larger than the artifact-language fix F1 requires, and (b) it does not block Phase 0 shipping because the manual drift grep results table already provides authoritative evidence for the broader scope.
+
+**Re-run drift grep delta:** no re-run needed — Step 4 remediation only touched markdown artifacts (`PHASE_0.md` Step 2 log language and `Phase_0_Verification_Report_2026-04-11.md` header/§1 markers), not production canon files. The drift-grep state from Step 2 is unchanged and still passes.
+
+**Self-assessment:** Codex's Round 1 audit produced 0 Critical and 0 High findings. F1 (Medium) and F2 (Low) are both closed in this commit. No new architectural surface introduced. Phase 0 remediation is substantively complete.
 
 ### Path decision
 
-**Chosen path:** _A (clean) or B (substantive)_ — Phase 0 is unlikely to need Path B since it has no production code changes; remediation is typically just fixing drift in canon files
+**Chosen path: Path A (clean remediation).** The Step 4 changes are two markdown-only wording fixes in the Phase 0 verification artifacts. No production canon files touched, no tests modified, no schema or interface changes. No new architectural surface that would benefit from a Codex re-audit. Claude Code is handing directly to Claude AI for Step 5 QA per the AGENTS.md Path A protocol.
 
-<!-- HANDSHAKE: Claude Code → Claude AI | Remediation Round 1 complete, ready for QA (Path A expected for Phase 0) -->
+<!-- HANDSHAKE: Claude Code → Claude AI | Remediation Round 1 complete, Path A (clean). F1 and F2 both FIXED in this commit. Ready for Step 5 QA. -->
 
 ---
 

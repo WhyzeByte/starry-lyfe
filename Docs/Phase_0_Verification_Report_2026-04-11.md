@@ -4,13 +4,15 @@
 **Author:** Claude Code
 **Phase file:** `Docs/_phases/PHASE_0.md`
 **Master plan reference:** `Docs/IMPLEMENTATION_PLAN_v7.1.md` §3
-**State:** Verification complete, remediation pending Project Owner confirmation of scope
+**State:** COMPLETE — all acceptance criteria MET after 10-commit remediation sequence (`dc085d5`–`b322b1d`); ready for Claude AI QA. *Historical sections §1–§10 below reflect the state at the time of initial verification (pre-remediation); §11 reflects the final post-remediation state. When §1–§10 and §11 disagree, §11 is authoritative.*
 
 ---
 
 ## 1. Executive Verdict
 
-**Phase 0 AC status: NOT CLEAN.** The pre-flight canon verification surfaced drift in production character files that must be remediated before Phase 0 can ship.
+**[HISTORICAL — SUPERSEDED BY §11]** This section records the Phase 0 state at the time of initial verification (2026-04-11, before the Vision rewrite and the 10-commit remediation sequence). For the final post-remediation verdict, see §11. The text and AC status table below are preserved as the historical snapshot of what the verification originally found; they are no longer an accurate description of the repository state.
+
+**Phase 0 AC status (initial verification, pre-remediation): NOT CLEAN.** The pre-flight canon verification surfaced drift in production character files that was subsequently remediated across commits `dc085d5`–`b322b1d`.
 
 | # | Criterion | Status | Blocking? |
 |---:|---|---|---|
