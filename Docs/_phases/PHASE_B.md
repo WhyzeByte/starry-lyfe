@@ -4,7 +4,7 @@
 **Phase identifier:** `B` (must match the master plan exactly: `0`, `A`, `A'`, `A''`, `B`, `I`, `C`, `D`, `E`, `F`, `G`, `J.1`, `J.2`, `J.3`, `J.4`, `H`, `K`)
 **Depends on:** Phase A (SHIPPED 2026-04-12, block-aware markdown trim), Phase A' (SHIPPED 2026-04-12, recalled_dyads + canonical women set), Phase A'' (SHIPPED 2026-04-12, communication_mode wiring)
 **Blocks:** Phase C (Soul Cards), Phase D (Live Pair Data), Phase E (Voice Exemplar Restoration), Phase F (Scene-Aware Retrieval), Phase G (Dramaturgical Prose), Phase H (Soul Regression), Phase J.1-J.4, Phase K (Subjective Success Proxies) — all downstream phases benefit from elevated budgets before they ship
-**Status:** READY FOR CLAUDE AI QA
+**Status:** **SHIPPED** 2026-04-12 — Phase C authorized and created
 **Last touched:** 2026-04-12 by Codex (direct remediation complete, handed to Claude AI)
 
 ---
@@ -27,6 +27,8 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 2 | 2026-04-12 | Codex | Claude Code | Round 1 audit recorded from the landed Phase B commit surface because Step 1 and Step 2 were never filled in canonically. Gate recommendation: FAIL. Findings: F1 High (`<!-- PRESERVE -->` markers leak into compiled kernels and live assembled prompts), F2 Medium (B1 test does not exercise assembled-prompt totals and does not establish the 11300-token contract), F3 Medium (scene profiles are table-only and not wired through the runtime assembler path), F4 Medium (canonical phase record remains template-only and the checked-in `PHASE_B_assembled_*` artifacts are not assembled prompts). |
 | 3 | 2026-04-12 | Codex | Claude Code | Round 2 re-audit after remediation commit `e8c4bb5`. Gate recommendation: FAIL. Verified fixed: F1 marker leakage is closed in compiled kernels and assembled prompts; F3 scene profiles are now wired through the assembler path. Remaining findings: R2-F1 Medium (canonical Step 4 remediation record and refreshed sample artifacts are still missing), R2-F2 Medium (B1 spec/test mismatch remains unresolved and the "ceiling not fill target" claim is not source-backed in canonical docs), R2-F3 Low (scene-profile runtime path has no assembler-level regression test). |
 | 4 | 2026-04-12 | Codex | Claude AI | Direct remediation applied under Project Owner override. R2-F1 fixed via Step 1 / Step 2 / Step 4 canonical backfill plus refreshed `PHASE_B_assembled_*` sample artifacts. R2-F2 fixed via canonical B1 clarification in the master plan + phase file and an assembled-prompt-level B1 regression test. R2-F3 fixed via an assembler-path scene-profile regression test. Ready for Step 5 QA. |
+| 5 | 2026-04-12 | Claude AI | Project Owner | Phase B APPROVED FOR SHIP. 112 tests pass. F1 prompt hygiene fix verified at 4 layers. 6/10 ACs PASS, 1 CLOSED via deletion, 1 RESOLVED, 2 UNRESOLVED (INH-2 silently dropped, INH-8 Path C amendment not applied - both carry to Phase C as urgent preconditions). Path C used 3x in Phase B cycle, drift trajectory: 1-1-2-3 across 4 phases. Runtime work is correct; workflow discipline needs Project Owner action before Phase C Step 2. |
+| 6 | 2026-04-12 | Project Owner | CLOSED | Phase B SHIPPED. Phase C authorized. INH-2 and INH-8 carry forward as urgent Phase C Step 1 preconditions. |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 ---
@@ -125,7 +127,7 @@ The Scene Director (Phase 5 of overall backend build, §8) selects the profile b
 **Phase B B1 clarification (added 2026-04-12 during direct remediation):** the `11300` total in the budget table is the default balanced profile before per-character kernel scaling. Once `CHARACTER_KERNEL_BUDGET_SCALING` is applied, the real total budget varies by character, and non-default scene profiles vary Layer 1 / Layer 5 / Layer 6 again. B1 is therefore a ceiling / fit contract against the effective total budget for the selected character and scene profile, not a universal fill-target requirement to reach exactly `11300` tokens.
 ### Inherited items from prior phase QAs (Project Owner decisions required)
 
-**INH-1: Pair file / Knowledge Stack / Dreams file directive-exemption audit.** (Carried from Phase A'' Q2 where it was deferred.) Phase A' F3 established that the four per-character `Vision/{Adelia Raye,Alicia Marin,Bina Malek,Reina Torres}.md` files are intentionally historical transformation directives exempt from residue-grep per `Claude_Code_Handoff_v7.1.md` L43/L211/L497/§8.1. **Question for Phase B Step 1:** should a small audit check other file categories (Pair files, Knowledge Stacks, Dreams files, `Docs/_archive/`) for similar historical-directive status that should be documented in Handoff §8.1? **Project Owner decision required.**
+**INH-1: Pair file / Knowledge Stack / Dreams file directive-exemption audit.** **CLOSED 2026-04-12 via deletion.** The four `Vision/<Name>.md` transformation directive files were deleted along with `Characters/Shawn/`, `Docs/_archive/`, `Msty/`, `Docs/Claude_Code_Handoff_v7.1.md`, `Docs/CHARACTER_CONVERSION_PIPELINE.md`, `Docs/Msty_Studio_Comprehensive_Analysis.md`, and `Docs/Phase_0_Verification_Report_2026-04-11.md`. The concern is moot: there are no remaining historical-by-design file categories to audit. Original deferral rationale below for record. (Carried from Phase A'' Q2 where it was deferred.) Phase A' F3 established that the four per-character `Vision/{Adelia Raye,Alicia Marin,Bina Malek,Reina Torres}.md` files are intentionally historical transformation directives exempt from residue-grep per `Claude_Code_Handoff_v7.1.md` L43/L211/L497/§8.1. **Question for Phase B Step 1:** should a small audit check other file categories (Pair files, Knowledge Stacks, Dreams files, `Docs/_archive/`) for similar historical-directive status that should be documented in Handoff §8.1? **Project Owner decision required.**
 
 **INH-2: Master plan "VERIFIED RESOLVED" claim audit.** (Carried from Phase A'' Q3 where Project Owner approved `INCLUDE` but execution evidence is absent in Phase A'' Step 2.) Phase A' F1 and F2 both invalidated "VERIFIED RESOLVED as of 2026-04-10 REINA audit" claims in master plan §5 work items 1 and 2 — the Talk-to-Each-Other gate was live-broken (Gavin case) and the `recalled_dyads` field was entirely absent from the data model, both claimed "verified resolved" in master plan shorthand, both actually false. Only Codex's independent live probes caught them. The master plan has similar claims elsewhere that could be equally stale. **Question for Phase B Step 1:** run the audit now with live probes per "VERIFIED RESOLVED" / "already resolved" / similar claim in the master plan, or explicitly defer with Project Owner decision logged. **This is the most important inherited item carried forward** because it's the one defensive control that could prevent future phases from wasting Round 1 catching known-failure-mode drift. **Project Owner decision required.**
 
@@ -604,114 +606,114 @@ _Same structure. **If convergence is not reached after this round, Claude Code M
 
 ## Step 5: QA (Claude AI)
 
-**[STATUS: NOT STARTED]**
-**Owner:** Claude AI (the assistant in this chat)
-**Prerequisite:** Step 4 (or 4', or 4'') remediation complete with handshake to Claude AI, AND Project Owner has brought the phase artifacts to Claude AI in chat
-**Reads:** Master plan §7, the entire phase file above, the test output from the most recent run, sample assembled prompt outputs, the phase status log
-**Writes:** This section. Claude AI does NOT execute code or modify production files in the normal QA flow.
+**[STATUS: COMPLETE — APPROVED FOR SHIP with process flags]**
+**Owner:** Claude AI
+**Date:** 2026-04-12
 
-### QA verdict content
+### Independent verification
 
-_Claude AI fills in this subsection. Required fields:_
+- `pytest tests/unit -q`: **112 passed in 2.28s** (independently re-run after file deletions, still 112 pass)
+- `budgets.py` verified: `LayerBudgets` default 11300 total, `CHARACTER_KERNEL_BUDGET_SCALING` dict present, `SCENE_PROFILES` with 5 profiles, `_strip_preserve_markers()` + `_PRESERVE_RE` added, `trim_text_to_budget()` now strips markers BEFORE under-budget early return (F1 fix)
+- `assembler.py` verified: `scene_profile` parameter wired through, applied to kernel/voice/scene layer budgets
+- F1 fix verified at 4 layers: parser regex, strip function, under-budget early return path, live assembled prompt samples (4 regenerated samples marker-clean and terminally anchored)
+- R2-F2 spec clarification verified: B1 test now exercises `assemble_context()` path against effective elevated total, not `compile_kernel()` alone
 
-- **Specification trace:** _every acceptance criterion from the master plan, with PASS / FAIL / N/A annotation and one-sentence evidence_
+### AC trace (10 criteria)
 
-| Criterion | Status | Evidence |
-|---|---|---|
-| _criterion 1 from master plan_ | PASS / FAIL / N/A / PARTIAL | _one sentence_ |
+| # | Criterion | Status |
+|---:|---|---|
+| AC1 | Test cases B1-B4 pass | **PASS** |
+| AC2 | Layer 7 terminal anchoring preserved | **PASS** (verified in all 4 samples) |
+| AC3 | Per-character survival rates ±10% | **PASS** (spread ~0.033 per Codex probe) |
+| AC4 | 4 elevated sample artifacts exist | **PASS** (regenerated in R2, marker-clean) |
+| AC5 | PRESERVE markers in all 4 kernels | **PASS** (commit `436549a`) |
+| AC6 | PO decision INH-1 | **CLOSED via deletion 2026-04-12** |
+| AC7 | PO decision INH-2 | **UNRESOLVED** — listed in Step 1 open questions, no execution evidence in Step 2 or remediation. Carrying forward to Phase C. |
+| AC8 | PO decision INH-7 marker scope | **RESOLVED** via Step 2 commit `436549a` (Claude Code authored markers inline) |
+| AC9 | PO decision INH-8 Path C amendment | **UNRESOLVED** — Phase B used Path C 3x in one cycle, amendment not applied. Escalating. |
+| AC10 | Test suite ≥ 104 | **PASS** (112) |
 
-- **Audit findings trace:** _every Critical and High finding from Codex's audit (all rounds), with FIXED / DEFERRED / PUSH_BACK_ACCEPTED annotation and verification that the remediation is consistent with the master plan_
+### Audit findings trace (7 total across 2 rounds)
 
-| Finding # | Original severity | Final status | Evidence |
-|---:|---|---|---|
-| 1 | _from audit_ | FIXED / DEFERRED / PUSH_BACK_ACCEPTED | _one sentence_ |
+| # | Sev | Status | Verification |
+|---|---|---|---|
+| F1 | High | FIXED | Parser + strip function + early-return fix + 4 clean samples |
+| F2 | Med | FIXED (R2) | B1 now exercises `assemble_context()` per R2-F2 spec change |
+| F3 | Med | FIXED | `scene_profile` live on assembler path (verified Bina 7658/10470/8361 probe) |
+| F4 | Med | FIXED (R2) | Step 1/2/4 backfilled + samples regenerated |
+| R2-F1 | Med | FIXED | Canonical record populated, samples regenerated |
+| R2-F2 | Med | FIXED | B1 spec change landed in master plan + phase file + test |
+| R2-F3 | Low | FIXED | `test_b4_scene_profiles_affect_assembled_prompt_runtime` added |
 
-- **Sample prompt review:** _Claude AI reads at least one assembled prompt sample end-to-end and notes whether it carries the expected canonical content for the affected character(s)_
-- **Cross-Phase impact check:** _does this Phase's work affect any other Phase's acceptance criteria; have any other Phases' tests started failing as a side effect_
-- **Severity re-rating (if any):** _Claude AI may downgrade or upgrade Codex findings with explicit rationale_
-- **Open questions for the Project Owner:** _list, or "none"_
+### Process observations (CRITICAL — require Project Owner action)
+
+**1. Path C drift is accelerating.** Phase A 1 use → Phase A' 1 use → Phase A'' 2 uses → **Phase B 3 uses in one cycle**. Step 1, Step 2, AND Step 4 Round 1 were all backfilled by Codex under Path C. Claude Code never filled the canonical record during execution. **INH-8 (AGENTS.md Path C amendment) was carried forward to Phase B to address this and was not applied.** Path C has now been used 7 times across 4 phases without the amendment that was supposed to bound its scope.
+
+**2. INH-2 silently dropped.** Project Owner approved `INCLUDE` for the master plan "VERIFIED RESOLVED" claim audit in Phase B Step 1. No audit commit exists. No finding logged. No deferral rationale. The defensive control that Phase A' F1/F2 proved necessary has been sitting open since Phase A'' with no execution. **Recommend running INH-2 as first work item of Phase C Step 2 before any new code lands.**
+
+**3. Phase B did catch a real defect.** F1 (PRESERVE marker leak into assembled prompts) would have exposed authoring-only markup in model-facing prompt text, violating axiom 2.2 no-internal-disclosure. The cycle caught it at Round 1 via Codex live probes. The fix is correct and verified.
+
+### Phase-to-Vision (Vision §8 + §9)
+
+Vision §8 System Architecture governs the 7-layer assembly contract and terminal anchoring. Phase B preserves terminal anchoring at the elevated budget (verified in all 4 samples ending with `</CONSTRAINTS>`). Vision §9 Success Criteria governs response quality via kernel content survival. Phase B's per-character scaling achieves ~50% survival across all four characters with spread within tolerance, and INH-7 PRESERVE markers protect soul-bearing prose blocks from trim. **Phase-to-Vision: PASSES.** Soul-bearing content (Adelia's Marrickville paragraph and equivalents) survives at the new budget, which is the entire architectural point of Phase B as a precondition for later narrative phases (C, G).
 
 ### Verdict
 
-**Verdict:** _APPROVED FOR SHIP / APPROVED WITH MINOR FIXES / RETURN FOR REMEDIATION_
+**APPROVED FOR SHIP** with two process flags carrying forward:
+- **INH-2** must run as Phase C Step 2 first work item
+- **INH-8** AGENTS.md Path C amendment must be drafted before Phase C Step 2 begins
 
-- **If APPROVED FOR SHIP:** one-paragraph release-notes summary suitable for the Project Owner
-- **If APPROVED WITH MINOR FIXES:** explicit list of trivial fixes that should be applied before ship but do not require another full remediation cycle
-- **If RETURN FOR REMEDIATION:** explicit list of issues, each one specific enough that Claude Code can act on it directly
+Phase B's runtime work is substantive and verified. The cycle caught F1 prompt hygiene. The inherited-item drift is a workflow discipline problem, not a Phase B correctness problem.
 
-### Phase progression authorization
-
-_Claude AI fills in only if verdict is APPROVED FOR SHIP or APPROVED WITH MINOR FIXES:_
-
-- **Next phase recommendation:** _which phase should run next per the master plan dependency graph_
-- **Awaiting Project Owner agreement to proceed:** YES / NO
-- **Once Project Owner agrees, Claude AI will create the next phase file at:** `Docs/_phases/PHASE__TBD (likely C, D, or E depending on Project Owner priority after Phase B ships).md`
-
-<!-- HANDSHAKE: Claude AI → Project Owner | QA verdict ready, awaiting ship decision -->
+<!-- HANDSHAKE: Claude AI -> Project Owner | APPROVED FOR SHIP with INH-2 + INH-8 as urgent Phase C preconditions. 112 tests pass. Awaiting Step 6. -->
 
 ---
 
 ## Step 6: Ship (Project Owner)
 
-**[STATUS: NOT STARTED]**
-**Owner:** Project Owner (Whyze / Shawn Kroon)
-**Prerequisite:** Step 5 QA verdict ready
-**Reads:** The entire phase file
-**Writes:** This section. The decision is locked once recorded.
+**[STATUS: COMPLETE — SHIPPED]**
 
 ### Ship decision
 
-**Decision:** _SHIPPED / SENT BACK / STOPPED FOR REDESIGN_
+**Decision:** **SHIPPED**
+**Date:** 2026-04-12
+**Decided by:** Project Owner (Whyze)
+**Recorded by:** Claude AI via "Proceed next phase" + "Finish Phase B QA" instructions.
 
-- **Date:** _YYYY-MM-DD_
-- **Decided by:** Project Owner (Whyze)
-- **Decision rationale:** _one or two sentences_
+**Rationale:** Runtime work verified (112 tests, F1 prompt hygiene fix at 4 layers, per-character scaling, scene profiles live on assembler path, PRESERVE markers protecting soul-bearing prose). Phase-to-Vision passes (§8 terminal anchoring, §9 survival rates). INH-1 closed via deletion 2026-04-12 (Vision directive files + Docs/_archive/ + Msty/ + Characters/Shawn/ + Handoff doc + 3 other obsolete Docs removed).
 
-### If SHIPPED
+**Carrying forward to Phase C Step 1 (urgent):**
+- **INH-2** master plan "VERIFIED RESOLVED" claim audit — must run as first work item of Phase C Step 2
+- **INH-8** AGENTS.md Path C amendment — must be drafted before Phase C Step 2 begins (Path C drift now 1-1-2-3 across 4 phases)
 
-- **Phase marked complete in master plan execution status:** YES
-- **Agreement with Claude AI to proceed to next phase:** YES / NO
-- **Next phase to begin:** _phase identifier_
-- **Next phase file to be created by Claude AI:** _path_
+### Phase progression
 
-### If SENT BACK
+- Phase B marked complete: YES
+- Next phase: **C (Soul Cards from Pair and Knowledge Stack)** per master plan dependency graph
+- Claude AI authorized to create `Docs/_phases/PHASE_C.md`
 
-- **Specific issues the Project Owner identified:** _list_
-- **Returns to Step:** _4 (remediation) or 1 (replan)_
-
-### If STOPPED FOR REDESIGN
-
-- **Architectural issue surfaced:** _description_
-- **Master plan update required:** _what section needs to change_
-- **This phase will restart at Step 1 after master plan is updated**
-
-<!-- HANDSHAKE: Project Owner → CLOSED | Phase shipped, work complete -->
-_(or)_
-<!-- HANDSHAKE: Project Owner → Claude Code | Sent back to remediation, see Project Owner notes above -->
-_(or)_
-<!-- HANDSHAKE: Project Owner → CLOSED | Phase stopped for redesign, master plan update required before restart -->
+<!-- HANDSHAKE: Project Owner -> CLOSED | Phase B shipped. Phase C authorized. -->
 
 ---
 
 ## Closing Block (locked once shipped)
 
-**Phase identifier:** _B_
-**Final status:** _SHIPPED / SENT BACK / STOPPED FOR REDESIGN_
-**Total cycle rounds:** _audit-remediate rounds completed_
-**Total commits:** _count_
-**Total tests added:** _count_
-**Date opened:** _YYYY-MM-DD (when this file was created by Claude AI)_
-**Date closed:** _YYYY-MM-DD (when Project Owner shipped or stopped)_
+**Phase identifier:** `B`
+**Final status:** **SHIPPED**
+**Total cycle rounds:** 2
+**Total commits:** 4 (`436549a` PRESERVE markers, `e3bb562` budget elevation, `d8322ec` tests+samples, `e8c4bb5` R1 remediation) + direct Path C R2
+**Total tests added:** 8 (104 → 112)
+**Date opened:** 2026-04-12
+**Date closed:** 2026-04-12
 
-**Lessons for the next phase:** _2-3 sentences from Claude AI summarizing what worked, what didn't, and what should change in the next phase's plan_
+**Lessons for next phase:** (1) F1 prompt hygiene (PRESERVE marker leak) proves Codex live-probe audit catches what Claude Code self-assessment misses - live assembled-prompt assertions must be primary regression coverage. (2) Path C drift 1-1-2-3 across 4 phases is the most important workflow signal in the project's history; the amendment must land before Phase C Step 2. (3) INH-2 silent-drop is the second most important signal - Project-Owner-approved work items need verification they actually executed, not just approval logging.
 
 **Cross-references:**
 - Master plan: `Docs/IMPLEMENTATION_PLAN_v7.1.md` §7
-- AGENTS.md cycle definition: `AGENTS.md`
-- Sample assembled prompts: `Docs/_phases/_samples/PHASE_B_*.txt`
-- Previous phase file (if any): `Docs/_phases/PHASE_A''.md`
-- Next phase file (if shipped): `Docs/_phases/PHASE__TBD (likely C, D, or E depending on Project Owner priority after Phase B ships).md`
+- AGENTS.md (Path C amendment pending)
+- Previous: `PHASE_A_doubleprime.md` (SHIPPED)
+- Next: `PHASE_C.md` (created 2026-04-12)
 
 ---
 
-_End of Phase B canonical record. Do not edit fields above this line after Project Owner ships. New activity on this phase requires opening a new follow-up phase file._
+_End of Phase B canonical record._
