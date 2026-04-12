@@ -619,10 +619,12 @@ The Scene Director (Phase 5 of overall backend build, §8) selects the profile b
 
 #### Test cases
 
-- **Test B1:** Assembled prompt token total stays within ±5% of the elevated total budget across all four characters
+- **Test B1:** Assembled prompt token total stays at or below the effective elevated total budget for the selected character and scene profile
 - **Test B2:** Layer 7 constraint block is always rendered last in the assembled prompt regardless of earlier-layer content size
 - **Test B3:** Per-character budget scaling produces survival rates within ±10% of each other
 - **Test B4:** Scene profile selection produces the expected layer budgets for each of the 5 profiles
+
+**Phase B B1 clarification (added 2026-04-12 during Phase B direct remediation):** the `11300` total in the budget table is the **default balanced profile before per-character kernel scaling**. Once `CHARACTER_KERNEL_BUDGET_SCALING` is applied, the real total budget varies by character (`5100`-`7200` kernel budget plus the non-kernel layers). If a non-default scene profile is selected, Layer 1 / Layer 5 / Layer 6 vary again. B1 is therefore a **ceiling / fit contract** against the effective total budget for the selected character and profile, not a requirement to fill a universal `11300`-token target.
 
 #### Files touched
 

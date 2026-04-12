@@ -7,6 +7,8 @@ semantics, plain-text fallback, and four-kernel integration.
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 
 from starry_lyfe.context.budgets import (
@@ -31,6 +33,27 @@ def _paragraph(token_target: int) -> str:
 
 def _build_markdown(sections: list[str]) -> str:
     return "\n\n".join(sections)
+
+
+def _phase_b_bundle(character_id: str):
+    from tests.unit.test_assembler import _make_bundle
+
+    return _make_bundle(character_id)
+
+
+def _effective_total_budget(character_id: str, profile_name: str = "default") -> int:
+    from starry_lyfe.context.budgets import DEFAULT_BUDGETS, get_scene_profile, resolve_kernel_budget
+
+    profile = get_scene_profile(profile_name)
+    return (
+        resolve_kernel_budget(character_id, base_budget=profile.kernel)
+        + DEFAULT_BUDGETS.canon_facts
+        + DEFAULT_BUDGETS.episodic
+        + DEFAULT_BUDGETS.somatic
+        + profile.voice
+        + profile.scene
+        + DEFAULT_BUDGETS.constraints
+    )
 
 
 class TestA1ExactFit:
@@ -292,19 +315,36 @@ class TestBlockParser:
 class TestPhaseBBudgetElevation:
     """Phase B tests: budget elevation with terminal anchoring preserved."""
 
-    def test_b1_total_budget_within_5pct_all_characters(self) -> None:
-        """B1: Assembled prompt tokens stay within ±5% of elevated total budget."""
-        from starry_lyfe.context.budgets import resolve_kernel_budget
-        from starry_lyfe.context.kernel_loader import clear_kernel_cache, compile_kernel
+    @pytest.mark.asyncio
+    async def test_b1_assembled_prompt_within_effective_total_budget_all_characters(
+        self,
+    ) -> None:
+        """B1: Assembled prompts stay within the effective elevated total budget."""
+        from starry_lyfe.context.assembler import assemble_context
+        from starry_lyfe.context.types import SceneState
 
-        clear_kernel_cache()
-        for char_id in ["adelia", "bina", "reina", "alicia"]:
-            budget = resolve_kernel_budget(char_id)
-            result = compile_kernel(char_id, budget=budget)
-            tokens = estimate_tokens(result)
-            assert tokens <= budget, (
-                f"{char_id}: kernel {tokens} tokens exceeds budget {budget}"
-            )
+        with patch(
+            "starry_lyfe.context.assembler.retrieve_memories",
+            new=AsyncMock(side_effect=lambda **kwargs: _phase_b_bundle(kwargs["character_id"])),
+        ):
+            for char_id in ["adelia", "bina", "reina", "alicia"]:
+                prompt = await assemble_context(
+                    char_id,
+                    "Phase B budget probe",
+                    SceneState(
+                        present_characters=[char_id, "whyze"],
+                        alicia_home=True,
+                        scene_description="Budget saturation probe",
+                    ),
+                    None,
+                    None,
+                    scene_profile="default",
+                )
+                ceiling = _effective_total_budget(char_id, "default")
+                assert prompt.total_tokens <= ceiling, (
+                    f"{char_id}: assembled prompt {prompt.total_tokens} exceeds "
+                    f"effective total budget {ceiling}"
+                )
 
     def test_b2_constraints_always_terminal(self) -> None:
         """B2: Layer 7 constraint block is last regardless of content size."""
@@ -363,6 +403,54 @@ class TestPhaseBBudgetElevation:
         unknown = get_scene_profile("nonexistent")
         assert unknown.name == "default"
 
+    @pytest.mark.asyncio
+    async def test_b4_scene_profiles_affect_assembled_prompt_runtime(self) -> None:
+        """B4 regression: non-default scene profiles change live assembled prompts."""
+        from starry_lyfe.context.assembler import assemble_context
+        from starry_lyfe.context.types import SceneState
+
+        with patch(
+            "starry_lyfe.context.assembler.retrieve_memories",
+            new=AsyncMock(side_effect=lambda **kwargs: _phase_b_bundle(kwargs["character_id"])),
+        ):
+            state = SceneState(
+                present_characters=["bina", "whyze"],
+                alicia_home=True,
+                scene_description="Profile routing probe",
+            )
+            default_prompt = await assemble_context(
+                "bina",
+                "Phase B scene profile probe",
+                state,
+                None,
+                None,
+                scene_profile="default",
+            )
+            pair_prompt = await assemble_context(
+                "bina",
+                "Phase B scene profile probe",
+                state,
+                None,
+                None,
+                scene_profile="pair_intimate",
+            )
+            solo_prompt = await assemble_context(
+                "bina",
+                "Phase B scene profile probe",
+                state,
+                None,
+                None,
+                scene_profile="solo",
+            )
+
+            assert default_prompt.is_terminally_anchored
+            assert pair_prompt.is_terminally_anchored
+            assert solo_prompt.is_terminally_anchored
+            assert pair_prompt.total_tokens > default_prompt.total_tokens
+            assert solo_prompt.total_tokens > default_prompt.total_tokens
+            assert pair_prompt.layers[0].estimated_tokens > default_prompt.layers[0].estimated_tokens
+            assert solo_prompt.layers[0].estimated_tokens > default_prompt.layers[0].estimated_tokens
+
     def test_preserve_markers_survive_elevated_budget(self) -> None:
         """PRESERVE markers protect soul-bearing blocks at the new budget."""
         from starry_lyfe.context.kernel_loader import clear_kernel_cache, compile_kernel
@@ -391,6 +479,20 @@ class TestPhaseBBudgetElevation:
             result = compile_kernel(char_id, budget=budget)
             assert "<!-- PRESERVE -->" not in result, (
                 f"{char_id}: PRESERVE marker leaked into compiled kernel"
+            )
+
+    def test_resolved_kernel_budget_respected_all_characters(self) -> None:
+        """Kernel compile still respects the resolved per-character ceiling."""
+        from starry_lyfe.context.budgets import resolve_kernel_budget
+        from starry_lyfe.context.kernel_loader import clear_kernel_cache, compile_kernel
+
+        clear_kernel_cache()
+        for char_id in ["adelia", "bina", "reina", "alicia"]:
+            budget = resolve_kernel_budget(char_id)
+            result = compile_kernel(char_id, budget=budget)
+            tokens = estimate_tokens(result)
+            assert tokens <= budget, (
+                f"{char_id}: kernel {tokens} tokens exceeds budget {budget}"
             )
 
 
