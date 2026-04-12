@@ -12,6 +12,7 @@ class CommunicationMode(StrEnum):
     IN_PERSON = "in_person"
     PHONE = "phone"
     LETTER = "letter"
+    VIDEO_CALL = "video_call"
 
 
 @dataclass
