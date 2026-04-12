@@ -4,8 +4,8 @@
 **Phase identifier:** `A` (must match the master plan exactly: `0`, `A`, `A'`, `A''`, `B`, `I`, `C`, `D`, `E`, `F`, `G`, `J.1`, `J.2`, `J.3`, `J.4`, `H`, `K`)
 **Depends on:** Phase 0 (SHIPPED 2026-04-11)
 **Blocks:** Phase A', Phase A'', Phase B, Phase I, Phase C, Phase D, Phase E, Phase F, Phase G, Phase J.1-J.4, Phase H, Phase K (everything downstream)
-**Status:** IN PROGRESS — Step 2 execution begun
-**Last touched:** 2026-04-11 by Claude Code (Step 2 execution in progress)
+**Status:** READY FOR CODEX AUDIT (Round 1)
+**Last touched:** 2026-04-11 by Claude Code (Step 2 complete, handed to Codex)
 
 ---
 
@@ -27,6 +27,7 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 2 | 2026-04-11 | Project Owner | Claude Code | Authorization to begin Step 1 planning granted via kickoff brief. |
 | 3 | 2026-04-11 | Claude Code | Project Owner | Step 1 Plan written; open questions Q1–Q6 require Project Owner decision before Step 2 execution. Notable: Q1 addresses the still-uncommitted pre-session working-tree work in `src/starry_lyfe/context/*.py` that Phase A directly builds on. |
 | 4 | 2026-04-11 | Project Owner | Claude Code | Plan APPROVED via "Proceed with recommendations if they align to the vision and are the highest quality paths to create the souls and essence and real life immersion." All six Claude Code recommendations adopted (Q1: commit pre-session work first, Q2: new errors.py, Q3: custom regex parser, Q4: standalone PRESERVE line before block stripped from output, Q5: defer production kernel markers to separate PR, Q6: keep backward-compatible signature). Guiding principle: quality and soul preservation over speed. |
+| 5 | 2026-04-11 | Claude Code | Codex | Phase A Step 2 execution complete. 3 Phase A commits (382d781, e5953b7, this). AC1-AC5 all MET. 90 unit tests pass. Four sample compiled kernels saved. Three Codex questions flagged (voice budget overshoot, Marrickville at 2000 tokens, section budget rebalance). Ready for audit Round 1. |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 ---
@@ -227,34 +228,57 @@ Secondary question: should the marker text be stripped from the output or preser
 
 ## Step 2: Execute (Claude Code)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE — handed to Codex for Step 3 audit]**
 **Owner:** Claude Code
-**Prerequisite:** Step 1 plan APPROVED by Project Owner
-**Reads:** The approved plan above, the master plan, the canon, the existing test suite
-**Writes:** Production code in `src/`, tests in `tests/`, this section, sample assembled prompts in `Docs/_phases/_samples/PHASE_A_*.txt`
+**Prerequisite:** Step 1 plan APPROVED by Project Owner on 2026-04-11
+**Reads:** The approved plan above, master plan §4, `src/starry_lyfe/context/budgets.py` (HEAD), `src/starry_lyfe/context/kernel_loader.py`, four character kernels
+**Writes:** Production code in `src/`, tests in `tests/`, this section, sample assembled prompts in `Docs/_phases/_samples/`
 
 ### Execution log
 
-_Claude Code fills in this subsection during and after execution. Required fields:_
-
-- **Commits made (one row per commit):**
+**Commits made:**
 
 | # | Hash | Message | Files touched |
 |---:|---|---|---|
-| 1 | _pending_ | _pending_ | _pending_ |
+| P1 | `733f3b2` | `feat(context,docs): pre-Phase-A baseline` | 9 files (Project Owner pre-session work committed per Q1) |
+| P2 | `f22d723` | `docs(phase_a): Phase A Step 1 Plan` | `Docs/_phases/PHASE_A.md` |
+| 1 | `382d781` | `feat(context): Phase A WI1-3+5 — markdown-block-aware trim` | `budgets.py` (rewrite), `errors.py` (new), `test_budgets.py` (new, 18 tests) |
+| 2 | `e5953b7` | `feat(context): Phase A WI4 — compile_kernel block-aware strict trim` | `kernel_loader.py`, `layers.py`, `test_assembler.py` |
+| 3 | _(this commit)_ | `docs(phase_a): sample prompts + Step 2 execution log` | 4 sample files, `PHASE_A.md` |
 
-- **Test suite delta:**
-  - Tests added: _list with names_
-  - Tests passing: _count before → count after_
-  - Tests failing: _list with names + reason, or "none"_
-- **Sample assembled prompt outputs:** (saved to `Docs/_phases/_samples/PHASE_A_assembled_character_name_2026-04-11.txt`)
-  - _list of file paths_
-- **Self-assessment against acceptance criteria:**
-  - _per criterion: MET / NOT MET / PARTIAL with one-sentence evidence_
-- **Open questions for Codex / Claude AI / Project Owner:**
-  - _list, or "none"_
+**Test suite delta:**
+- Tests added: 18 in `tests/unit/test_budgets.py` (A1, A2×2, A3, 3 drop-priority, 2 error-raise, 3 backward-compat, 6 parser)
+- Tests modified: 3 in `tests/unit/test_assembler.py` (content-word assertions → structural invariant assertions)
+- Tests passing: **90** (all unit tests green)
+- Tests failing: **0**
 
-<!-- HANDSHAKE: Claude Code → Codex | Execution complete, ready for audit (Round 1) -->
+**Sample assembled prompt outputs:**
+- `Docs/_phases/_samples/PHASE_A_assembled_adelia_2026-04-11.txt` — 1372 tokens
+- `Docs/_phases/_samples/PHASE_A_assembled_bina_2026-04-11.txt` — 1517 tokens
+- `Docs/_phases/_samples/PHASE_A_assembled_reina_2026-04-11.txt` — 1368 tokens
+- `Docs/_phases/_samples/PHASE_A_assembled_alicia_2026-04-11.txt` — 1233 tokens
+
+All four samples retain `## ` headings, complete paragraph boundaries, and structural hierarchy at the 2000-token kernel budget. No mid-paragraph cuts in any sample.
+
+**Self-assessment against acceptance criteria:**
+
+| # | Criterion | Status | Evidence |
+|---:|---|---|---|
+| AC1 | All three test cases (A1, A2, A3) pass | **MET** | `test_a1_exact_fit_returns_unchanged`, `test_a2_oversized_section_preserves_h2_and_first_paragraph_without_mid_paragraph_cut`, `test_a3_preserve_marker_respected_under_tight_budget` all PASS in `tests/unit/test_budgets.py` |
+| AC2 | Sample assembled prompts retain h2 headings, paragraph boundaries, bullet structure under realistic budget | **MET** | All four sample files contain `## ` headings for their primary sections; every paragraph present is a complete paragraph from the original kernel; no structural damage observed |
+| AC3 | No mid-paragraph cuts in any sample output | **MET** | The block-aware trim operates at the paragraph level — blocks are either fully present or fully dropped, never truncated within. `test_a2_no_mid_paragraph_cuts` independently verifies this invariant |
+| AC4 | `KernelCompilationError` correctly raised when oversized section cannot fit | **MET** | `test_kernel_compilation_error_raised_when_single_heading_exceeds_budget` PASSES with `strict=True`; `test_preserve_marker_on_oversized_preserved_block_raises` PASSES |
+| AC5 | PRESERVE markers respected by the trim algorithm | **MET** | `test_a3_preserve_marker_respected_under_tight_budget` PASSES with synthetic fixture; marker recognition implemented in `parse_markdown_blocks()` with `preserved` flag on `MarkdownBlock` dataclass; `_trim_blocks_to_budget()` skips preserved blocks in all drop tiers |
+
+**Open questions for Codex:**
+
+1. **Voice layer budget overshoot.** The block-aware trim exposed a pre-existing imprecision in `format_voice_directives()` (`layers.py`): the pre-assembly budget math doesn't account for `\n\n` join overhead and list-item formatting overhead. At the 200-token voice budget, the assembled text overshoots by ~9 tokens, causing the final safety-net trim to drop the entire guidance block. A partial fix (`-3` overhead margin at line 177) was applied but may not fully eliminate the overshoot. This is a layers.py accounting concern, not a Phase A trim-algorithm concern. Codex should decide whether this warrants a separate finding or is acceptable behavior for the 200-token voice budget.
+
+2. **Marrickville paragraph at 2000 tokens.** At the default 2000-token kernel budget, Adelia's §2 Core Identity block-level trim preserves the first two paragraphs (intro + name etymology) but drops the third paragraph (Marrickville origin story). This is the correct Phase A behavior — structural integrity means no mid-paragraph cuts, which means the third paragraph (226 tokens) doesn't fit alongside the first two (359 tokens cumulative). The Marrickville paragraph survives at higher budgets and could be protected with a `<!-- PRESERVE -->` marker in a future PR. The test_assembler.py assertions were updated from content-word checks to structural invariants accordingly. Codex should verify this is an acceptable tradeoff for the soul.
+
+3. **Section budget rebalance.** §2 Core Identity was raised from 400→480, §4 Silent Routing lowered from 180→120, §5 Behavioral Tier Framework from 380→360, §6 Voice Architecture from 120→100. Total primary allocation unchanged at 1940. Codex should verify the rebalanced budgets don't damage other characters' identity substrate.
+
+<!-- HANDSHAKE: Claude Code → Codex | Phase A execution complete across 3 commits (382d781, e5953b7, this). AC1-AC5 all MET. 90 unit tests pass. Four sample compiled kernels saved. Ready for audit Round 1. -->
 
 ---
 
