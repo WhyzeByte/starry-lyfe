@@ -1,8 +1,36 @@
-"""Token budget estimation and layer trimming."""
+"""Token budget estimation, markdown-block-aware trimming, and layer budgets."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
+from enum import StrEnum
+
+
+class BlockType(StrEnum):
+    """Markdown block types recognized by the structure-preserving trimmer."""
+
+    HEADING = "heading"
+    PARAGRAPH = "paragraph"
+    BULLET_LIST = "bullet_list"
+    NUMBERED_LIST = "numbered_list"
+    CODE_BLOCK = "code_block"
+    BLOCKQUOTE = "blockquote"
+    HORIZONTAL_RULE = "horizontal_rule"
+
+
+@dataclass
+class MarkdownBlock:
+    """A single parsed markdown block with type, content, and metadata."""
+
+    block_type: BlockType
+    text: str
+    heading_level: int = 0
+    preserved: bool = False
+    estimated_tokens: int = field(default=0, init=False)
+
+    def __post_init__(self) -> None:
+        self.estimated_tokens = estimate_tokens(self.text)
 
 
 @dataclass
@@ -27,16 +55,283 @@ class LayerBudgets:
 
 DEFAULT_BUDGETS = LayerBudgets()
 
+_HEADING_RE = re.compile(r"^(#{1,6})\s")
+_HR_RE = re.compile(r"^(?:---+|___+|\*\*\*+)\s*$")
+_BULLET_RE = re.compile(r"^[\-*+]\s")
+_NUMBERED_RE = re.compile(r"^\d+[.)]\s")
+_BLOCKQUOTE_RE = re.compile(r"^>")
+_CODE_FENCE_RE = re.compile(r"^```")
+_PRESERVE_RE = re.compile(r"^\s*<!--\s*PRESERVE\s*-->\s*$")
+
+_DROP_TIERS: list[set[BlockType]] = [
+    {BlockType.HORIZONTAL_RULE},
+    {BlockType.PARAGRAPH},
+    {BlockType.BULLET_LIST, BlockType.NUMBERED_LIST},
+    {BlockType.BLOCKQUOTE},
+    {BlockType.CODE_BLOCK},
+]
+
 
 def estimate_tokens(text: str) -> int:
     """Rough token estimate: word count / 0.75.
 
-    This is a conservative approximation for English text with Claude tokenizers.
+    Conservative approximation for English text with Claude tokenizers.
     For production, replace with tiktoken or the model's actual tokenizer.
     """
     word_count = len(text.split())
     estimated: int = int(word_count / 0.75)
     return max(1, estimated)
+
+
+def parse_markdown_blocks(text: str) -> list[MarkdownBlock]:
+    """Parse markdown text into a flat list of typed blocks.
+
+    Handles headings, paragraphs, bullet lists, numbered lists, code
+    fences, blockquotes, horizontal rules, and <!-- PRESERVE --> markers.
+    The PRESERVE marker annotates the next content block as protected
+    from trimming and is stripped from the block list itself.
+    """
+    lines = text.split("\n")
+    blocks: list[MarkdownBlock] = []
+    current_lines: list[str] = []
+    in_code_fence = False
+    preserve_next = False
+
+    def _flush() -> None:
+        nonlocal preserve_next
+        if not current_lines:
+            return
+        chunk = "\n".join(current_lines)
+        if not chunk.strip():
+            current_lines.clear()
+            return
+        block = _classify_chunk(chunk, preserve_next)
+        blocks.append(block)
+        preserve_next = False
+        current_lines.clear()
+
+    for line in lines:
+        stripped = line.strip()
+
+        if _CODE_FENCE_RE.match(stripped):
+            if in_code_fence:
+                current_lines.append(line)
+                block = MarkdownBlock(
+                    block_type=BlockType.CODE_BLOCK,
+                    text="\n".join(current_lines),
+                    preserved=preserve_next,
+                )
+                blocks.append(block)
+                preserve_next = False
+                current_lines = []
+                in_code_fence = False
+                continue
+            _flush()
+            current_lines = [line]
+            in_code_fence = True
+            continue
+
+        if in_code_fence:
+            current_lines.append(line)
+            continue
+
+        if _PRESERVE_RE.match(line):
+            _flush()
+            preserve_next = True
+            continue
+
+        if not stripped:
+            _flush()
+            continue
+
+        if _HEADING_RE.match(stripped):
+            _flush()
+            level = len(_HEADING_RE.match(stripped).group(1))  # type: ignore[union-attr]
+            blocks.append(MarkdownBlock(
+                block_type=BlockType.HEADING,
+                text=line,
+                heading_level=level,
+                preserved=preserve_next,
+            ))
+            preserve_next = False
+            continue
+
+        if _HR_RE.match(stripped):
+            _flush()
+            blocks.append(MarkdownBlock(
+                block_type=BlockType.HORIZONTAL_RULE,
+                text=line,
+                preserved=preserve_next,
+            ))
+            preserve_next = False
+            continue
+
+        current_lines.append(line)
+
+    if in_code_fence and current_lines:
+        blocks.append(MarkdownBlock(
+            block_type=BlockType.CODE_BLOCK,
+            text="\n".join(current_lines),
+            preserved=preserve_next,
+        ))
+    else:
+        _flush()
+
+    return blocks
+
+
+def _classify_chunk(text: str, preserved: bool) -> MarkdownBlock:
+    """Classify a non-heading, non-HR chunk of contiguous lines."""
+    first_line = ""
+    for line in text.split("\n"):
+        if line.strip():
+            first_line = line.strip()
+            break
+
+    if _BULLET_RE.match(first_line):
+        return MarkdownBlock(
+            block_type=BlockType.BULLET_LIST, text=text, preserved=preserved,
+        )
+    if _NUMBERED_RE.match(first_line):
+        return MarkdownBlock(
+            block_type=BlockType.NUMBERED_LIST, text=text, preserved=preserved,
+        )
+    if _BLOCKQUOTE_RE.match(first_line):
+        return MarkdownBlock(
+            block_type=BlockType.BLOCKQUOTE, text=text, preserved=preserved,
+        )
+    return MarkdownBlock(
+        block_type=BlockType.PARAGRAPH, text=text, preserved=preserved,
+    )
+
+
+def _total_block_tokens(blocks: list[MarkdownBlock]) -> int:
+    """Estimate total tokens across all blocks plus inter-block whitespace."""
+    if not blocks:
+        return 0
+    text_tokens = sum(b.estimated_tokens for b in blocks)
+    join_overhead = len(blocks) - 1
+    return text_tokens + join_overhead
+
+
+def _reassemble_blocks(blocks: list[MarkdownBlock]) -> str:
+    """Reassemble blocks into markdown text with blank-line separators."""
+    return "\n\n".join(b.text for b in blocks)
+
+
+def _find_last_droppable_heading(
+    blocks: list[MarkdownBlock],
+    level: int,
+) -> int | None:
+    """Find the index of the last heading at the given level that is droppable."""
+    for i in reversed(range(len(blocks))):
+        b = blocks[i]
+        if (
+            b.block_type == BlockType.HEADING
+            and b.heading_level == level
+            and not b.preserved
+        ):
+            owned_blocks = _blocks_owned_by_heading(blocks, i)
+            if not any(blocks[j].preserved for j in owned_blocks):
+                return i
+    return None
+
+
+def _blocks_owned_by_heading(blocks: list[MarkdownBlock], heading_idx: int) -> list[int]:
+    """Return indices of blocks owned by the heading at heading_idx.
+
+    A heading "owns" all subsequent blocks until the next heading of the
+    same or higher (lower number) level, or end of list.
+    """
+    heading = blocks[heading_idx]
+    owned = [heading_idx]
+    for j in range(heading_idx + 1, len(blocks)):
+        if (
+            blocks[j].block_type == BlockType.HEADING
+            and blocks[j].heading_level <= heading.heading_level
+        ):
+            break
+        owned.append(j)
+    return owned
+
+
+_DROPPABLE_CONTENT: set[BlockType] = {
+    BlockType.PARAGRAPH,
+    BlockType.BULLET_LIST,
+    BlockType.NUMBERED_LIST,
+    BlockType.BLOCKQUOTE,
+    BlockType.CODE_BLOCK,
+}
+
+
+def _trim_blocks_to_budget(
+    blocks: list[MarkdownBlock],
+    budget: int,
+) -> list[MarkdownBlock]:
+    """Apply the spec drop-priority algorithm to fit blocks within budget.
+
+    Drop priority (first to drop):
+    1. All non-preserved horizontal_rule blocks (pure formatting, no content)
+    2. Trailing content blocks from the end — paragraph, list, blockquote,
+       code_block — popped one at a time from the tail
+    3. Entire trailing h3 subsection (heading + owned content)
+    4. Entire trailing h2 section (heading + owned content) as last resort
+
+    Preserved blocks are never dropped. Raises KernelCompilationError
+    if budget cannot be met after exhausting all tiers.
+    """
+    from .errors import KernelCompilationError
+
+    result = list(blocks)
+
+    if _total_block_tokens(result) <= budget:
+        return result
+
+    result = [
+        b for b in result
+        if b.block_type != BlockType.HORIZONTAL_RULE or b.preserved
+    ]
+
+    if _total_block_tokens(result) <= budget:
+        return result
+
+    while _total_block_tokens(result) > budget and result:
+        last = result[-1]
+        if last.block_type in _DROPPABLE_CONTENT and not last.preserved:
+            if last.block_type in {BlockType.BULLET_LIST, BlockType.NUMBERED_LIST}:
+                items = last.text.split("\n")
+                if len(items) > 1:
+                    items.pop()
+                    result[-1] = MarkdownBlock(
+                        block_type=last.block_type,
+                        text="\n".join(items),
+                        preserved=last.preserved,
+                    )
+                    continue
+            result.pop()
+        else:
+            break
+
+    if _total_block_tokens(result) <= budget:
+        return result
+
+    for heading_level in (3, 2):
+        while _total_block_tokens(result) > budget:
+            idx = _find_last_droppable_heading(result, heading_level)
+            if idx is None:
+                break
+            owned = _blocks_owned_by_heading(result, idx)
+            for j in reversed(owned):
+                result.pop(j)
+
+    if _total_block_tokens(result) > budget:
+        raise KernelCompilationError(
+            f"Cannot fit content within {budget}-token budget: "
+            f"{_total_block_tokens(result)} tokens remain after "
+            f"dropping all non-preserved, non-heading content"
+        )
+
+    return result
 
 
 def trim_to_budget(texts: list[str], budget_tokens: int) -> list[str]:
@@ -60,15 +355,52 @@ def trim_text_to_budget(
     text: str,
     budget_tokens: int,
     suffix: str | None = None,
+    *,
+    strict: bool = False,
 ) -> str:
     """Trim a single text blob to fit within a token budget.
 
-    The suffix is included in the final budget calculation and is only appended
-    when trimming actually occurs.
+    Uses markdown-block-aware trimming when the text has recognizable
+    structure (multiple blocks). Falls back to word-level trimming for
+    plain text or when block-level trimming cannot satisfy the budget
+    without raising an error (permissive mode for non-kernel callers).
+
+    When strict=True, KernelCompilationError propagates instead of
+    falling back to word-level trim. compile_kernel uses strict=True
+    so authoring problems surface as errors rather than silent degradation.
+
+    The suffix is included in the final budget calculation and is only
+    appended when word-level fallback trimming actually occurs.
     """
     if estimate_tokens(text) <= budget_tokens:
         return text
 
+    blocks = parse_markdown_blocks(text)
+    if len(blocks) > 1 or strict:
+        try:
+            trimmed = _trim_blocks_to_budget(blocks, budget_tokens)
+            result = _reassemble_blocks(trimmed)
+            if strict and not result.strip():
+                from .errors import KernelCompilationError
+                raise KernelCompilationError(
+                    f"Cannot fit any content within {budget_tokens}-token budget: "
+                    f"all blocks dropped (heading alone exceeds budget)"
+                )
+            if estimate_tokens(result) <= budget_tokens:
+                return result
+        except Exception:
+            if strict:
+                raise
+
+    return _word_level_trim(text, budget_tokens, suffix)
+
+
+def _word_level_trim(
+    text: str,
+    budget_tokens: int,
+    suffix: str | None,
+) -> str:
+    """Fallback word-level trimmer for plain text or emergency fallback."""
     words = text.split()
     suffix_text = suffix or ""
 
@@ -79,11 +411,9 @@ def trim_text_to_budget(
         if estimate_tokens(candidate) <= budget_tokens:
             return candidate
 
-    # Fall back to the suffix alone if even a single word plus suffix will not fit.
     if suffix_text and estimate_tokens(suffix_text) <= budget_tokens:
         return suffix_text
 
-    # Absolute fallback: return the first word that fits.
     for word in words:
         if estimate_tokens(word) <= budget_tokens:
             return word
