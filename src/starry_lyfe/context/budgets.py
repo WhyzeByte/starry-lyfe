@@ -117,6 +117,14 @@ _DROP_TIERS: list[set[BlockType]] = [
 ]
 
 
+def _strip_preserve_markers(text: str) -> str:
+    """Remove <!-- PRESERVE --> markers from output text."""
+    if "<!-- PRESERVE -->" not in text:
+        return text
+    lines = text.split("\n")
+    return "\n".join(line for line in lines if not _PRESERVE_RE.match(line.strip())).strip()
+
+
 def estimate_tokens(text: str) -> int:
     """Rough token estimate: word count / 0.75.
 
@@ -417,8 +425,9 @@ def trim_text_to_budget(
     The suffix is included in the final budget calculation and is only
     appended when word-level fallback trimming actually occurs.
     """
-    if estimate_tokens(text) <= budget_tokens:
-        return text
+    clean = _strip_preserve_markers(text)
+    if estimate_tokens(clean) <= budget_tokens:
+        return clean
 
     blocks = parse_markdown_blocks(text)
     if len(blocks) > 1 or strict:

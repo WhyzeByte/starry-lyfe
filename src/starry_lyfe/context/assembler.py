@@ -54,6 +54,7 @@ async def assemble_context(
     session: AsyncSession,
     embedding_service: EmbeddingService,
     canon: Canon | None = None,
+    scene_profile: str = "default",
 ) -> AssembledPrompt:
     """Assemble the seven-layer system prompt for a character.
 
@@ -87,9 +88,10 @@ async def assemble_context(
         present_characters=scene_state.present_characters,
     )
 
-    from .budgets import resolve_kernel_budget
+    from .budgets import get_scene_profile, resolve_kernel_budget
 
-    kernel_budget = resolve_kernel_budget(character_id)
+    profile = get_scene_profile(scene_profile)
+    kernel_budget = resolve_kernel_budget(character_id, base_budget=profile.kernel)
     layer_1 = format_kernel(character_id, budget=kernel_budget)
     layer_2 = format_canon_facts(memories.canon_facts)
     layer_3 = format_memory_fragments(memories.episodic_memories)
@@ -99,6 +101,7 @@ async def assemble_context(
     layer_5 = format_voice_directives(
         character_id,
         memories.character_baseline,
+        budget=profile.voice,
         communication_mode=scene_state.communication_mode,
     )
     layer_6 = format_scene_blocks(
@@ -108,6 +111,7 @@ async def assemble_context(
         memories.open_loops,
         scene_state.present_characters,
         scene_state.scene_description,
+        budget=profile.scene,
         recalled_dyads=scene_state.recalled_dyads,
     )
 

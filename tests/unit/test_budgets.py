@@ -380,6 +380,19 @@ class TestPhaseBBudgetElevation:
         alicia = compile_kernel("alicia", budget=5100)
         assert "Lucía Vega" in alicia or "decided everything" in alicia
 
+    def test_preserve_markers_stripped_from_output(self) -> None:
+        """F1 regression: PRESERVE markers must not leak into model-facing output."""
+        from starry_lyfe.context.kernel_loader import clear_kernel_cache, compile_kernel
+
+        clear_kernel_cache()
+        for char_id in ["adelia", "bina", "reina", "alicia"]:
+            from starry_lyfe.context.budgets import resolve_kernel_budget
+            budget = resolve_kernel_budget(char_id)
+            result = compile_kernel(char_id, budget=budget)
+            assert "<!-- PRESERVE -->" not in result, (
+                f"{char_id}: PRESERVE marker leaked into compiled kernel"
+            )
+
 
 class TestF1Regression:
     """F1 regression: compile_kernel must never return over-budget content."""

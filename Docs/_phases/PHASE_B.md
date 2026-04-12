@@ -4,8 +4,8 @@
 **Phase identifier:** `B` (must match the master plan exactly: `0`, `A`, `A'`, `A''`, `B`, `I`, `C`, `D`, `E`, `F`, `G`, `J.1`, `J.2`, `J.3`, `J.4`, `H`, `K`)
 **Depends on:** Phase A (SHIPPED 2026-04-12, block-aware markdown trim), Phase A' (SHIPPED 2026-04-12, recalled_dyads + canonical women set), Phase A'' (SHIPPED 2026-04-12, communication_mode wiring)
 **Blocks:** Phase C (Soul Cards), Phase D (Live Pair Data), Phase E (Voice Exemplar Restoration), Phase F (Scene-Aware Retrieval), Phase G (Dramaturgical Prose), Phase H (Soul Regression), Phase J.1-J.4, Phase K (Subjective Success Proxies) — all downstream phases benefit from elevated budgets before they ship
-**Status:** AWAITING PROJECT OWNER APPROVAL TO BEGIN
-**Last touched:** 2026-04-12 by Claude AI (file created from _TEMPLATE.md after Phase A'' shipped)
+**Status:** AWAITING CLAUDE CODE REMEDIATION (Round 1 audit complete)
+**Last touched:** 2026-04-12 by Codex (Round 1 audit recorded)
 
 ---
 
@@ -24,6 +24,7 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | # | Date | From | To | Message |
 |---:|---|---|---|---|
 | 1 | 2026-04-12 | Claude AI | Project Owner | Phase B file created from _TEMPLATE.md after Phase A'' shipped (Step 6) and Project Owner explicitly agreed in chat to proceed ("#4" selecting option 4 from the Phase A'' Step 5 verdict's concerns-and-risks follow-up menu: proceed to ship + address concerns in Phase B Step 1 as normal). Both gates passed. File status set to AWAITING PROJECT OWNER APPROVAL TO BEGIN. Master plan §7 Phase B specification reproduced inline below with Vision authority flags (§8 System Architecture + §9 Success Criteria) and five inherited items documented from Phase A'' QA carry-forward plus four Vision alignment gaps tracked from the concerns review. |
+| 2 | 2026-04-12 | Codex | Claude Code | Round 1 audit recorded from the landed Phase B commit surface because Step 1 and Step 2 were never filled in canonically. Gate recommendation: FAIL. Findings: F1 High (`<!-- PRESERVE -->` markers leak into compiled kernels and live assembled prompts), F2 Medium (B1 test does not exercise assembled-prompt totals and does not establish the 11300-token contract), F3 Medium (scene profiles are table-only and not wired through the runtime assembler path), F4 Medium (canonical phase record remains template-only and the checked-in `PHASE_B_assembled_*` artifacts are not assembled prompts). |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 ---
@@ -179,7 +180,7 @@ The Phase A'' Step 5 concerns-and-risks review identified **four Vision alignmen
 
 ## Step 1: Plan (Claude Code)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - handed to Claude Code for remediation Round 1]**
 **Owner:** Claude Code
 **Reads:** Master plan §7, Vision, character kernels (if phase touches a character), canon YAML
 **Writes:** This section
@@ -211,7 +212,7 @@ _Claude Code fills in this subsection. Required fields:_
 
 ## Step 2: Execute (Claude Code)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - handed to Claude Code for remediation Round 1]**
 **Owner:** Claude Code
 **Prerequisite:** Step 1 plan APPROVED by Project Owner
 **Reads:** The approved plan above, the master plan, the canon, the existing test suite
@@ -244,7 +245,7 @@ _Claude Code fills in this subsection during and after execution. Required field
 
 ## Step 3: Audit (Codex) — Round 1
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - handed to Claude Code for remediation Round 1]**
 **Owner:** Codex
 **Prerequisite:** Step 2 execution complete with handshake to Codex
 **Reads:** Master plan §7, the plan and execution log above, git diff against the pre-phase commit, the actual test files, sample assembled prompts in `Docs/_phases/_samples/`, character kernel files for any phase that touches a character, the four archived character conversion audits in `Docs/_archive/` for template reference
@@ -252,24 +253,109 @@ _Claude Code fills in this subsection during and after execution. Required field
 
 ### Audit content
 
-_Codex fills in this subsection. Follows the template of the four archived character conversion audits. Required fields:_
+#### Scope
 
-- **Scope:** _which files reviewed, which Phase specification consulted_
-- **Verification context:** _test suite state, lint state, type-check state_
-- **Executive assessment:** _2-3 paragraph plain-language verdict_
-- **Findings (numbered, severity-tagged):**
+Reviewed:
+
+- `Docs/IMPLEMENTATION_PLAN_v7.1.md` section 7 and the inline Phase B specification in this file
+- `Docs/_phases/PHASE_B.md` header, Handshake Log, exit criteria, and empty Step 1 / Step 2 sections
+- landed Phase B commits `436549a`, `e3bb562`, and `d8322ec`
+- `src/starry_lyfe/context/budgets.py`
+- `src/starry_lyfe/context/kernel_loader.py`
+- `src/starry_lyfe/context/assembler.py`
+- `src/starry_lyfe/context/layers.py`
+- `src/starry_lyfe/context/types.py`
+- `tests/unit/test_budgets.py`
+- all four kernel files with new `<!-- PRESERVE -->` markers
+- checked-in Phase B sample artifacts under `Docs/_phases/_samples/PHASE_B_assembled_*_2026-04-12.txt`
+
+Because Step 1 and Step 2 were never populated in the canonical phase file, this audit used the landed commit surface and live runtime probes as the execution record.
+
+#### Verification context
+
+Independent checks run during audit:
+
+- `.venv\Scripts\python -m pytest tests/unit/test_budgets.py -q` -> **PASS** (`24 passed`)
+- `.venv\Scripts\python -m pytest tests/unit -q` -> **PASS** (`109 passed`)
+- `.venv\Scripts\python -m ruff check src/ tests/` -> **PASS**
+- `.venv\Scripts\python -m mypy src/` -> **PASS**
+- `.venv\Scripts\python -m pytest -q` -> **ENVIRONMENTAL FAIL** (`109 passed, 14 errors`) because PostgreSQL is unreachable during integration setup at `tests/integration/conftest.py:92`
+
+Runtime probes performed:
+
+- live `compile_kernel(character_id, budget=resolve_kernel_budget(character_id))` across all four characters
+- live `assemble_context(...)` across all four characters with the canonical unit-test stub bundle patched into `retrieve_memories`
+- integrity check of all checked-in `PHASE_B_assembled_*_2026-04-12.txt` artifacts
+- runtime-plumbing check for scene profiles via direct code-path review and usage grep
+
+#### Executive assessment
+
+Phase B has real landed work. The default budgets are elevated, per-character kernel scaling exists, the survival-rate spread on compiled kernels is within the stated tolerance, and Layer 7 terminal anchoring still holds on the assembled-prompt path. The underlying preservation intent is also partly real: the soul-bearing paragraphs called out in INH-7 do survive compilation at the elevated kernel budgets.
+
+Phase B is not audit-clean. The highest-risk defect is live prompt hygiene: the new `<!-- PRESERVE -->` marker leaks straight through `compile_kernel()` into final assembled prompts because `trim_text_to_budget()` returns early before block parsing when the text is already under budget. The main Phase B test contract is also not actually exercised on the assembled-prompt path, scene profiles are still only a table rather than a runtime behavior, and the canonical phase record is materially incomplete even though Phase B commits and sample artifacts already landed.
+
+Gate recommendation: **FAIL**.
+
+#### Findings
 
 | # | Severity | Finding | Evidence | Recommended fix |
 |---:|---|---|---|---|
-| 1 | _Critical/High/Medium/Low_ | _description_ | _file:line or test name_ | _what should change_ |
+| F1 | High | `<!-- PRESERVE -->` markers leak into live compiled kernels and final assembled prompts. This exposes authoring-only markup in model-facing prompt text. | `src/starry_lyfe/context/budgets.py:420-421` returns early before `parse_markdown_blocks()` can strip markers; `src/starry_lyfe/context/kernel_loader.py:146` and `:163` feed kernel sections and the final kernel through `trim_text_to_budget()`. The four kernels now contain markers at `Characters/Adelia/Adelia_Raye_v7.1.md:22`, `Characters/Bina/Bina_Malek_v7.1.md:18`, `Characters/Reina/Reina_Torres_v7.1.md:26`, and `Characters/Alicia/Alicia_Marin_v7.1.md:24`. Live probes showed one leaked marker in every compiled kernel (`adelia 6112`, `bina 6570`, `reina 6426`, `alicia 4866` tokens) and in every assembled prompt (`adelia 7190`, `bina 7662`, `reina 7504`, `alicia 5980`). | Strip marker comments on the under-budget path too. The safe fix is to route even under-budget markdown through block parsing/reassembly or otherwise remove `<!-- PRESERVE -->` before returning. Add regression coverage that asserts marker absence in both `compile_kernel()` output and `assemble_context()` output. |
+| F2 | Medium | Test B1 passes for the wrong reason and does not establish the Phase B assembled-prompt budget contract. The shipped test only proves `compile_kernel()` stays under the kernel budget, not that assembled prompts sit within +/- 5% of the elevated total budget. | The spec requires assembled-prompt total behavior at `Docs/IMPLEMENTATION_PLAN_v7.1.md:622` and `Docs/_phases/PHASE_B.md:117`, but `tests/unit/test_budgets.py:295-307` only asserts `compile_kernel()` token counts are `<= resolve_kernel_budget(character_id)`. In the live assembled-prompt probe using the canonical unit-test stub bundle, totals were `adelia 7190`, `bina 7662`, `reina 7504`, and `alicia 5980`, so the checked-in evidence does not prove the claimed `11300`-token total-budget target. | Rewrite B1 to exercise `assemble_context()` under a deterministic high-content fixture and assert the intended assembled-prompt contract directly. If the real requirement is a ceiling rather than a near-target fill level, update the phase record and acceptance-criteria trace to say that explicitly. |
+| F3 | Medium | Scene profiles are not implemented on the live assembler path. The profile table exists, but no runtime caller can select or apply those budgets to Layers 1, 5, or 6. | `src/starry_lyfe/context/budgets.py:73-101` defines `SceneBudgetProfile`, `SCENE_PROFILES`, and `get_scene_profile()`, but `src/starry_lyfe/context/assembler.py:50-120` has no `scene_profile` parameter and only resolves the kernel budget by character. `src/starry_lyfe/context/layers.py:150` and `:217` still default Layer 5 and Layer 6 to `DEFAULT_BUDGETS.voice` / `DEFAULT_BUDGETS.scene`. Usage grep shows `get_scene_profile()` is only exercised in `tests/unit/test_budgets.py:347-364`, which checks table values rather than runtime selection. | Either plumb a scene-profile selector through `assemble_context()` / `SceneState` and apply the resolved budgets to the affected layers, or explicitly defer this work in the canonical Phase B record if the Project Owner decided it was out of scope for this phase. |
+| F4 | Medium | The canonical Phase B record is still not execution-complete, and the checked-in `PHASE_B_assembled_*` artifacts are not assembled prompts. | Step 1 remains `NOT STARTED` at `Docs/_phases/PHASE_B.md:181-209`, Step 2 remains `NOT STARTED` at `:213-242`, and the Step 2 handshake at `:242` is still the untouched placeholder even though the landed Phase B commits and sample files already exist. This audit had to correct the header / Handshake Log state itself just to reflect that Round 1 happened. The exit criterion at `Docs/_phases/PHASE_B.md:165` requires assembled prompts, but all four sample files have token counts exactly matching the compiled-kernel probe (`6112`, `4866`, `6570`, `6426`), still contain `<!-- PRESERVE -->`, and do not end with `</CONSTRAINTS>`, so they are kernel outputs mislabeled as assembled prompts. | Backfill Step 1 and Step 2 truthfully from the landed work, align the header / handshake state, and regenerate genuine `assemble_context()` prompt artifacts for all four characters. Those artifacts should include Layer 7 terminal anchoring and should not contain raw authoring markers. |
 
-- **Runtime probe summary:** _live observations from running the code_
-- **Drift against specification:** _places where the implementation diverged from the master plan_
-- **Verified resolved:** _items from the execution log that Codex independently confirmed_
-- **Adversarial scenarios constructed:** _at least 3 red-team scenarios specific to this Phase_
-- **Gate recommendation:** PASS / PASS WITH MINOR FIXES / FAIL
+#### Runtime probe summary
 
-<!-- HANDSHAKE: Codex → Claude Code | Audit Round 1 complete, ready for remediation -->
+- `compile_kernel()` at the elevated per-character budgets currently returns:
+  - `adelia`: `6300` budget -> `6112` tokens, marker leak `True`
+  - `bina`: `7200` budget -> `6570` tokens, marker leak `True`
+  - `reina`: `6899` budget -> `6426` tokens, marker leak `True`
+  - `alicia`: `5100` budget -> `4866` tokens, marker leak `True`
+- Live `assemble_context()` with the canonical unit-test stub bundle remains terminally anchored for all four characters, but every prompt still contains the leaked marker:
+  - `adelia`: `7190` tokens, `is_terminally_anchored=True`, marker leak `True`
+  - `bina`: `7662` tokens, `is_terminally_anchored=True`, marker leak `True`
+  - `reina`: `7504` tokens, `is_terminally_anchored=True`, marker leak `True`
+  - `alicia`: `5980` tokens, `is_terminally_anchored=True`, marker leak `True`
+- All four checked-in `PHASE_B_assembled_*_2026-04-12.txt` artifacts behave like compiled kernels, not assembled prompts:
+  - they contain `<!-- PRESERVE -->`
+  - they do not end with `</CONSTRAINTS>`
+  - their token counts match the compiled-kernel outputs rather than the assembled-prompt outputs
+
+#### Drift against specification
+
+- Test B1 in `tests/unit/test_budgets.py` does not match the master plan's assembled-prompt requirement.
+- Test B4 only validates the scene-profile lookup table; the runtime scene-profile path named in Phase B is not present.
+- The sample artifacts do not satisfy the exit criterion requiring four assembled prompts at the elevated total budget.
+- The phase file never recorded a Step 1 plan, Step 2 execution log, or truthful ready-for-audit handoff despite the landed Phase B commits.
+
+#### Verified resolved
+
+- Budget elevation landed in `src/starry_lyfe/context/budgets.py`; the default total is now `11300`.
+- Per-character kernel scaling exists and, on the compiled-kernel probe, equalizes survival rates within the stated tolerance (spread approximately `0.033`).
+- Layer 7 terminal anchoring still holds on the live assembled-prompt path across all four characters.
+- The specific soul-bearing phrases called out by the Phase B preservation work remain present in compiled kernels at the elevated budgets.
+
+#### Adversarial scenarios constructed
+
+1. **Under-budget marker leak check:** compile all four real kernels at the new elevated budgets and scan for raw `<!-- PRESERVE -->` comments. This exposed the early-return leak in `trim_text_to_budget()`.
+2. **End-to-end prompt hygiene check:** assemble all four prompts with the canonical unit-test stub bundle and verify both terminal anchoring and marker absence. Terminal anchoring held; marker absence failed for all four characters.
+3. **Artifact integrity check:** treat the checked-in `PHASE_B_assembled_*` files as if they were real Step 2 artifacts and verify they behave like assembled prompts. They failed the basic structural check because none end with `</CONSTRAINTS>`.
+4. **Scene-profile plumbing check:** trace whether any runtime path can actually select `default`, `pair_intimate`, `multi_woman_group`, `children_gated`, or `solo`. The only live consumer is the B4 table-value test; the assembler path has no selector.
+
+#### Recommended remediation order
+
+1. Fix F1 first. Raw marker leakage is a live prompt-surface defect and should be closed before any other Phase B claim is trusted.
+2. Fix F2 and F3 next. Tighten B1 onto the assembled-prompt path and either wire scene profiles through runtime or explicitly defer them with Project Owner-backed scope language.
+3. Fix F4 last, but do not skip it. Phase B cannot be QA-ready while the canonical record is still template-only and the sample artifacts are mislabeled.
+
+#### Gate recommendation
+
+**FAIL**
+
+Phase B should not proceed to QA. The live prompt surface still leaks authoring markers, the main B1 acceptance test does not test what the phase says it tests, scene profiles are not on the runtime path, and the canonical phase record is materially incomplete.
+
+<!-- HANDSHAKE: Codex -> Claude Code | Audit Round 1 complete. FAIL gate. F1 High: PRESERVE markers leak into compiled kernels and assembled prompts. F2 Medium: B1 does not exercise assembled-prompt totals or prove the 11300-token contract. F3 Medium: scene profiles are table-only, not runtime. F4 Medium: Step 1/2 are still template-only and the PHASE_B_assembled_* artifacts are actually kernel outputs. Ready for remediation Round 1. -->
 
 ---
 
