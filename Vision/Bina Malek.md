@@ -4,7 +4,7 @@ Assertive Defender (ISFJ-A) & Circuit Pair
 **Bina**: Aramaic for "understanding/wisdom".
 **Malek**: Arabic/Aramaic for king or sovereign; a title of authority.
 
-To deeply anchor Bina Malek as an Assyrian-Iranian woman and seamlessly integrate the _Epic of Gilgamesh_ into her psychological architecture, we have to weave this ancient heritage into her ISFJ-A "Citadel" personality. Assyrians are an indigenous Mesopotamian people, and those from Iran (historically centered around Urmia or Tehran) carry a fiercely guarded, ancient cultural pride.
+To deeply anchor Bina Malek as an Assyrian-Iranian woman and seamlessly integrate the _Epic of Gilgamesh_ into her psychological architecture, we have to weave this ancient heritage into her ISFJ-A Circuit Pair ("Citadel" in v7.0) personality. Assyrians are an indigenous Mesopotamian people, and those from Iran (historically centered around Urmia or Tehran) carry a fiercely guarded, ancient cultural pride.
 
 The _Epic of Gilgamesh_ is not just a myth for Bina; it is the ultimate foundational text about grief, mortality, and the realization that the only true immortality lies in the **walls you build and the people you protect**. This perfectly maps to her role as the structural foundation of the chosen family.
 
