@@ -134,6 +134,8 @@ Claude Code then signals "ready for re-audit or QA." Two paths from here:
 - **Path A (clean remediation):** No new findings expected. Claude Code skips re-audit and goes straight to Claude AI QA (Step 5).
 - **Path B (substantive remediation):** Claude Code's remediation involved nontrivial design changes. Codex re-audits (return to Step 3) before Claude AI QA. The decision between Path A and Path B is Claude Code's call based on whether the remediation introduced any new architectural surface.
 
+- **Path C (direct-Codex doc-only remediation):** For Round 2+ findings that are purely documentation-level (phase file wording, handshake numbering, spec-trace annotations) with no production code implications, the Project Owner may explicitly authorize Codex to apply the doc fixes directly rather than routing them back through Claude Code. This is an optimization for trivial doc-only findings; Codex records the authorization and the applied fixes in the phase file's audit section. This path was established as precedent in Phase A Round 2 (2026-04-12) under Project Owner override and is formalized here for future phases.
+
 **Maximum cycle count:** Three audit-remediate rounds per Phase before mandatory escalation to the Project Owner. If the Phase has not converged after three Codex audits, the cycle has failed and the Project Owner must intervene.
 
 ### Step 5 — QA (Claude AI)
