@@ -231,7 +231,7 @@ This phase is a lightweight verification pass that catches canon drift between t
    - Kernel §3 heading matches the canonical pair name
    - Kernel §5 behavioral tier framework references `Persona_Tier_Framework_v7.1.md` (not `_v7.md`)
 
-3. **Verify Vision-kernel consistency** across the four characters. For each character, compare the Vision §5 one-paragraph summary against the character kernel §2 Core Identity. Flag drifts where the Vision summary is stale or the kernel is ahead. **Specific known drift (from `BINA_CONVERSION_AUDIT.md` Finding 7):** Vision says Bina is "Canadian-born Assyrian"; kernel says "born in Urmia, Iran, brought out by her parents in the early nineties." Resolve toward "Canadian-born Assyrian from Urmia" (both true) and update whichever source is stale.
+3. **Verify Vision-kernel consistency** across the four characters. For each character, compare the Vision §5 one-paragraph summary against the character kernel §2 Core Identity. Flag drifts where the Vision summary is stale or the kernel is ahead. **Specific known drift (from `BINA_CONVERSION_AUDIT.md` Finding 7):** ~~Vision says Bina is "Canadian-born Assyrian"~~ **RESOLVED in Phase 0 (commit `c0edc0e`).** The Phase 0 Vision rewrite removed the heritage line from Vision §5 entirely — the new §5 Bina paragraph is essence-only ("The unshakeable anchor under pressure...") with biographical detail deferred to the kernel §2 where it is correctly stated as "First-generation Assyrian-Iranian Canadian... carried out of Urmia... Raised in Edmonton." The master plan's recommended phrasing "Canadian-born Assyrian from Urmia" was not adopted because the Vision rewrite chose a cleaner architectural approach: the Vision names function, the kernels carry life.
 
 4. **Verify canon YAML consistency** with character kernels. `characters.yaml` field values for each character must match the kernel's canonical statement of the same field. Specific fields to check: `surname`, `parents`, `birthplace`, `pair_name`, `pair_classification`, `pair_mechanism`, `pair_core_metaphor`.
 
@@ -432,6 +432,8 @@ This is the most-tested architectural commitment in the entire backend. Every ex
 - `tests/unit/test_budgets.py` — add test cases A1, A2, A3
 - Kernel markdown files — optional, add `<!-- PRESERVE -->` markers as a separate PR
 
+**Phase A AC2 clarification (added Phase A', INH-6):** The exit criterion "sample assembled prompts retain h2 headings, paragraph boundaries, and bullet structure" refers to the algorithm's structural-preservation capability. At the default 2000-token kernel budget, the character kernels (which are 100% first-person prose paragraphs under headings, with no markdown bullet lists in the source content) produce samples that evidence heading and paragraph preservation. Bullet-list preservation is proven by unit tests (`test_bullet_list_items_dropped_one_at_a_time`, `test_nested_subsection_with_mixed_blocks_preserves_h2_h3_hierarchy`) against synthetic fixtures. The "bullet structure" criterion is MET at the algorithm level; it is N/A at the integration-sample level because the kernel source content contains no bullets to preserve.
+
 ### Phase A': Runtime Correctness Fixes
 
 **Priority:** Blocker (work item 3+) / Historical record (work items 1+2). Two of the original five work items are now VERIFIED RESOLVED in code.
@@ -454,7 +456,7 @@ This is the most-tested architectural commitment in the entire backend. Every ex
 
 3. **Resolve Vision-vs-kernel Bina origin drift** (BINA F7).
 
-   **Status: PENDING.** Vision §5 says Bina is "Canadian-born Assyrian". Kernel and canon YAML say "born in Urmia, Iran, brought out by her parents in the early nineties." Both are true — Bina was born in Urmia and her parents brought her to Canada as a toddler. The Vision summary is stale shorthand. Update Vision §5 Bina paragraph to read "Iran-born Assyrian-Canadian, raised in Canada from the early nineties" or similar precise phrasing that matches the kernel.
+   **Status: RESOLVED in Phase 0 (commit `c0edc0e`).** ~~Vision §5 says Bina is "Canadian-born Assyrian"~~ — the Phase 0 Vision rewrite removed the heritage line from Vision §5 entirely rather than patching it in place. The new §5 Bina paragraph is essence-only with biographical detail in the kernel §2 ("First-generation Assyrian-Iranian Canadian... carried out of Urmia... Raised in Edmonton"). This work item is historical — no Phase A' action required.
 
 4. **Verify no similar Vision-vs-kernel drifts exist** for Adelia, Reina, or Alicia. Run a targeted consistency check: Vision §5 one-paragraph summary vs kernel §2 Core Identity first paragraph for each of the other three characters. Flag and resolve any drifts found.
 
