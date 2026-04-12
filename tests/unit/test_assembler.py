@@ -568,6 +568,110 @@ async def test_recalled_dyad_included_when_other_absent(
     assert "Relationship bina-reina" in prompt.prompt
 
 
+# --- Phase A'' tests: communication-mode-aware pruning ---
+
+
+def test_a_double_prime_1_alicia_phone_no_somatic_pillar() -> None:
+    """A''1: Alicia phone-mode prompt does NOT contain somatic-first language."""
+    scene = SceneState(
+        present_characters=["alicia", "whyze"],
+        alicia_home=True,
+        communication_mode=CommunicationMode.PHONE,
+    )
+    block = build_constraint_block("alicia", scene)
+    assert "Somatic contact first" not in block
+    assert "close the distance" not in block
+
+
+def test_a_double_prime_2_alicia_phone_has_substituted_pillar() -> None:
+    """A''2: Alicia phone-mode prompt DOES contain the phone pillar."""
+    scene = SceneState(
+        present_characters=["alicia", "whyze"],
+        alicia_home=True,
+        communication_mode=CommunicationMode.PHONE,
+    )
+    block = build_constraint_block("alicia", scene)
+    assert "voice carries the regulation" in block.lower()
+
+
+def test_a_double_prime_3_phone_filters_in_person_exemplars() -> None:
+    """A''3: In-person-only examples do NOT appear in a phone-mode voice layer."""
+    clear_kernel_cache()
+    all_items = load_voice_guidance("alicia")
+    phone_items = load_voice_guidance("alicia", communication_mode="phone")
+    assert all_items is not None
+    assert phone_items is not None
+    assert len(phone_items) < len(all_items)
+
+
+def test_a_double_prime_4_phone_tagged_exemplar_appears() -> None:
+    """A''4: A phone-tagged exemplar DOES appear in a phone-mode prompt."""
+    clear_kernel_cache()
+    phone_items = load_voice_guidance("alicia", communication_mode="phone")
+    assert phone_items is not None
+    assert any("Phone Call" in item or "phone" in item.lower() for item in phone_items)
+
+
+def test_a_double_prime_5_bina_phone_mode_is_noop() -> None:
+    """A''5: Bina phone-mode constraints are identical to in-person."""
+    scene_in_person = SceneState(
+        present_characters=["bina", "whyze"],
+        communication_mode=CommunicationMode.IN_PERSON,
+    )
+    scene_phone = SceneState(
+        present_characters=["bina", "whyze"],
+        communication_mode=CommunicationMode.PHONE,
+    )
+    block_ip = build_constraint_block("bina", scene_in_person)
+    block_phone = build_constraint_block("bina", scene_phone)
+    assert block_ip == block_phone
+
+
+def test_a_double_prime_6_letter_and_video_have_own_pillars() -> None:
+    """A''6: Letter-mode and video-mode prompts each get their own pillar text."""
+    scene_letter = SceneState(
+        present_characters=["alicia", "whyze"],
+        alicia_home=True,
+        communication_mode=CommunicationMode.LETTER,
+    )
+    scene_video = SceneState(
+        present_characters=["alicia", "whyze"],
+        alicia_home=True,
+        communication_mode=CommunicationMode.VIDEO_CALL,
+    )
+    block_letter = build_constraint_block("alicia", scene_letter)
+    block_video = build_constraint_block("alicia", scene_video)
+    assert "Letters are weight" in block_letter
+    assert "Eye contact and posture" in block_video
+    assert block_letter != block_video
+
+
+def test_adelia_phone_mode_is_noop() -> None:
+    """Cross-character regression: Adelia's constraints don't change with phone mode."""
+    scene_ip = SceneState(
+        present_characters=["adelia", "whyze"],
+        communication_mode=CommunicationMode.IN_PERSON,
+    )
+    scene_phone = SceneState(
+        present_characters=["adelia", "whyze"],
+        communication_mode=CommunicationMode.PHONE,
+    )
+    assert build_constraint_block("adelia", scene_ip) == build_constraint_block("adelia", scene_phone)
+
+
+def test_reina_phone_mode_is_noop() -> None:
+    """Cross-character regression: Reina's constraints don't change with phone mode."""
+    scene_ip = SceneState(
+        present_characters=["reina", "whyze"],
+        communication_mode=CommunicationMode.IN_PERSON,
+    )
+    scene_phone = SceneState(
+        present_characters=["reina", "whyze"],
+        communication_mode=CommunicationMode.PHONE,
+    )
+    assert build_constraint_block("reina", scene_ip) == build_constraint_block("reina", scene_phone)
+
+
 def test_adelia_voice_guidance_multiple_modes() -> None:
     """Finding 2: Voice guidance should cover more than just the first 2 examples."""
     clear_kernel_cache()
