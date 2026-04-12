@@ -27,13 +27,13 @@ VOICE_PATHS: dict[str, str] = {
 # The goal is not to include whole documents. It is to ensure each runtime
 # kernel still carries identity substrate, pair mechanics, and protocol surface.
 SECTION_TOKEN_TARGETS: dict[int, int] = {
-    1: 240,   # Runtime Directives
-    2: 480,   # Core Identity (raised from 400 — the identity paragraphs are the soul substrate)
-    3: 420,   # Whyze / Pair section
-    4: 120,   # Silent Routing (lowered from 180 — routing rules are terse)
-    5: 360,   # Behavioral Tier Framework (lowered from 380)
-    7: 220,   # Emotional / Relational / Operational Frameworks
-    6: 100,   # Voice Architecture (lowered from 120 — compressed at compile time)
+    1: 300,   # Runtime Directives
+    2: 900,   # Core Identity (soul substrate — PRESERVE-marked paragraphs live here)
+    3: 1000,  # Whyze / Pair section
+    4: 250,   # Silent Routing
+    5: 900,   # Behavioral Tier Framework
+    7: 550,   # Emotional / Relational / Operational Frameworks
+    6: 300,   # Voice Architecture
 }
 
 PRIMARY_SECTION_ORDER: list[int] = [1, 2, 3, 4, 5, 7, 6]
@@ -154,7 +154,7 @@ def compile_kernel(character_id: str, budget: int) -> str:
         section_budget = allocated_budgets.get(num, 0)
         if section_budget <= 0:
             continue
-        trimmed = trim_text_to_budget(text, section_budget, strict=True)
+        trimmed = trim_text_to_budget(text, section_budget)
         if trimmed and estimate_tokens(trimmed) > 10:
             assembled.append(trimmed)
 

@@ -37,13 +37,13 @@ class MarkdownBlock:
 class LayerBudgets:
     """Soft token budgets per layer. Configurable per deployment."""
 
-    kernel: int = 2000
-    canon_facts: int = 500
-    episodic: int = 1000
-    somatic: int = 300
-    voice: int = 200
-    scene: int = 800
-    constraints: int = 500
+    kernel: int = 6000
+    canon_facts: int = 600
+    episodic: int = 1200
+    somatic: int = 500
+    voice: int = 900
+    scene: int = 1200
+    constraints: int = 900
 
     @property
     def total(self) -> int:
@@ -54,6 +54,51 @@ class LayerBudgets:
 
 
 DEFAULT_BUDGETS = LayerBudgets()
+
+CHARACTER_KERNEL_BUDGET_SCALING: dict[str, float] = {
+    "adelia": 1.05,
+    "bina": 1.20,
+    "reina": 1.15,
+    "alicia": 0.85,
+}
+
+
+def resolve_kernel_budget(character_id: str, base_budget: int = DEFAULT_BUDGETS.kernel) -> int:
+    """Resolve per-character kernel budget with scaling factor."""
+    scale = CHARACTER_KERNEL_BUDGET_SCALING.get(character_id, 1.0)
+    return int(base_budget * scale)
+
+
+@dataclass
+class SceneBudgetProfile:
+    """Budget allocation profile for different scene types."""
+
+    name: str
+    kernel: int
+    scene: int
+    voice: int
+
+    @property
+    def total(self) -> int:
+        return (
+            self.kernel + DEFAULT_BUDGETS.canon_facts + DEFAULT_BUDGETS.episodic
+            + DEFAULT_BUDGETS.somatic + self.voice + self.scene
+            + DEFAULT_BUDGETS.constraints
+        )
+
+
+SCENE_PROFILES: dict[str, SceneBudgetProfile] = {
+    "default": SceneBudgetProfile(name="default", kernel=6000, scene=1200, voice=900),
+    "pair_intimate": SceneBudgetProfile(name="pair_intimate", kernel=8000, scene=800, voice=700),
+    "multi_woman_group": SceneBudgetProfile(name="multi_woman_group", kernel=5500, scene=1800, voice=1000),
+    "children_gated": SceneBudgetProfile(name="children_gated", kernel=5500, scene=1400, voice=800),
+    "solo": SceneBudgetProfile(name="solo", kernel=7000, scene=800, voice=900),
+}
+
+
+def get_scene_profile(profile_name: str = "default") -> SceneBudgetProfile:
+    """Get a scene budget profile by name. Stub selector — always returns named profile."""
+    return SCENE_PROFILES.get(profile_name, SCENE_PROFILES["default"])
 
 _HEADING_RE = re.compile(r"^(#{1,6})\s")
 _HR_RE = re.compile(r"^(?:---+|___+|\*\*\*+)\s*$")

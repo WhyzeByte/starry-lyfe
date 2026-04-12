@@ -87,8 +87,10 @@ async def assemble_context(
         present_characters=scene_state.present_characters,
     )
 
-    # Format layers 1-6
-    layer_1 = format_kernel(character_id)
+    from .budgets import resolve_kernel_budget
+
+    kernel_budget = resolve_kernel_budget(character_id)
+    layer_1 = format_kernel(character_id, budget=kernel_budget)
     layer_2 = format_canon_facts(memories.canon_facts)
     layer_3 = format_memory_fragments(memories.episodic_memories)
     layer_4 = format_sensory_grounding(

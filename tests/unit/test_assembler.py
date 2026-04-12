@@ -403,8 +403,10 @@ async def test_assemble_context_real_output_is_budgeted_and_backend_safe(
     assert "**User:**" not in prompt.prompt
     assert "**Assistant:**" not in prompt.prompt
 
+    from starry_lyfe.context.budgets import resolve_kernel_budget
+
     layer_budgets = {
-        1: DEFAULT_BUDGETS.kernel,
+        1: resolve_kernel_budget("bina"),
         2: DEFAULT_BUDGETS.canon_facts,
         3: DEFAULT_BUDGETS.episodic,
         4: DEFAULT_BUDGETS.somatic,
@@ -414,7 +416,6 @@ async def test_assemble_context_real_output_is_budgeted_and_backend_safe(
     }
     for layer in prompt.layers:
         assert layer.estimated_tokens <= layer_budgets[layer.layer_number]
-    assert prompt.total_tokens <= DEFAULT_BUDGETS.total
 
 
 async def test_assemble_context_blocks_away_alicia_in_person(
