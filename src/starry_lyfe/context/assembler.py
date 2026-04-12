@@ -96,6 +96,7 @@ async def assemble_context(
     )
     layer_5 = format_voice_directives(character_id, memories.character_baseline)
     layer_6 = format_scene_blocks(
+        character_id,
         memories.dyad_states_whyze,
         memories.dyad_states_internal,
         memories.open_loops,

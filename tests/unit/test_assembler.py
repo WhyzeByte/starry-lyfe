@@ -26,8 +26,10 @@ from starry_lyfe.context.kernel_loader import (
     KERNEL_PATHS,
     VOICE_PATHS,
     clear_kernel_cache,
+    load_kernel,
     load_voice_guidance,
 )
+from starry_lyfe.context.layers import format_voice_directives
 from starry_lyfe.context.types import AssembledPrompt, CommunicationMode, SceneState
 
 
@@ -40,22 +42,68 @@ class _StubEmbeddingService:
 
 
 def _make_bundle(character_id: str) -> Any:
+    profile = {
+        "adelia": {
+            "full_name": "Adelia Raye",
+            "epithet": "The Catalyst",
+            "mbti": "ENFP-A",
+            "dominant_function": "Ne",
+            "pair_name": "entangled",
+            "pair_classification": "asymmetrical cognitive interlock",
+            "pair_mechanism": "Chaos-to-structure handoff",
+            "pair_core_metaphor": "The Gravity and the Space",
+            "heritage": "Valencian-Australian",
+            "profession": "Pyrotechnic artist / ethical hacker",
+            "response_length_range": "2-4 paragraphs",
+            "dominant_function_descriptor": "energy-first, tangent-resolving ideation",
+            "internal_member": "bina",
+        },
+        "bina": {
+            "full_name": "Bina Malek",
+            "epithet": "The Sentinel",
+            "mbti": "ISFJ-A",
+            "dominant_function": "Si",
+            "pair_name": "circuit",
+            "pair_classification": "structural complement",
+            "pair_mechanism": "Total division of operational domains",
+            "pair_core_metaphor": "The Architect and the Sentinel",
+            "heritage": "Assyrian-Iranian Canadian",
+            "profession": "Mechanic",
+            "response_length_range": "2-4 sentences",
+            "dominant_function_descriptor": "Si-dominant declarative steadiness",
+            "internal_member": "reina",
+        },
+        "alicia": {
+            "full_name": "Alicia Marin",
+            "epithet": "The Solstice",
+            "mbti": "ESFP-A",
+            "dominant_function": "Se",
+            "pair_name": "solstice",
+            "pair_classification": "structural complement",
+            "pair_mechanism": "Inferior-function gift exchange",
+            "pair_core_metaphor": "The Duality",
+            "heritage": "Argentine",
+            "profession": "Operative",
+            "response_length_range": "Short-to-medium",
+            "dominant_function_descriptor": "Se-dominant somatic co-regulation",
+            "internal_member": "adelia",
+        },
+    }[character_id]
+
     baseline = SimpleNamespace(
-        full_name="Bina Malek" if character_id == "bina" else "Alicia Marin",
-        epithet="The Sentinel" if character_id == "bina" else "The Solstice",
-        mbti="ISFJ-A" if character_id == "bina" else "ESFP-A",
-        dominant_function="Si" if character_id == "bina" else "Se",
-        pair_name="circuit" if character_id == "bina" else "solstice",
-        pair_classification="structural complement",
-        heritage="Assyrian-Iranian Canadian" if character_id == "bina" else "Argentine",
-        profession="Mechanic" if character_id == "bina" else "Operative",
+        full_name=profile["full_name"],
+        epithet=profile["epithet"],
+        mbti=profile["mbti"],
+        dominant_function=profile["dominant_function"],
+        pair_name=profile["pair_name"],
+        pair_classification=profile["pair_classification"],
+        pair_mechanism=profile["pair_mechanism"],
+        pair_core_metaphor=profile["pair_core_metaphor"],
+        heritage=profile["heritage"],
+        profession=profile["profession"],
         voice_params={
-            "response_length_range": "2-4 sentences" if character_id == "bina" else "Short-to-medium",
-            "dominant_function_descriptor": (
-                "Si-dominant declarative steadiness"
-                if character_id == "bina"
-                else "Se-dominant somatic co-regulation"
-            ),
+            "response_length_range": profile["response_length_range"],
+            "dominant_function_descriptor": profile["dominant_function_descriptor"],
         },
     )
     return SimpleNamespace(
@@ -76,7 +124,7 @@ def _make_bundle(character_id: str) -> Any:
         dyad_states_internal=[
             SimpleNamespace(
                 member_a=character_id,
-                member_b="reina" if character_id == "bina" else "adelia",
+                member_b=profile["internal_member"],
                 interlock="anchor_dynamic",
                 trust=0.72,
                 intimacy=0.55,
@@ -299,6 +347,16 @@ def test_load_voice_guidance_strips_raw_msty_artifacts() -> None:
     assert "**Assistant:**" not in joined
 
 
+def test_bina_kernel_uses_malek_and_circuit_pair() -> None:
+    """Bina's runtime kernel should carry the corrected family and pair names."""
+    clear_kernel_cache()
+    kernel = load_kernel("bina", budget=4000)
+    assert "Bahadori" not in kernel
+    assert "Citadel Pair" not in kernel
+    assert "Circuit Pair" in kernel
+    assert "Farhad and Shirin Malek" in kernel
+
+
 async def test_assemble_context_real_output_is_budgeted_and_backend_safe(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -397,3 +455,136 @@ async def test_assemble_context_allows_away_alicia_phone(
 
     assert prompt.character_id == "alicia"
     assert prompt.is_terminally_anchored
+
+
+# --- Adelia conversion audit regression tests ---
+
+
+def test_adelia_kernel_preserves_entangled_pair() -> None:
+    """Finding 1: Adelia's compiled kernel must contain Entangled Pair section."""
+    from starry_lyfe.context.kernel_loader import load_kernel
+
+    clear_kernel_cache()
+    kernel = load_kernel("adelia", budget=DEFAULT_BUDGETS.kernel)
+    assert "Entangled Pair" in kernel or "entangled" in kernel.lower()
+    # The pair section (§3) is Tier A priority and must survive compilation
+    assert "Whyze" in kernel
+
+
+def test_adelia_kernel_preserves_behavioral_tier() -> None:
+    """Finding 1: Adelia's compiled kernel must contain Behavioral Tier Framework."""
+    from starry_lyfe.context.kernel_loader import load_kernel
+
+    clear_kernel_cache()
+    kernel = load_kernel("adelia", budget=DEFAULT_BUDGETS.kernel)
+    # §5 Behavioral Tier Framework is Tier A priority
+    assert "Tier" in kernel or "behavioral" in kernel.lower()
+
+
+def test_adelia_kernel_preserves_identity_surface() -> None:
+    """Adelia's runtime kernel should retain biographical anchors, not only pair mechanics."""
+    clear_kernel_cache()
+    kernel = load_kernel("adelia", budget=DEFAULT_BUDGETS.kernel)
+    assert "Valencia" in kernel
+    assert "Marrickville" in kernel
+    assert "Whiteboard Mode" in kernel
+
+
+def test_adelia_whyze_scene_no_talk_to_each_other() -> None:
+    """Finding 3: An Adelia-Whyze scene must NOT get the Talk-to-Each-Other mandate."""
+    scene = SceneState(present_characters=["adelia", "whyze"])
+    block = build_constraint_block("adelia", scene)
+    assert "TALK-TO-EACH-OTHER" not in block
+
+
+def test_talk_to_each_other_requires_two_women() -> None:
+    """Finding 3: Mandate fires only when 2+ women (not counting Whyze) are present."""
+    # Two women + Whyze: mandate should fire
+    scene_multi = SceneState(present_characters=["adelia", "bina", "whyze"])
+    block_multi = build_constraint_block("adelia", scene_multi)
+    assert "TALK-TO-EACH-OTHER" in block_multi
+
+    # One woman + Whyze: mandate should NOT fire
+    scene_pair = SceneState(present_characters=["adelia", "whyze"])
+    block_pair = build_constraint_block("adelia", scene_pair)
+    assert "TALK-TO-EACH-OTHER" not in block_pair
+
+
+def test_adelia_voice_guidance_multiple_modes() -> None:
+    """Finding 2: Voice guidance should cover more than just the first 2 examples."""
+    clear_kernel_cache()
+    guidance = load_voice_guidance("adelia")
+    assert guidance is not None
+    # Should have more than 2 items to cover diverse voice modes
+    assert len(guidance) >= 3
+
+
+def test_adelia_voice_layer_prioritizes_handoff_and_cultural_surface() -> None:
+    """The live Adelia voice layer should keep the handoff and Spanish-register examples."""
+    layer = format_voice_directives("adelia", _make_bundle("adelia").character_baseline)
+    assert "Example 4: Asks For Whyze's Brain" in layer.text
+    assert "Example 5: Cultural Surface Under Pressure" in layer.text
+
+
+async def test_assemble_context_adelia_retains_identity_and_protocol_surface(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Adelia's live prompt should carry identity, protocol, and voice-surface cues."""
+
+    async def stub_retrieve_memories(*args: Any, **kwargs: Any) -> Any:
+        return _make_bundle("adelia")
+
+    monkeypatch.setattr(assembler_module, "retrieve_memories", stub_retrieve_memories)
+    clear_kernel_cache()
+
+    prompt = await assemble_context(
+        character_id="adelia",
+        scene_context="Adelia and Whyze are in the warehouse after a permit fight.",
+        scene_state=SceneState(
+            present_characters=["adelia", "whyze"],
+            scene_description="Warehouse after hours; permit binder open; welding bench still warm.",
+            communication_mode=CommunicationMode.IN_PERSON,
+        ),
+        session=cast(AsyncSession, None),
+        embedding_service=_StubEmbeddingService(),
+    )
+
+    assert "Marrickville" in prompt.prompt
+    assert "Whiteboard Mode" in prompt.prompt
+    assert "Example 4: Asks For Whyze's Brain" in prompt.prompt
+    assert "Example 5: Cultural Surface Under Pressure" in prompt.prompt
+    assert "TALK-TO-EACH-OTHER" not in prompt.prompt
+    assert "Relationship adelia-bina" not in prompt.prompt
+
+
+# --- Bina conversion audit regression tests ---
+
+
+def test_bina_kernel_preserves_circuit_pair_section() -> None:
+    """Bina's compiled kernel must contain Circuit Pair architecture."""
+    clear_kernel_cache()
+    kernel = load_kernel("bina", budget=DEFAULT_BUDGETS.kernel)
+    assert "Circuit" in kernel
+    assert "Whyze" in kernel
+
+
+def test_bina_kernel_preserves_behavioral_tier() -> None:
+    """Bina's compiled kernel must contain Behavioral Tier Framework."""
+    clear_kernel_cache()
+    kernel = load_kernel("bina", budget=DEFAULT_BUDGETS.kernel)
+    assert "Tier" in kernel or "behavioral" in kernel.lower()
+
+
+def test_bina_voice_guidance_multiple_modes() -> None:
+    """Bina's voice guidance should cover diverse modes, not just compression and veto."""
+    clear_kernel_cache()
+    guidance = load_voice_guidance("bina")
+    assert guidance is not None
+    assert len(guidance) >= 3
+
+
+def test_bina_whyze_scene_no_talk_mandate() -> None:
+    """A Bina-Whyze scene must NOT get the Talk-to-Each-Other mandate."""
+    scene = SceneState(present_characters=["bina", "whyze"])
+    block = build_constraint_block("bina", scene)
+    assert "TALK-TO-EACH-OTHER" not in block

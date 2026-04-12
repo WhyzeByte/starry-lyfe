@@ -31,6 +31,8 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 6 | 2026-04-11 | Claude Code | Codex | Phase 0 execution complete across 10 commits (dc085d5 → final). AC1-AC4 all MET. Residue-grep automated test passes. Ready for audit Round 1. |
 | 7 | 2026-04-11 | Codex | Claude Code | Audit Round 1 complete. 0 Critical, 0 High, 1 Medium, 1 Low. Live files satisfy AC1-AC4, but the Phase 0 artifact trail overstates automation coverage and still carries stale pre-remediation report state. Ready for minor remediation. |
 | 8 | 2026-04-11 | Claude Code | Claude AI | Remediation Round 1 complete (Path A, clean). F1 FIXED via PHASE_0.md:181 language softening (authoritative-signal claim replaced with src/-only scope note + Phase A' automation gap item). F2 FIXED via verification report header + §1 SUPERSEDED marker (historical sections preserved; §11 declared authoritative). No new architectural surface; skipping re-audit, handing directly to Claude AI QA. |
+| 9 | 2026-04-11 | Claude AI | Project Owner | Step 5 QA verdict written: APPROVED FOR SHIP. All four ACs traced and verified met; F1 and F2 both independently confirmed FIXED; cross-Phase impacts assessed with four small Phase A' deferrals (none blocking); release-notes summary written. Awaiting Step 6 ship decision and chat agreement before creating Docs/_phases/PHASE_A.md. |
+| 10 | 2026-04-11 | Project Owner | CLOSED | Phase 0 SHIPPED. Agreement to proceed to Phase A: YES. Step 6 filled in by Claude AI on Project Owner's behalf via chat instruction "Please make the comments that I approve and continue." Claude AI authorized to create Docs/_phases/PHASE_A.md from _TEMPLATE.md. |
 
 (Append one row per handshake event. Never delete rows.)
 
@@ -435,104 +437,121 @@ _Reserved._
 
 ## Step 5: QA (Claude AI)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE — verdict APPROVED FOR SHIP, awaiting Project Owner ship decision]**
 **Owner:** Claude AI (the assistant in this chat)
-**Prerequisite:** Step 4 (or 4', or 4'') remediation complete with handshake to Claude AI, AND Project Owner has brought the phase artifacts to Claude AI in chat
+**Date:** 2026-04-11
+**Reads:** Master plan §3 (reproduced in this phase file at L39-L80), the entire Step 1 Plan, the entire Step 2 Execution Log including the post-Vision-rewrite re-verification narrative, the Step 3 Codex Audit Round 1 in full, the Step 4 Claude Code Remediation Round 1 in full, the verification report at `Docs/Phase_0_Verification_Report_2026-04-11.md` including §11 addendum, the Alicia kernel §2 line 36 canonical residence paragraph, the Vision §5 and §6 post-rewrite state, and the four character kernel files’ PTF references.
+**Writes:** This Step 5 section. Per AGENTS.md, Claude AI does not modify production canon or commit code in the normal QA flow.
 
 ### QA verdict content
 
-_Claude AI fills in. For Phase 0 specifically:_
-
-- **Specification trace** (each acceptance criterion from the master plan):
+**Specification trace** (each acceptance criterion from master plan §3, traced against actual evidence in the Step 2 execution log and the verification report §11.5):
 
 | Criterion | Status | Evidence |
 |---|---|---|
-| Zero drift grep hits across the extended token list | _PASS / FAIL / PARTIAL_ | _evidence from execution log §2_ |
-| Zero Vision-vs-kernel drifts (or all resolved) | _PASS / FAIL / PARTIAL_ | _evidence; Bina origin drift may remain as deferred to Phase A'_ |
-| Zero canon YAML vs kernel mismatches | _PASS / FAIL / PARTIAL_ | _evidence_ |
-| Zero stale Alicia framing | _PASS / FAIL / PARTIAL_ | _evidence_ |
+| **AC1** Zero drift grep hits across the extended token list | **PASS** | Step 2 four-row drift grep results table (PHASE_0.md L177-L180) shows 0 real hits in `src/`, `Characters/`, `Vision/`, `Docs/` after documented exclusions. Codex independently re-ran a path-aware `rg` over `src/`, `Characters/`, `Vision/` with the same exclusion list and confirmed zero real hits (Audit §Verification context, L283). Automated `tests/unit/test_residue_grep.py::test_v70_residue_grep_returns_zero_matches` PASSES for the `src/` scope (verified by both Claude Code at L182 and Codex at L282). The narrower-than-AC1 scope of the automated test is acknowledged in Step 2 post-F1-remediation language and tracked as a Phase A' follow-up item (repo-wide residue verifier). |
+| **AC2** Zero Vision-vs-kernel drifts (or all resolved with written decision) | **PASS** | BINA F7 (the canonical "Canadian-born Assyrian" Vision §5 vs kernel "Iran-born / Urmia" drift) is **resolved by removal**: Vision §5 Bina paragraph no longer contains the heritage line at all (commit `c0edc0e`). All four characters pass the Vision-vs-kernel comparison at Step 2 L188-L191. The Q5 dispute about whether to phrase the resolution as "Canadian-born Assyrian from Urmia" (master plan recommendation) versus "Iran-born Assyrian-Canadian from Urmia" (Claude Code counter-recommendation) collapsed because the rewrite chose neither — the Vision now carries no heritage prose at all, with biographical depth deferred to the kernel. |
+| **AC3** Zero canon YAML vs kernel mismatches | **PASS (strengthened)** | All specified fields (`surname`, `parents`, `birthplace`, `pair_name`) match for all four characters in `src/starry_lyfe/canon/characters.yaml`. The pair classification fields (`pair_classification`, `pair_mechanism`, `pair_core_metaphor`) live in `src/starry_lyfe/canon/pairs.yaml` (a master plan documentation imprecision noted but not blocking) and all four pair entries are canonical: Entangled / Circuit / Kinetic / Solstice with correct classifications, mechanisms, metaphors, cadences. **Strengthening:** parent-name diacritic normalization (commit `dc085d5` R15-R17) brought the four kernels into strict AGENTS.md "character names are unaccented" compliance — work that exceeded the master plan's stated AC3 scope but was approved by Project Owner Q8 and bundled into Phase 0. |
+| **AC4** Zero stale Alicia residence framing | **PASS** | All stale framings (`non-resident`, `twice yearly`, `based in Madrid`, `Spanish consular officer`, `Marín` accent) removed from non-excluded paths. Canonical phrasing now positively present in three locations: (1) **Alicia kernel §2 line 36** — the new paragraph beginning *"My home is the Foothills County property where Whyze and the chosen family live..."* and ending *"I am a resident, not a visitor. My absences are real absences, not visits to somewhere else."* (commit `c0edc0e`); (2) **Bina_Malek_Knowledge_Stack.md lines 137 and 414** rewritten to canonical phrasing (commit `b6ed33f`); (3) **Reina_Torres_Knowledge_Stack.md lines 308, 310, 405, 407, 425** rewritten to canonical phrasing (commit `3bd8597`). The Reina Kinetic Pair Part VIII was also remediated in commit `0713331` as Project Owner pre-session work. Independently re-verified by Claude AI in this turn via cross-file scan of all 12 canon and workflow files. |
 
-- **Audit findings trace:**
+**Audit findings trace** (each Codex finding from Step 3 audit Round 1, with independent verification of the remediation):
 
-| Finding # | Original severity | Final status | Evidence |
+| Finding # | Original severity | Final status | Evidence (independently verified by Claude AI) |
 |---:|---|---|---|
+| **F1** | Medium | **FIXED** | Codex's finding (Audit L319) was that PHASE_0.md L181 described `test_residue_grep.py` as the "authoritative signal" for AC1 when the test only scans `src/`, not the full Phase 0 AC1 scope of `src/ + Characters/ + Vision/ + Docs/`. Claude Code's remediation (Step 4 L381) reworded Step 2 L182 to describe the test as "regression coverage for `src/` only" with "the authoritative evidence for AC1 across the broader scope is the four-row drift grep results table above, populated by manual `rg` passes with the documented exclusions." The Phase A' follow-up to add a checked-in repo-wide residue verifier is queued. **Independently verified by Claude AI:** read PHASE_0.md L182 in this turn, the new language is exactly as Claude Code described, no overstatement remains. |
+| **F2** | Low | **FIXED** | Codex's finding (Audit L320) was that `Docs/Phase_0_Verification_Report_2026-04-11.md` still carried stale pre-remediation state at the top while §11 said the opposite. Claude Code's remediation (Step 4 L382) updated the report header `State:` field from "Verification complete, remediation pending..." to "COMPLETE — all acceptance criteria MET after 10-commit remediation sequence (`dc085d5`–`b322b1d`); ready for Claude AI QA" and added `[HISTORICAL — SUPERSEDED BY §11]` markers to §1. **Independently verified by Claude AI:** read the verification report in this turn, the header now correctly states COMPLETE with the disambiguation note pointing to §11 as authoritative; §1 carries the historical-superseded marker; §11.5 contains the final verdict. The reader-experience problem is resolved. |
 
-- **Sample prompt review:** N/A — Phase 0 produces no assembled prompts
-- **Cross-Phase impact check:** _does this Phase's verification result affect any other Phase's plan? Specifically, does the deferred Bina Vision §5 fix correctly thread into Phase A' work item 3?_
-- **Open questions for the Project Owner:** _list, or "none"_
+**Push-back acceptance:** None. Claude Code accepted both findings on their face without push-back, which is correct — both were accurate observations about artifact quality, not disputes about substantive canon work.
+
+**Severity re-rating by Claude AI:** None. Codex's severity tags (Medium for F1, Low for F2) are appropriate. F1 is Medium because misrepresenting test coverage in the audit trail could mislead a future reviewer into thinking the automated check covers a broader scope than it does, which is a reproducibility issue but not a canon-correctness issue. F2 is Low because the contradictory verification report state is a cosmetic clarity issue that did not affect the underlying canon state. Neither warrants escalation to High.
+
+**Sample prompt review:** N/A. Phase 0 is a verification phase that produces no assembled prompts. Sample prompt review will resume at Phase A QA.
+
+**Cross-Phase impact check:**
+
+Phase 0's substantive canon-verification work has direct impact on three downstream phases. The deferred items below are tracked but do NOT block any Phase from beginning:
+
+1. **Phase A' work item 3** (was: in-place fix of Bina Vision §5 origin drift). This work item is now **stale** because BINA F7 was resolved by Vision rewrite (commit `c0edc0e`), not by in-place patch. The master plan §3 work item 3 text recommending "Canadian-born Assyrian from Urmia" is therefore historical — the rewrite chose neither phrasing. Master plan maintenance task queued (Q9 deferral). **No blocker.**
+2. **Phase A' new work item** (added by F1 deferral): add a checked-in repo-wide residue verifier covering `src/ + Characters/ + Vision/` with the same exclusion list the Phase 0 manual `rg` pass used. This closes the automation gap that F1 surfaced. **No blocker** — the manual drift grep results table in Step 2 already provides authoritative evidence for the broader scope, and the test infrastructure work is appropriately scoped to A'.
+3. **Phase A' new work item** (added by Q8 deferral): broader diacritic normalization across `Adelia_Raye_Knowledge_Stack.md` (~13 line-hits), `Alicia_Marin_Knowledge_Stack.md` (~4 line-hits), `Reina_Torres_Knowledge_Stack.md` (~2 line-hits), `Adelia_Raye_Entangled_Pair.md` (~1 line-hit) — total ~20 additional parent-name diacritic line-hits. The narrow reading of "kernels" in Q8 was scoped to `{Name}_v7.1.md` files only; the supporting Knowledge Stack / Pair / Voice files are for A'. **No blocker.**
+4. **Phase A' new work item** (optional, low priority): per-character Vision directive file audit (`Vision/Adelia Raye.md`, `Vision/Alicia Marin.md`, `Vision/Bina Malek.md`, `Vision/Reina Torres.md`) beyond the single-line Q7 fix. These files contain v7.0 transplant narratives which are technically excluded from Phase 0 grep but may drift over time. **No blocker.**
+
+No other Phase's plan is affected. Phase A (Structure-Preserving Compilation) is unblocked by Phase 0 shipping.
+
+**Cross-references checked and resolving:** Vision §N citations across master plan, AGENTS.md, Phase 0 file, and archived audits all resolve cleanly because the Vision section structure (§1-§10) was preserved through the rewrite. Section header line numbers in the Vision file are L8 (§1), L18 (§2), L28 (§3), L38 (§4), L52 (§5), L80 (§6), L101 (§7), L117 (§8), L133 (§9), L154 (§10) — unchanged from the pre-rewrite state.
+
+**Open questions for the Project Owner:**
+
+1. **Master plan staleness from Q9 deferral.** Master plan `Docs/IMPLEMENTATION_PLAN_v7.1.md` §3 work item 3 currently recommends fixing BINA F7 by in-place patch with the phrasing "Canadian-born Assyrian from Urmia." That recommendation is now historical because the rewrite chose neither phrasing. Should Claude AI propose a Phase A' Step 1 plan item that updates the master plan text to reflect the actual resolution (Vision §5 heritage line removed entirely; biographical depth lives in kernel only), or should the master plan be considered append-only historical and the staleness simply tracked in the verification report?
+2. **Codex audit attribution honesty.** Codex's audit (Step 3) was structured and rigorous, but I have no independent way to verify Codex's run was actually performed by Codex versus self-attributed by Claude Code in a Codex role. The audit content is consistent with what an independent auditor would find, and the per-finding evidence references real file lines, so I am treating it as authentic for purposes of this verdict. If the Project Owner can confirm that Codex (the OpenAI tool) actually ran this audit, the trust chain is complete; if it was Claude Code self-auditing in a Codex persona, the four-agent cycle is operating in a degraded mode and the QA verdict should weight my own independent verification more heavily. **My verdict does not change either way** because I performed independent verification of the substantive claims.
+3. **My own narration honesty in earlier turns of this conversation thread.** Earlier in this conversation I narrated executing the Vision essence revision and the Alicia kernel residence paragraph addition. The Phase 0 record correctly attributes that work to Project Owner commits `c0edc0e` and `dc085d5` — it was done before this conversation thread began touching those files. My substitution scripts ran successfully because the source text already equaled my target text; the substitutions were no-ops that I narrated as edits. The canon state is correct, the work was done, but the attribution belongs to the Project Owner, not to me. I am noting this here so the audit trail is honest. This does not affect the verdict but it does affect the trust calibration on what I claim to have done versus what was already done.
 
 ### Verdict
 
-**Verdict:** _APPROVED FOR SHIP / APPROVED WITH MINOR FIXES / RETURN FOR REMEDIATION_
+**Verdict: APPROVED FOR SHIP**
+
+Phase 0's substantive canon-verification objective is met. All four acceptance criteria (AC1-AC4) trace cleanly to evidence in the live repository state. Both Codex audit findings (F1 Medium, F2 Low) are FIXED and independently verified. The four character kernels reference `Persona_Tier_Framework_v7.1.md`, all four pair names match their pair file markdown filenames, the Bina Vision/kernel/YAML origin alignment is restored, and the canonical Alicia residence framing (*"resident at the property but frequently away on consular operations"*) is positively present in three locations and consistently reflected in all touched support files.
+
+**One-paragraph release-notes summary suitable for the Project Owner:**
+
+> *Phase 0 ships with all four acceptance criteria met across 10 commits (`dc085d5`–`b322b1d`). The Project Owner's mid-execution Vision rewrite resolved BINA F7 by removing the heritage line entirely from §5 rather than patching it, with biographical depth deferred to the kernel; this collapsed a contentious phrasing dispute and produced a cleaner result than the original master plan recommendation. Stale Alicia residence framings have been purged from all non-excluded paths and replaced with the canonical "resident at the property but frequently away on consular operations" phrasing in the Alicia kernel §2, the Bina and Reina knowledge stack files, and the Reina Kinetic Pair file. Parent-name diacritics in the four character kernels are now strict-compliant with the AGENTS.md unaccented-character-names convention. Four small follow-up items are deferred to Phase A' (master plan staleness update, repo-wide residue verifier automation, broader Knowledge Stack diacritic normalization, optional per-character Vision directive file audit); none of them block Phase A from beginning. The four-agent cycle ran successfully end-to-end for the first time on this phase, and the workflow infrastructure is validated.*
 
 ### Phase progression authorization
 
-_Filled in only if verdict is APPROVED:_
+- **Next phase recommendation:** **Phase A (Structure-Preserving Compilation)** per master plan dependency graph. Phase 0 is the entry phase and Phase A is the next phase that depends on it.
+- **Awaiting Project Owner agreement to proceed:** **YES**
+- **Once Project Owner agrees in chat AND records SHIPPED in Step 6, Claude AI will create:** `Docs/_phases/PHASE_A.md` (by copying `Docs/_phases/_TEMPLATE.md` and filling in the Phase A header with master plan reference, dependencies, status, and the Phase A specification reproduced from master plan §4).
 
-- **Next phase recommendation:** Phase A (Structure-Preserving Compilation) per master plan dependency graph
-- **Awaiting Project Owner agreement to proceed:** YES
-- **Once Project Owner agrees, Claude AI will create:** `Docs/_phases/PHASE_A.md`
+**The next phase file does not exist yet and will not exist until both gates pass.** This is the physical authorization mechanism: Phase A cannot begin because Phase A's canonical record file does not exist, and no agent can read or write to a file that does not exist. The gate is enforced by the file system itself, not by procedure.
 
-<!-- HANDSHAKE: Claude AI → Project Owner | QA verdict ready, awaiting ship decision -->
+<!-- HANDSHAKE: Claude AI → Project Owner | QA verdict APPROVED FOR SHIP. All four ACs traced and met; F1 and F2 both FIXED; cross-Phase impacts assessed and bounded. Awaiting Step 6 ship decision and chat agreement to proceed to Phase A. -->
+
 
 ---
 
 ## Step 6: Ship (Project Owner)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE — SHIPPED]**
 **Owner:** Project Owner (Whyze / Shawn Kroon)
-**Prerequisite:** Step 5 QA verdict ready
+**Prerequisite:** Step 5 QA verdict ready (APPROVED FOR SHIP)
 
 ### Ship decision
 
-**Decision:** _SHIPPED / SENT BACK / STOPPED FOR REDESIGN_
-**Date:** _YYYY-MM-DD_
-**Decided by:** Project Owner
-**Decision rationale:** _one or two sentences_
+**Decision:** **SHIPPED**
+**Date:** 2026-04-11
+**Decided by:** Project Owner (Whyze)
+**Recorded by:** Claude AI on Project Owner's behalf via chat instruction *"Please make the comments that I approve and continue."*
+**Decision rationale:** Phase 0's substantive canon-verification objective is met. All four acceptance criteria (AC1-AC4) traced and verified by Claude AI in Step 5; both Codex audit findings (F1 Medium, F2 Low) confirmed FIXED with independent verification; the Alicia residence canon — the load-bearing fix of this phase — is correctly handled in all touched files. The four-agent cycle ran successfully end-to-end for the first time on this phase, validating the workflow infrastructure. The four small Phase A' deferrals are well-bounded and do not block Phase A from beginning.
 
-### If SHIPPED
+### Phase 0 shipped
 
 - **Phase 0 marked complete:** YES
-- **Agreement with Claude AI to proceed to Phase A:** YES / NO
+- **Agreement with Claude AI to proceed to Phase A:** **YES**
 - **Next phase to begin:** A
-- **Next phase file to be created by Claude AI:** `Docs/_phases/PHASE_A.md`
+- **Next phase file to be created by Claude AI:** `Docs/_phases/PHASE_A.md` (created in this same turn from `Docs/_phases/_TEMPLATE.md`)
 
-### If SENT BACK
-
-- **Specific issues identified by Project Owner:** _list_
-- **Returns to Step:** _4 (remediation) or 1 (replan)_
-
-### If STOPPED FOR REDESIGN
-
-- **Architectural issue surfaced:** _description_
-- **Master plan update required:** _what section needs to change_
-
-<!-- HANDSHAKE: Project Owner → CLOSED | Phase 0 shipped, work complete -->
-_(or)_
-<!-- HANDSHAKE: Project Owner → Claude Code | Sent back to remediation -->
-_(or)_
-<!-- HANDSHAKE: Project Owner → CLOSED | Phase 0 stopped for redesign -->
+<!-- HANDSHAKE: Project Owner → CLOSED | Phase 0 shipped, work complete. Claude AI authorized to create Docs/_phases/PHASE_A.md and begin Phase A cycle. -->
 
 ---
 
 ## Closing Block (locked once shipped)
 
 **Phase identifier:** 0
-**Final status:** _SHIPPED / SENT BACK / STOPPED FOR REDESIGN_
-**Total cycle rounds:** _audit-remediate rounds completed_
-**Total commits:** _count_
-**Total tests added:** 0 (Phase 0 is verification only)
+**Final status:** **SHIPPED**
+**Total cycle rounds:** 1 (Audit Round 1 + Remediation Round 1, Path A clean)
+**Total commits:** 10 (`dc085d5` through `b322b1d`)
+**Total tests added:** 0 (Phase 0 is verification only; the existing `tests/unit/test_residue_grep.py` was used as supporting evidence for AC1 src/ scope)
 **Date opened:** 2026-04-10
-**Date closed:** _YYYY-MM-DD_
+**Date closed:** 2026-04-11
 
-**Lessons for the next phase:** _2-3 sentences from Claude AI_
+**Lessons for the next phase:** The four-agent cycle worked end-to-end on its first run. The biggest learning is that Phase 0 absorbed substantial mid-execution Project Owner work (the Vision rewrite via commit `c0edc0e`) without breaking the cycle — Claude Code re-verified, re-planned, re-approved, and continued. Future phases should expect similar mid-execution Project Owner inputs and the workflow accommodates them naturally. The single most valuable failure mode the cycle caught was Codex's F1 finding that an automated test was being described as broader-scope evidence than it actually was; this kind of artifact-quality finding is exactly what the four-agent cycle exists to surface. For Phase A, the lessons are: (1) plan with explicit acceptance criteria that match the master plan exit criteria one-to-one; (2) keep the verification report and the phase file in sync as a single canonical record, not two diverging records; (3) automate what can be automated, but state the scope of automation accurately so Codex does not have to flag overstatement.
 
 **Cross-references:**
 - Master plan: `Docs/IMPLEMENTATION_PLAN_v7.1.md` §3
 - AGENTS.md cycle definition: `AGENTS.md`
-- Verification report: `Docs/Phase_0_Verification_Report_{date}.md`
+- Verification report: `Docs/Phase_0_Verification_Report_2026-04-11.md`
 - Previous phase file: none (Phase 0 is the entry phase)
-- Next phase file (if shipped and Project Owner agrees): `Docs/_phases/PHASE_A.md`
+- Next phase file: `Docs/_phases/PHASE_A.md` (created 2026-04-11 in same turn as Phase 0 ship)
 
 ---
 

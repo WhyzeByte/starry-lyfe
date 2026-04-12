@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from typing import Any
 
@@ -17,19 +18,37 @@ from .budgets import DEFAULT_BUDGETS, estimate_tokens, trim_text_to_budget, trim
 from .kernel_loader import load_kernel, load_voice_guidance
 from .types import LayerContent
 
+_VOICE_GUIDANCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+
+
+def _compact_voice_guidance_item(item: str) -> str:
+    """Shrink a guidance item to the smallest useful runtime teaching note."""
+    parts = item.split(": ", 2)
+    if len(parts) == 3:
+        label = f"{parts[0]}: {parts[1]}"
+        guidance = parts[2].strip()
+    else:
+        label = ""
+        guidance = item.strip()
+
+    first_sentence = _VOICE_GUIDANCE_SPLIT_RE.split(guidance, maxsplit=1)[0].strip()
+    if not first_sentence:
+        first_sentence = guidance
+
+    compact = f"{label}: {first_sentence}" if label else first_sentence
+    return compact.strip()
+
 
 def format_kernel(
     character_id: str,
     budget: int = DEFAULT_BUDGETS.kernel,
 ) -> LayerContent:
-    """Layer 1: Load and format the persona kernel, trimmed to budget."""
-    text = load_kernel(character_id)
-    text = trim_text_to_budget(text, budget, "[Kernel trimmed to token budget.]")
-    tokens = estimate_tokens(text)
+    """Layer 1: Section-aware kernel compilation preserving load-bearing sections."""
+    text = load_kernel(character_id, budget=budget)
     return LayerContent(
         name="persona_kernel",
         text=text,
-        estimated_tokens=tokens,
+        estimated_tokens=estimate_tokens(text),
         layer_number=1,
     )
 
@@ -142,14 +161,12 @@ def format_voice_directives(
     if baseline is not None:
         voice = baseline.voice_params
         metadata_text = (
-            f"Voice directives for {baseline.full_name} ({baseline.epithet}):\n"
-            f"  MBTI: {baseline.mbti}\n"
-            f"  Dominant function: {baseline.dominant_function}\n"
-            f"  Pair: {baseline.pair_name} ({baseline.pair_classification})\n"
-            f"  Response length: {voice.get('response_length_range', 'default')}\n"
-            f"  Cognitive descriptor: {voice.get('dominant_function_descriptor', '')}\n"
-            f"  Heritage: {baseline.heritage}\n"
-            f"  Profession: {baseline.profession}"
+            f"Voice directives for {baseline.full_name} ({baseline.epithet}). "
+            f"{baseline.mbti}, {baseline.dominant_function}-dominant. "
+            f"Pair: {baseline.pair_name}. "
+            f"Response length: {voice.get('response_length_range', 'default')}. "
+            f"Register: {voice.get('dominant_function_descriptor', '')}. "
+            f"Background: {baseline.heritage}; {baseline.profession}."
         )
         metadata_text = trim_text_to_budget(
             metadata_text,
@@ -159,18 +176,19 @@ def format_voice_directives(
         sections.append(metadata_text)
         remaining = max(0, remaining - estimate_tokens(metadata_text))
 
-    # Guidance items are kept in canonical file order and dropped when over budget.
+    # Runtime uses compact teaching notes, not full human-authored prose blocks.
     guidance_items = load_voice_guidance(character_id)
     if guidance_items and remaining > 0:
+        compact_items = [_compact_voice_guidance_item(item) for item in guidance_items]
         header = "Voice calibration guidance:\n"
         header_tokens = estimate_tokens(header)
         if remaining > header_tokens:
             remaining_for_items = remaining - header_tokens
-            chosen_items = trim_to_budget(guidance_items, remaining_for_items)
+            chosen_items = trim_to_budget(compact_items, remaining_for_items)
             if not chosen_items:
                 chosen_items = [
                     trim_text_to_budget(
-                        guidance_items[0],
+                        compact_items[0],
                         remaining_for_items,
                         "[Voice guidance trimmed to token budget.]",
                     )
@@ -188,6 +206,7 @@ def format_voice_directives(
 
 
 def format_scene_blocks(
+    character_id: str,
     dyads_whyze: list[DyadStateWhyze],
     dyads_internal: list[DyadStateInternal],
     open_loops: list[OpenLoop],
@@ -198,7 +217,7 @@ def format_scene_blocks(
     """Layer 6: Format relationship state, open loops, and current scene activity."""
     sections: list[str] = []
 
-    # P3-04: Include scene/activity description in Layer 6
+    # Include scene/activity description
     if scene_description:
         sections.append(f"Current activity: {scene_description}")
 
@@ -210,9 +229,11 @@ def format_scene_blocks(
             f"conflict={wd.conflict:.2f}, tension={wd.unresolved_tension:.2f}"
         )
 
-    # Internal dyad states (only for present characters)
+    # Internal dyad states: only include if the OTHER member is actually present.
+    # This prevents offstage women from leaking into the focal character's prompt.
     for iwd in dyads_internal:
-        if iwd.member_a in present_characters or iwd.member_b in present_characters:
+        other = iwd.member_b if iwd.member_a == character_id else iwd.member_a
+        if other in present_characters:
             sections.append(
                 f"Relationship {iwd.member_a}-{iwd.member_b} ({iwd.interlock or 'n/a'}): "
                 f"trust={iwd.trust:.2f}, intimacy={iwd.intimacy:.2f}, "
