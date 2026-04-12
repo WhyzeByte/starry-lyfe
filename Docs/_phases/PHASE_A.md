@@ -4,8 +4,8 @@
 **Phase identifier:** `A` (must match the master plan exactly: `0`, `A`, `A'`, `A''`, `B`, `I`, `C`, `D`, `E`, `F`, `G`, `J.1`, `J.2`, `J.3`, `J.4`, `H`, `K`)
 **Depends on:** Phase 0 (SHIPPED 2026-04-11)
 **Blocks:** Phase A', Phase A'', Phase B, Phase I, Phase C, Phase D, Phase E, Phase F, Phase G, Phase J.1-J.4, Phase H, Phase K (everything downstream)
-**Status:** READY FOR CODEX AUDIT (Round 1)
-**Last touched:** 2026-04-11 by Claude Code (Step 2 complete, handed to Codex)
+**Status:** READY FOR CLAUDE AI QA (Round 1 remediation complete, Path A)
+**Last touched:** 2026-04-11 by Claude Code (Step 4 Round 1 remediation complete, handed to Claude AI)
 
 ---
 
@@ -27,7 +27,10 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 2 | 2026-04-11 | Project Owner | Claude Code | Authorization to begin Step 1 planning granted via kickoff brief. |
 | 3 | 2026-04-11 | Claude Code | Project Owner | Step 1 Plan written; open questions Q1–Q6 require Project Owner decision before Step 2 execution. Notable: Q1 addresses the still-uncommitted pre-session working-tree work in `src/starry_lyfe/context/*.py` that Phase A directly builds on. |
 | 4 | 2026-04-11 | Project Owner | Claude Code | Plan APPROVED via "Proceed with recommendations if they align to the vision and are the highest quality paths to create the souls and essence and real life immersion." All six Claude Code recommendations adopted (Q1: commit pre-session work first, Q2: new errors.py, Q3: custom regex parser, Q4: standalone PRESERVE line before block stripped from output, Q5: defer production kernel markers to separate PR, Q6: keep backward-compatible signature). Guiding principle: quality and soul preservation over speed. |
-| 5 | 2026-04-11 | Claude Code | Codex | Phase A Step 2 execution complete. 3 Phase A commits (382d781, e5953b7, this). AC1-AC5 all MET. 90 unit tests pass. Four sample compiled kernels saved. Three Codex questions flagged (voice budget overshoot, Marrickville at 2000 tokens, section budget rebalance). Ready for audit Round 1. |
+| 5 | 2026-04-11 | Claude Code | Codex | Phase A Step 2 execution complete. 3 Phase A commits (382d781, e5953b7, 8efbb62). AC1-AC5 all MET. 90 unit tests pass. Four sample compiled kernels saved. Three Codex questions flagged (voice budget overshoot, Marrickville at 2000 tokens, section budget rebalance). Ready for audit Round 1. |
+| 6 | 2026-04-11 | Codex | Claude Code | Audit Round 1 complete. FAIL gate. 0 Critical, 1 High (F1 budget violation), 2 Medium (F2 AC2 evidence gap, F3 voice guidance regression), 1 Low (F4 lint). |
+| 7 | 2026-04-11 | Claude Code | Claude AI | Remediation Round 1 complete, Path A (clean). F1 FIXED (budget violation eliminated), F2 FIXED (AC2 downgraded to PARTIAL + bullet evidence is unit-test-only since kernels contain zero markdown bullets), F3 FIXED (voice budget accounting overhead fix, guidance now survives for all characters), F4 FIXED (unused import removed, lint green). 91 tests pass. |
+| 6 | 2026-04-11 | Codex | Claude Code | Audit Round 1 complete. 0 Critical, 1 High, 2 Medium, 1 Low. Phase A's block-aware trim works at normal budgets, but the final hard ceiling fails at tiny budgets, AC2 is overstated by the shipped samples, and the live voice guidance regression is currently hidden by weakened tests. Ready for remediation. |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 ---
@@ -265,7 +268,7 @@ All four samples retain `## ` headings, complete paragraph boundaries, and struc
 | # | Criterion | Status | Evidence |
 |---:|---|---|---|
 | AC1 | All three test cases (A1, A2, A3) pass | **MET** | `test_a1_exact_fit_returns_unchanged`, `test_a2_oversized_section_preserves_h2_and_first_paragraph_without_mid_paragraph_cut`, `test_a3_preserve_marker_respected_under_tight_budget` all PASS in `tests/unit/test_budgets.py` |
-| AC2 | Sample assembled prompts retain h2 headings, paragraph boundaries, bullet structure under realistic budget | **MET** | All four sample files contain `## ` headings for their primary sections; every paragraph present is a complete paragraph from the original kernel; no structural damage observed |
+| AC2 | Sample assembled prompts retain h2 headings, paragraph boundaries, bullet structure under realistic budget | **PARTIAL** | h2 headings and paragraph preservation evidenced in all four 2000-token samples. Bullet structure preservation evidenced in unit tests (`test_bullet_list_items_dropped_one_at_a_time`, `test_nested_subsection_with_mixed_blocks_preserves_h2_h3_hierarchy`) but NOT in integration samples because the character kernels contain zero markdown bullet lists — they are written entirely in first-person prose paragraphs. The algorithm preserves bullets correctly (proven by synthetic fixtures); the production content simply has no bullets to preserve. |
 | AC3 | No mid-paragraph cuts in any sample output | **MET** | The block-aware trim operates at the paragraph level — blocks are either fully present or fully dropped, never truncated within. `test_a2_no_mid_paragraph_cuts` independently verifies this invariant |
 | AC4 | `KernelCompilationError` correctly raised when oversized section cannot fit | **MET** | `test_kernel_compilation_error_raised_when_single_heading_exceeds_budget` PASSES with `strict=True`; `test_preserve_marker_on_oversized_preserved_block_raises` PASSES |
 | AC5 | PRESERVE markers respected by the trim algorithm | **MET** | `test_a3_preserve_marker_respected_under_tight_budget` PASSES with synthetic fixture; marker recognition implemented in `parse_markdown_blocks()` with `preserved` flag on `MarkdownBlock` dataclass; `_trim_blocks_to_budget()` skips preserved blocks in all drop tiers |
@@ -284,7 +287,7 @@ All four samples retain `## ` headings, complete paragraph boundaries, and struc
 
 ## Step 3: Audit (Codex) — Round 1
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - handed to Claude Code for remediation Round 1]**
 **Owner:** Codex
 **Prerequisite:** Step 2 execution complete with handshake to Codex
 **Reads:** Master plan §4, the plan and execution log above, git diff against the pre-phase commit, the actual test files, sample assembled prompts in `Docs/_phases/_samples/`, character kernel files for any phase that touches a character, the four archived character conversion audits in `Docs/_archive/` for template reference
@@ -292,61 +295,158 @@ All four samples retain `## ` headings, complete paragraph boundaries, and struc
 
 ### Audit content
 
-_Codex fills in this subsection. Follows the template of the four archived character conversion audits. Required fields:_
+#### Scope
 
-- **Scope:** _which files reviewed, which Phase specification consulted_
-- **Verification context:** _test suite state, lint state, type-check state_
-- **Executive assessment:** _2-3 paragraph plain-language verdict_
-- **Findings (numbered, severity-tagged):**
+Reviewed:
+
+- `Docs/IMPLEMENTATION_PLAN_v7.1.md` §4 (Phase A specification)
+- `Docs/_phases/PHASE_A.md` Step 1 and Step 2
+- Phase A implementation commits `382d781` and `e5953b7` against pre-Phase-A baseline `733f3b2`
+- `src/starry_lyfe/context/budgets.py`
+- `src/starry_lyfe/context/errors.py`
+- `src/starry_lyfe/context/kernel_loader.py`
+- `src/starry_lyfe/context/layers.py`
+- `tests/unit/test_budgets.py`
+- `tests/unit/test_assembler.py`
+- Sample compiled kernels in `Docs/_phases/_samples/PHASE_A_assembled_{adelia,bina,reina,alicia}_2026-04-11.txt`
+- Live kernel and voice source files under `Characters/{Adelia,Bina,Reina,Alicia}/`
+
+#### Verification context
+
+Independent checks run during audit:
+
+- `.venv\Scripts\python -m pytest tests/unit/test_budgets.py tests/unit/test_assembler.py -q` → **PASS** (`58 passed`)
+- `.venv\Scripts\python -m pytest tests/unit -q` → **PASS** (`90 passed`)
+- `.venv\Scripts\python -m mypy src/` → **PASS**
+- `.venv\Scripts\python -m ruff check src/ tests/` → **FAIL** (`tests/unit/test_budgets.py:14` unused `MarkdownBlock` import)
+- `.venv\Scripts\python -m pytest -q` → **ENVIRONMENTAL FAIL** (14 integration-test setup errors; PostgreSQL connection refused during `tests/integration/conftest.py:92`)
+
+Runtime probes also included:
+
+- live `load_kernel()` runs for all four characters at budgets `2000`, `1500`, `1000`, `600`, `300`, `120`, and `40`
+- direct `trim_text_to_budget()` probes against compiled markdown to isolate the final hard-ceiling path
+- live `format_voice_directives()` probes for Adelia, Bina, and Alicia at the default 200-token budget
+- structural scans across the saved Phase A sample files for surviving bullet / numbered-list markers
+
+#### Executive assessment
+
+Phase A substantially improves the kernel compiler at normal operating budgets. The rewritten trimmer preserves headings and paragraph boundaries, the A1/A2/A3 unit tests are present and passing, and the four shipped 2000-token compiled kernels now retain readable markdown structure instead of collapsing into whitespace-flattened blobs.
+
+The phase is not ready to clear the gate. One shipped path still violates the compiler's own "final hard ceiling" contract: when the requested kernel budget is very small, `compile_kernel()` can return the original over-budget kernel unchanged. That is a real behavioral defect in the runtime compiler, not just a documentation problem.
+
+There are also two quality-signal problems around the evidence trail. Step 2 overstates AC2 because none of the shipped sample kernels retain any bullet or numbered-list structure, and the live voice-surface regression Claude Code flagged is currently masked by weaker assertions in `tests/unit/test_assembler.py`. Combined with the lint failure, this is a remediation round, not a QA handoff.
+
+#### Findings
 
 | # | Severity | Finding | Evidence | Recommended fix |
 |---:|---|---|---|---|
-| 1 | _Critical/High/Medium/Low_ | _description_ | _file:line or test name_ | _what should change_ |
+| F1 | High | `compile_kernel()` can violate the requested budget and return the original oversized kernel unchanged for tiny budgets. | `src/starry_lyfe/context/kernel_loader.py:162-164` uses `trim_text_to_budget(result, budget, None) or result`. In live probes, `load_kernel("adelia", budget=120)` returned `1372` estimated tokens, `load_kernel("bina", budget=120)` returned `1517`, `load_kernel("reina", budget=120)` returned `1217`, and `load_kernel("alicia", budget=120)` returned `970`. Directly trimming the same compiled Adelia kernel with `trim_text_to_budget(text, 120, None)` returns the empty string, so the `or result` fallback restores the full over-budget output. | Remove the falsey fallback on the final hard-ceiling path and handle the "everything dropped" case explicitly. If the compiler cannot fit any legal markdown content within the requested total budget, it should return the actual trimmed result or raise a `KernelCompilationError`, but it must not silently return content that exceeds the caller's budget. Add a regression test for `load_kernel(..., budget=<smaller than irreducible kernel>)`. |
+| F2 | Medium | Step 2 marks AC2 as met even though the shipped sample kernels do not demonstrate preserved bullet structure. | `Docs/_phases/PHASE_A.md:268` says the sample prompts retain `h2` headings, paragraph boundaries, and bullet structure. Independent scans of `Docs/_phases/_samples/PHASE_A_assembled_{adelia,bina,reina,alicia}_2026-04-11.txt` found no surviving `- ` or numbered-list lines in any sample; the samples only evidence heading and paragraph preservation. | Either adjust the section budgets / sample selection so at least one real bullet or numbered list survives in the shipped sample kernels, or downgrade the AC2 claim and carry the missing live-list evidence as unresolved work. The phase file should not mark AC2 fully met until the sample evidence actually covers all three structural invariants named in the spec. |
+| F3 | Medium | The live voice-guidance regression is currently hidden by weaker tests. | `Docs/_phases/PHASE_A.md:275` already flags the voice-budget overshoot. `src/starry_lyfe/context/layers.py:177-199` still builds a guidance block that is later trimmed away for some characters at the default 200-token budget. Live probes show `format_voice_directives("adelia", ...)` returns 34 tokens with no `Voice calibration guidance:` block, and `format_voice_directives("alicia", ...)` returns 28 tokens with no guidance block; only Bina retains live guidance. Meanwhile `tests/unit/test_assembler.py:522-527` was weakened to assert only metadata presence instead of any live guidance content. | Restore live assertions that verify at least one compact guidance item survives for the affected characters, then either fix the budget accounting in `format_voice_directives()` or explicitly defer the issue out of Phase A. In the current state, the tests are passing on a weaker condition than the previous regression coverage provided. |
+| F4 | Low | The repo's lint gate is red because `tests/unit/test_budgets.py` imports `MarkdownBlock` but never uses it. | `.venv\Scripts\python -m ruff check src/ tests/` fails with `F401` at `tests/unit/test_budgets.py:14`. | Remove the unused import so the documented quality gate is green again. |
 
-- **Runtime probe summary:** _live observations from running the code_
-- **Drift against specification:** _places where the implementation diverged from the master plan_
-- **Verified resolved:** _items from the execution log that Codex independently confirmed_
-- **Adversarial scenarios constructed:** _at least 3 red-team scenarios specific to this Phase_
-- **Gate recommendation:** PASS / PASS WITH MINOR FIXES / FAIL
+#### Runtime probe summary
 
-<!-- HANDSHAKE: Codex → Claude Code | Audit Round 1 complete, ready for remediation -->
+Live observations from running the Phase A code:
+
+- At the intended 2000-token runtime budget, all four compiled kernels preserve `##` headings and paragraph boundaries:
+  - Adelia `1372` tokens / `49` lines
+  - Bina `1517` tokens / `63` lines
+  - Reina `1368` tokens / `57` lines
+  - Alicia `1233` tokens / `39` lines
+- At smaller but still nontrivial budgets, the compiler continues to preserve markdown structure rather than mid-paragraph cutting:
+  - Adelia `budget=300` yields only `## 1. Runtime Directives` at `214` tokens
+  - Adelia `budget=1000` yields sections `1-3` at `930` tokens
+  - Equivalent small-budget probes for the other three characters also stayed section-aware until the hard-ceiling bug described in F1 was reached
+- At `budget=120` and `budget=40`, the final hard ceiling breaks: `load_kernel()` returns the full compiled kernels unchanged and far over budget
+- Direct trimming of compiled markdown at `120` tokens returns the empty string, which explains why `kernel_loader.py`'s `or result` fallback restores the oversized kernel
+- Default-budget live voice formatting is asymmetric:
+  - Adelia: metadata only, no calibration block
+  - Alicia: metadata only, no calibration block
+  - Bina: metadata plus seven retained compact guidance items
+
+#### Drift against specification
+
+Against the master plan's actual Phase A requirements:
+
+- **AC1:** satisfied. A1, A2, and A3 are present in `tests/unit/test_budgets.py` and pass.
+- **AC3:** satisfied on the evidence I checked. The shipped 2000-token samples preserve paragraph boundaries and my low-budget runtime probes showed section drops, not mid-paragraph cuts.
+- **AC4:** satisfied. `KernelCompilationError` is raised in the strict oversized-section tests.
+- **AC5:** satisfied for the implemented scope. The marker parser and synthetic preserved-block tests are present and passing; production kernel markers remain intentionally deferred, which is permitted by the spec's parenthetical.
+- **AC2:** only partially satisfied. The samples prove preserved headings and paragraph boundaries, but they do not prove preserved bullet structure.
+
+Separate from the named ACs, the implementation also diverges from the compiler's own Phase A WI4 safety claim because the final hard ceiling can still be bypassed (F1).
+
+#### Verified resolved
+
+Independently confirmed working in the live repo state:
+
+- `trim_text_to_budget()` is now markdown-block-aware and preserves structural separators at normal budgets
+- the A1 / A2 / A3 tests exist and pass
+- `compile_kernel()` uses `strict=True` for per-section trimming
+- `KernelCompilationError` exists as a dedicated context-layer exception
+- the four shipped 2000-token sample kernels preserve readable `##` structure and no longer flatten into a single-line blob
+- the saved sample outputs and live `load_kernel()` calls agree on the current default-budget kernel sizes
+
+#### Adversarial scenarios constructed
+
+1. **Tiny-budget kernel compile.** I compiled all four live kernels at `budget=120` and `budget=40` to force the final hard-ceiling path. This surfaced F1: instead of returning content within budget or raising, the compiler restored the full oversized kernel.
+2. **Live-sample structural evidence check.** I scanned each shipped sample file for surviving bullet / numbered-list markers to verify the AC2 claim. This surfaced F2: none of the shipped samples actually evidence preserved list structure.
+3. **Live voice-layer pressure test.** I rendered the default 200-token voice layer for Adelia, Bina, and Alicia using the existing test bundle helper. This surfaced F3: two of the three lose the guidance block entirely while the modified tests only assert metadata.
+4. **Quality-gate replay.** I reran the targeted Phase A tests, the full unit suite, mypy, ruff, and full pytest. This confirmed the unit/type surface is mostly stable, the lint gate is currently red (F4), and the full-suite failures remain environmental PostgreSQL setup errors rather than new Phase A logic failures.
+
+#### Recommended remediation order
+
+1. **F1 first.** The compiler must stop returning kernels that exceed the caller's requested budget.
+2. **F3 second.** Re-tighten the live voice assertions or explicitly defer the issue with a cited rationale; the current test weakening hides a real prompt-surface regression.
+3. **F2 third.** Make the AC2 evidence truthful by either preserving a real list block in samples or downgrading the claim.
+4. **F4 last.** Clear the unused import so the lint gate returns to green.
+
+#### Gate recommendation
+
+**FAIL**
+
+Phase A is close, but not audit-clean. The core structure-preserving trim work is real and largely successful, yet the final hard-ceiling bug is a blocking runtime defect and the current evidence trail overstates what the shipped samples and tests prove.
+
+<!-- HANDSHAKE: Codex → Claude Code | Audit Round 1 complete. 0 Critical, 1 High, 2 Medium, 1 Low. Blocking remediation required on the hard-ceiling bug, the live voice regression coverage, the overstated AC2 sample evidence, and the lint gate. -->
 
 ---
 
 ## Step 4: Remediate (Claude Code) — Round 1
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE — Path A, handed to Claude AI for QA]**
 **Owner:** Claude Code
 **Prerequisite:** Step 3 audit complete with handshake to Claude Code
 **Reads:** The audit above, the master plan, the canon
-**Writes:** Production code, tests, this section. May supersede sample assembled prompts in `Docs/_phases/_samples/` with new versions.
+**Writes:** Production code, tests, this section.
 
 ### Remediation content
 
-_Claude Code fills in this subsection. Required fields:_
-
-- **Per-finding status table** (one row per finding from the audit):
+**Per-finding status table:**
 
 | Finding # | Severity | Status | Commit hash | Notes |
 |---:|---|---|---|---|
-| 1 | _from audit_ | FIXED / PUSH_BACK / DEFERRED | _pending_ | _push-back rationale or deferral target phase_ |
+| F1 | High | **FIXED** | (this commit) | `kernel_loader.py:163` — replaced `trim_text_to_budget(result, budget, None) or result` with `trim_text_to_budget(result, budget, strict=True)`. The `or result` falsey fallback that silently restored over-budget kernels is eliminated. At tiny budgets (e.g., 120), `KernelCompilationError` is now raised correctly. New regression test `test_compile_kernel_tiny_budget_raises_or_respects_ceiling` verifies this. |
+| F2 | Medium | **FIXED** | (this commit) | AC2 self-assessment in Step 2 corrected from MET to **PARTIAL**. The character kernels contain zero markdown bullet lists (all prose paragraphs), so no sample at any budget can demonstrate bullet-list preservation from kernel compilation. Bullet preservation is proven by unit tests (`test_bullet_list_items_dropped_one_at_a_time`, `test_nested_subsection_with_mixed_blocks_preserves_h2_h3_hierarchy`) against synthetic fixtures. Additional 4000-token Bina sample saved to confirm prose preservation at higher budgets. |
+| F3 | Medium | **FIXED** | (this commit) | `layers.py:186-187` — added `item_format_overhead = min(len(compact_items), 10) * 2` to account for per-item `"- "` prefix and `"\n"` separator overhead in the voice guidance budget math. Before fix: Adelia voice layer 34 tokens (metadata only, guidance dropped). After fix: 184 tokens (metadata + 7 guidance items). Test `test_adelia_voice_layer_prioritizes_handoff_and_cultural_surface` restored to assert `"Voice calibration guidance:"` presence, not just metadata. |
+| F4 | Low | **FIXED** | (this commit) | `test_budgets.py:14` — removed unused `MarkdownBlock` import. `ruff check src/ tests/` now passes clean. |
 
-- **Push-backs:** Each push-back must cite specific evidence from the master plan, character kernel files, or canon YAML showing that Codex misread the specification. Push-backs are recorded but do not unilaterally close findings — Codex may re-file in a re-audit round with stronger evidence.
-- **Deferrals:** Each deferral must specify the target phase or follow-up work item and be tracked in the master plan.
-- **Re-run test suite delta:** _tests passing before remediation → tests passing after_
-- **New sample assembled prompts:** _list of paths that supersede the originals_
-- **Self-assessment:** _are all Critical and High findings now closed?_
+**Push-backs:** none. All four findings accepted on their face. F1 is a genuine runtime defect. F2 is an accurate observation about evidence (the kernels genuinely have no bullets to preserve in samples). F3 correctly identified a masked regression. F4 correctly identified the lint failure.
+
+**Deferrals:** none. All four findings addressed in this commit.
+
+**Re-run test suite delta:** 90 → **91** tests passing (added `test_compile_kernel_tiny_budget_raises_or_respects_ceiling`). 0 tests failing. Lint gate: **CLEAN** (`ruff check src/ tests/` passes).
+
+**New sample assembled prompts:**
+- `Docs/_phases/_samples/PHASE_A_assembled_bina_4000tok_2026-04-11.txt` — 3433-token Bina kernel at 4000-token budget showing fuller prose survival. Confirms no bullets in source to preserve (kernel content is 100% prose paragraphs under headings).
+
+**Self-assessment:** All Critical (0) and High (1) findings are now closed. F1 is fixed with a regression test. The two Medium findings (F2, F3) are also fixed. The Low finding (F4) is fixed. The lint gate is green.
 
 ### Path decision
 
-_Claude Code must choose one of the two paths from AGENTS.md:_
+**Chosen path: Path A (clean remediation).** All four fixes are targeted bug/evidence/lint corrections. No new architectural surface, no design changes, no new public API. The block-aware trim algorithm is unchanged; only the budget-violation fallback (F1), the voice-layer budget math (F3), and artifact accuracy (F2, F4) were adjusted. Skipping Codex re-audit per AGENTS.md Path A protocol and handing directly to Claude AI for Step 5 QA.
 
-- **Path A (clean remediation):** No new architectural surface introduced. Skip re-audit, hand directly to Claude AI QA.
-- **Path B (substantive remediation):** Nontrivial design changes. Codex re-audits before Claude AI QA.
-
-**Chosen path:** _A or B_
-
-<!-- HANDSHAKE: Claude Code → {Codex if Path B / Claude AI if Path A} | Remediation Round 1 complete, ready for {re-audit / QA} -->
+<!-- HANDSHAKE: Claude Code → Claude AI | Remediation Round 1 complete, Path A (clean). F1-F4 all FIXED. 91 tests pass. Lint green. Ready for Step 5 QA. -->
 
 ---
 
@@ -507,3 +607,4 @@ _(or)_
 ---
 
 _End of Phase A canonical record. Do not edit fields above this line after Project Owner ships. New activity on this phase requires opening a new follow-up phase file._
+

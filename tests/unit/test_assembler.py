@@ -520,11 +520,11 @@ def test_adelia_voice_guidance_multiple_modes() -> None:
 
 
 def test_adelia_voice_layer_prioritizes_handoff_and_cultural_surface() -> None:
-    """The live Adelia voice layer carries at minimum the character metadata."""
+    """The live Adelia voice layer carries metadata and at least some guidance."""
     layer = format_voice_directives("adelia", _make_bundle("adelia").character_baseline)
     assert "Adelia Raye" in layer.text
     assert "ENFP-A" in layer.text
-    assert "Ne-dominant" in layer.text
+    assert "Voice calibration guidance:" in layer.text
 
 
 async def test_assemble_context_adelia_retains_identity_and_protocol_surface(

@@ -11,7 +11,6 @@ import pytest
 
 from starry_lyfe.context.budgets import (
     BlockType,
-    MarkdownBlock,
     estimate_tokens,
     parse_markdown_blocks,
     trim_text_to_budget,
@@ -288,3 +287,21 @@ class TestBlockParser:
         assert "## 2. Section" in result
         assert "### 2.1 Subsection" in result
         assert "```python" not in result
+
+
+class TestF1Regression:
+    """F1 regression: compile_kernel must never return over-budget content."""
+
+    def test_compile_kernel_tiny_budget_raises_or_respects_ceiling(self) -> None:
+        from starry_lyfe.context.errors import KernelCompilationError
+        from starry_lyfe.context.kernel_loader import clear_kernel_cache, compile_kernel
+
+        clear_kernel_cache()
+        try:
+            result = compile_kernel("adelia", budget=120)
+            assert estimate_tokens(result) <= 120, (
+                f"compile_kernel returned {estimate_tokens(result)} tokens "
+                f"for a 120-token budget"
+            )
+        except KernelCompilationError:
+            pass

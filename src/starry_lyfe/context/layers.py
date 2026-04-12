@@ -183,7 +183,8 @@ def format_voice_directives(
         header = "Voice calibration guidance:\n"
         header_tokens = estimate_tokens(header)
         if remaining > header_tokens:
-            remaining_for_items = remaining - header_tokens
+            item_format_overhead = min(len(compact_items), 10) * 2
+            remaining_for_items = remaining - header_tokens - item_format_overhead
             chosen_items = trim_to_budget(compact_items, remaining_for_items)
             if not chosen_items:
                 chosen_items = [

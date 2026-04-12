@@ -159,9 +159,8 @@ def compile_kernel(character_id: str, budget: int) -> str:
             assembled.append(trimmed)
 
     result = "\n\n".join(assembled)
-    # Final hard ceiling: ensure we never exceed budget even with join overhead
     if estimate_tokens(result) > budget:
-        result = trim_text_to_budget(result, budget, None) or result
+        result = trim_text_to_budget(result, budget, strict=True)
     return result
 
 
