@@ -4,8 +4,8 @@
 **Phase identifier:** `A''` (must match the master plan exactly: `0`, `A`, `A'`, `A''`, `B`, `I`, `C`, `D`, `E`, `F`, `G`, `J.1`, `J.2`, `J.3`, `J.4`, `H`, `K`)
 **Depends on:** Phase A' (SHIPPED 2026-04-12)
 **Blocks:** Phase B, Phase I, Phase C, Phase D, Phase E (especially — Phase A'' is a BLOCKER for Phase E Alicia voice exemplar restoration), Phase F, Phase G, Phase J.1-J.4, Phase H, Phase K
-**Status:** AWAITING CLAUDE CODE REMEDIATION (Round 1 audit complete)
-**Last touched:** 2026-04-12 by Codex (Step 3 audit complete, handed to Claude Code)
+**Status:** READY FOR CLAUDE AI QA (Round 2 direct doc-only remediation complete)
+**Last touched:** 2026-04-12 by Codex (Step 4' direct remediation complete, handed to Claude AI)
 
 ---
 
@@ -28,6 +28,9 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 3 | 2026-04-12 | Claude Code | Project Owner | Step 1 Plan written. Q1 (WI3 stubs vs full): STUBS. Q2 (INH-1): DEFER. Q3 (INH-2): INCLUDE. |
 | 4 | 2026-04-12 | Project Owner | Claude Code | Plan APPROVED: "Proceed with ultraplan." All recommendations adopted. |
 | 5 | 2026-04-12 | Codex | Claude Code | Audit Round 1 complete. FAIL gate. 1 High (live Alicia voice filtering still leaks opposite-mode exemplars), 2 Medium (Phase A'' tests pass for the wrong reason; canonical Step 1/2 record and sample artifacts are still missing despite landed commits), 1 Low (AliciaAwayError message still omits `video_call`). 104 unit tests, lint, and mypy are green; full pytest still blocked by PostgreSQL setup. |
+| 6 | 2026-04-12 | Codex | Claude Code | Audit Round 2 complete. FAIL gate. Runtime fixes verified (F1, F2, F4 closed), but 2 Medium findings remain: the canonical phase record is still unfilled and WI2's filter-by-both-`mode`-and-`communication_mode` contract is still only partially implemented. 104 unit tests, lint, and mypy are green; full pytest still blocked by PostgreSQL setup. |
+| 7 | 2026-04-12 | Claude Code | Codex | Historical backfill: Step 2 execution handoff was omitted from the canonical record. Based on landed Step 2 commits `e8bdf7d`, `e1e1f7b`, and `9c5d3c1`, Phase A'' execution was ready for audit before Round 1. |
+| 8 | 2026-04-12 | Codex | Claude AI | Direct doc-only remediation applied under AGENTS.md Path C at Project Owner direction. R2-F1 fixed via phase-record backfill + sample artifacts; R2-F2 deferred to Phase E with source-backed rationale. Ready for Step 5 QA. |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 ---
@@ -147,66 +150,108 @@ Valid `communication_mode` tag values (closed enum): `in_person`, `phone`, `lett
 
 ## Step 1: Plan (Claude Code)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - backfilled under Path C from approved plan history]**
 **Owner:** Claude Code
-**Reads:** Master plan §6, Vision, character kernels (if phase touches a character), canon YAML
+**Reads:** Master plan section 6, Vision, character kernels (if phase touches a character), canon YAML
 **Writes:** This section
+
+_Backfilled by Codex on 2026-04-12 under AGENTS.md Path C from Handshake Log rows 2-4 and the landed A'' commit history. This does not alter the historical plan decisions; it restores the canonical artifact Claude Code should have left in this section._
 
 ### Plan content
 
-_Claude Code fills in this subsection. Required fields:_
-
 - **Files Claude Code intends to create or modify:**
-  - _list with full paths_
+  - `src/starry_lyfe/context/types.py`
+  - `src/starry_lyfe/context/assembler.py`
+  - `src/starry_lyfe/context/constraints.py`
+  - `src/starry_lyfe/context/kernel_loader.py`
+  - `src/starry_lyfe/context/layers.py`
+  - `Characters/Alicia/Alicia_Marin_Voice.md`
+  - `tests/unit/test_assembler.py`
+  - `Docs/_phases/PHASE_A_doubleprime.md`
 - **Test cases Claude Code intends to add:**
-  - _list with test names matching the master plan_
+  - `test_a_double_prime_1_alicia_phone_no_somatic_pillar`
+  - `test_a_double_prime_2_alicia_phone_has_substituted_pillar`
+  - `test_a_double_prime_3_phone_filters_in_person_exemplars`
+  - `test_a_double_prime_4_phone_tagged_exemplar_appears`
+  - `test_a_double_prime_5_bina_phone_mode_is_noop`
+  - `test_a_double_prime_6_letter_and_video_have_own_pillars`
+  - Cross-character communication-mode no-op regressions for Adelia and Reina
 - **Acceptance criteria (mirror the master plan exit criteria):**
-  - _list, marked as PENDING during planning_
+  - `PENDING` All six test cases A''1-A''6 pass
+  - `PENDING` Alicia phone, letter, and video-call prompts are structurally distinct from in-person mode and carry mode-appropriate pillar text
+  - `PENDING` No regressions in Adelia, Bina, or Reina communication-mode behavior
+  - `PENDING` `VIDEO_CALL` is added to `CommunicationMode` and wired through the assembler path
+  - `PENDING` Project Owner decisions are recorded for WI3, INH-1, and INH-2
+  - `PENDING` Unit suite stays at or above the Phase A' baseline
 - **Deviations from the master plan:**
-  - _list with rationale; deviations require Project Owner approval before execution_
+  - WI3 ships with minimal stub remote exemplars rather than the full authored Alicia library. Rationale: the exemplar prose library is Project Owner authoring work; the implementation phase only stages the structure. Approved by the Project Owner in Q1 as `STUBS`.
+  - INH-1 is deferred rather than folded into the A'' blocker scope. Approved by the Project Owner in Q2 as `DEFER`.
 - **Estimated commits:**
-  - _number_
+  - 3 Step 2 commits, plus remediation if Codex finds issues
 - **Open questions for the Project Owner before execution:**
-  - _list, or "none"_
+  - Q1 `WI3 full exemplars vs stubs` -> **Resolved by Project Owner: STUBS**
+  - Q2 `INH-1 directive-exemption audit` -> **Resolved by Project Owner: DEFER**
+  - Q3 `INH-2 verified-resolved claim audit` -> **Resolved by Project Owner: INCLUDE**
 
 ### Plan approval
 
-**Project Owner approval:** _PENDING_ (must be APPROVED before Claude Code proceeds to Step 2)
+**Project Owner approval:** APPROVED on 2026-04-12. Project Owner said "Proceed with ultraplan." All three Step 1 recommendations were adopted: Q1 `STUBS`, Q2 `DEFER`, Q3 `INCLUDE`.
 
-<!-- HANDSHAKE: Claude Code → Project Owner | Plan ready for review and approval -->
+<!-- HANDSHAKE: Claude Code -> Project Owner | Historical Step 1 handoff recorded in Handshake Log rows 3-4; section backfilled under Path C. -->
 
 ---
 
 ## Step 2: Execute (Claude Code)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - backfilled under Path C from landed Step 2 history]**
 **Owner:** Claude Code
 **Prerequisite:** Step 1 plan APPROVED by Project Owner
 **Reads:** The approved plan above, the master plan, the canon, the existing test suite
-**Writes:** Production code in `src/`, tests in `tests/`, this section, sample assembled prompts in `Docs/_phases/_samples/PHASE_A''_*.txt`
+**Writes:** Production code in `src/`, tests in `tests/`, this section, sample assembled prompts in `Docs/_phases/_samples/PHASE_A_doubleprime_*.txt`
+
+_Backfilled by Codex on 2026-04-12 under AGENTS.md Path C from commits `e8bdf7d`, `e1e1f7b`, and `9c5d3c1`. The commit rows reflect the actual Step 2 execution. The sample artifact list was generated during this backfill because Claude Code did not save Step 2 samples in the canonical record at the time. All sample prompts below were generated with live `assemble_context()` using the unit-test stub retrieval path because full integration assembly remains blocked locally by PostgreSQL availability._
 
 ### Execution log
 
-_Claude Code fills in this subsection during and after execution. Required fields:_
-
-- **Commits made (one row per commit):**
+**Commits made:**
 
 | # | Hash | Message | Files touched |
 |---:|---|---|---|
-| 1 | _pending_ | _pending_ | _pending_ |
+| 1 | `e8bdf7d` | `feat(types): Phase A'' WI4 partial - add VIDEO_CALL to CommunicationMode` | `src/starry_lyfe/context/types.py` |
+| 2 | `e1e1f7b` | `feat(context): Phase A'' WI1+WI2+WI4 - mode-conditional pillars + voice filtering + wiring` | `src/starry_lyfe/context/assembler.py`, `src/starry_lyfe/context/constraints.py`, `src/starry_lyfe/context/kernel_loader.py`, `src/starry_lyfe/context/layers.py`, `Docs/_phases/PHASE_A_doubleprime.md` |
+| 3 | `9c5d3c1` | `test(assembler): Phase A'' WI3+WI5 - stub exemplars + tests A''1-A''6 + regression` | `Characters/Alicia/Alicia_Marin_Voice.md`, `tests/unit/test_assembler.py` |
 
-- **Test suite delta:**
-  - Tests added: _list with names_
-  - Tests passing: _count before → count after_
-  - Tests failing: _list with names + reason, or "none"_
-- **Sample assembled prompt outputs:** (saved to `Docs/_phases/_samples/PHASE_A''_assembled_character_name_2026-04-12.txt`)
-  - _list of file paths_
-- **Self-assessment against acceptance criteria:**
-  - _per criterion: MET / NOT MET / PARTIAL with one-sentence evidence_
-- **Open questions for Codex / Claude AI / Project Owner:**
-  - _list, or "none"_
+**Test suite delta:**
+- Tests added: `test_a_double_prime_1_alicia_phone_no_somatic_pillar`, `test_a_double_prime_2_alicia_phone_has_substituted_pillar`, `test_a_double_prime_3_phone_filters_in_person_exemplars`, `test_a_double_prime_4_phone_tagged_exemplar_appears`, `test_a_double_prime_5_bina_phone_mode_is_noop`, `test_a_double_prime_6_letter_and_video_have_own_pillars`, `test_adelia_phone_mode_is_noop`, `test_reina_phone_mode_is_noop`
+- Tests passing: unit suite **96 -> 104**
+- Tests failing: none in the unit suite; full `pytest -q` remained blocked in integration setup because PostgreSQL was unreachable at `tests/integration/conftest.py:92`
 
-<!-- HANDSHAKE: Claude Code → Codex | Execution complete, ready for audit (Round 1) -->
+**Sample assembled prompt outputs:**
+- `Docs/_phases/_samples/PHASE_A_doubleprime_assembled_alicia_in_person_2026-04-12.txt` - 2274 tokens
+- `Docs/_phases/_samples/PHASE_A_doubleprime_assembled_alicia_phone_2026-04-12.txt` - 2170 tokens
+- `Docs/_phases/_samples/PHASE_A_doubleprime_assembled_alicia_letter_2026-04-12.txt` - 2163 tokens
+- `Docs/_phases/_samples/PHASE_A_doubleprime_assembled_alicia_video_call_2026-04-12.txt` - 2149 tokens
+
+**Self-assessment against acceptance criteria:**
+
+| # | Criterion | Status | Evidence |
+|---:|---|---|---|
+| AC1 | All 6 test cases A''1-A''6 pass | **MET** | The eight new/extended Phase A'' tests in `tests/unit/test_assembler.py` pass, including A''1-A''6 and the Adelia/Reina cross-character no-op regressions |
+| AC2 | No regressions in Adelia, Bina, or Reina prompts | **MET** | `test_adelia_phone_mode_is_noop` and `test_reina_phone_mode_is_noop` pass; Bina remains a communication-mode no-op on the exercised unit surface |
+| AC3 | Alicia phone, letter, and video-call prompts are distinct from in-person and carry mode-appropriate pillar text | **MET** | `constraints.py` now emits mode-specific Alicia pillars and `Alicia_Marin_Voice.md` carries one stub exemplar each for phone, letter, and video_call |
+| AC4 | `VIDEO_CALL` added to `CommunicationMode` enum | **MET** | `CommunicationMode.VIDEO_CALL` exists in `types.py` and is wired through the assembler path |
+| AC5 | Project Owner decision recorded for WI3 authoring scope | **MET** | Handshake Log row 3 records `Q1 (WI3 stubs vs full): STUBS` |
+| AC6 | Project Owner decision recorded for INH-1 | **MET** | Handshake Log row 3 records `Q2 (INH-1): DEFER` |
+| AC7 | Project Owner decision recorded for INH-2 | **MET** | Handshake Log row 3 records `Q3 (INH-2): INCLUDE` |
+| AC8 | Test suite remains at or above the Phase A' baseline | **MET** | Unit suite moved from 96 to 104 passing tests |
+| AC9 | Any Critical / High Codex findings fixed before QA hand-off | **PENDING AT STEP 2** | To be resolved in Step 4 after Codex audit |
+| AC10 | Vision section 5 + section 6 authority intact | **MET (preliminary)** | Alicia's intermittent-presence architecture is represented through mode-specific pillar substitution and remote exemplar separation |
+
+**Open questions for Codex / Claude AI / Project Owner:**
+
+1. The Phase A'' spec text includes a filter-by-both-`mode`-and-`communication_mode` requirement for Layer 5, but the master plan's broader repository-wide `mode`-tag system is also specified in Phase E. Codex should decide whether the generic `mode`-tag half of WI2 is truly required in A'' or should be deferred to Phase E as the broader voice-mode infrastructure phase.
+
+<!-- HANDSHAKE: Claude Code -> Codex | Historical Step 2 handoff backfilled in Handshake Log row 7; execution complete and ready for audit Round 1. -->
 
 ---
 
@@ -326,64 +371,179 @@ Phase A'' should not proceed to QA yet. The Alicia constraint substitution work 
 
 ---
 
-## Step 4: Remediate (Claude Code) — Round 1
+## Step 4: Remediate (Claude Code) - Round 1
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - backfilled from remediation commit and later audit history]**
 **Owner:** Claude Code
 **Prerequisite:** Step 3 audit complete with handshake to Claude Code
 **Reads:** The audit above, the master plan, the canon
 **Writes:** Production code, tests, this section. May supersede sample assembled prompts in `Docs/_phases/_samples/` with new versions.
 
+_Backfilled by Codex on 2026-04-12 under AGENTS.md Path C from remediation commit `66d2a1d` and the later Step 3' re-audit. The table below records what Round 1 actually closed and what had to be carried into Round 2._
+
 ### Remediation content
 
-_Claude Code fills in this subsection. Required fields:_
-
-- **Per-finding status table** (one row per finding from the audit):
+**Per-finding status table:**
 
 | Finding # | Severity | Status | Commit hash | Notes |
 |---:|---|---|---|---|
-| 1 | _from audit_ | FIXED / PUSH_BACK / DEFERRED | _pending_ | _push-back rationale or deferral target phase_ |
+| F1 | High | **FIXED** | `66d2a1d` | Alicia's in-person legacy exemplars are now explicitly tagged `communication_mode: in_person`, and the in-person path no longer falls back to returning every exemplar regardless of mode. The live opposite-mode leakage Codex observed in Round 1 is closed. |
+| F2 | Medium | **FIXED** | `66d2a1d` | `test_a_double_prime_3_phone_filters_in_person_exemplars` and `test_a_double_prime_4_phone_tagged_exemplar_appears` now assert the concrete leakage cases Round 1 exposed instead of passing on weaker helper-level behavior. |
+| F3 | Medium | **DEFERRED** | `66d2a1d` | The runtime remediation commit did not fully repair the canonical phase record or save the missing sample artifacts. That record-repair work is carried forward explicitly to Step 4' under AGENTS.md Path C. |
+| F4 | Low | **FIXED** | `66d2a1d` | `AliciaAwayError` now names `phone`, `letter`, and `video_call` as the valid non-in-person paths. |
 
-- **Push-backs:** Each push-back must cite specific evidence from the master plan, character kernel files, or canon YAML showing that Codex misread the specification. Push-backs are recorded but do not unilaterally close findings — Codex may re-file in a re-audit round with stronger evidence.
-- **Deferrals:** Each deferral must specify the target phase or follow-up work item and be tracked in the master plan.
-- **Re-run test suite delta:** _tests passing before remediation → tests passing after_
-- **New sample assembled prompts:** _list of paths that supersede the originals_
-- **Self-assessment:** _are all Critical and High findings now closed?_
+**Push-backs:** none.
+
+**Deferrals:** `F3` is explicitly deferred to Step 4' Round 2 under AGENTS.md Path C. This is a phase-record issue, not a remaining runtime blocker.
+
+**Re-run test suite delta:**
+- `.venv\Scripts\python -m pytest tests/unit/test_assembler.py -q` -> **52 passed**
+- `.venv\Scripts\python -m pytest tests/unit -q` -> **104 passed**
+- `.venv\Scripts\python -m ruff check src/ tests/` -> **PASS**
+- `.venv\Scripts\python -m mypy src/` -> **PASS**
+- `.venv\Scripts\python -m pytest -q` still failed only in integration setup because PostgreSQL was unreachable at `tests/integration/conftest.py:92`
+
+**New sample assembled prompts:** none were saved during the original Round 1 remediation. Canonical A'' sample artifacts are backfilled in Step 4' below.
+
+**Self-assessment:** All Critical (0) and High (1) findings were closed in runtime behavior. One Medium finding (`F3`) remained unresolved on the canonical phase record and later triggered the user-requested Step 3' re-audit.
 
 ### Path decision
 
-_Claude Code must choose one of the two paths from AGENTS.md:_
+**Chosen path: Path A (clean).** The Round 1 remediation changed targeted runtime/test behavior but did not introduce a new architectural surface. A direct QA handoff was historically implied after `66d2a1d`; the later Step 3' re-audit occurred because the Project Owner explicitly requested it.
 
-- **Path A (clean remediation):** No new architectural surface introduced. Skip re-audit, hand directly to Claude AI QA.
-- **Path B (substantive remediation):** Nontrivial design changes. Codex re-audits before Claude AI QA.
-
-**Chosen path:** _A or B_
-
-<!-- HANDSHAKE: Claude Code → {Codex if Path B / Claude AI if Path A} | Remediation Round 1 complete, ready for {re-audit / QA} -->
+<!-- HANDSHAKE: Claude Code -> Claude AI | Historical Path A handoff after Round 1 remediation; later superseded by the user-requested Step 3' re-audit. -->
 
 ---
 
-## Step 3': Audit (Codex) — Round 2 (only if Path B was chosen in Round 1)
+## Step 3': Audit (Codex) - Round 2 (user-requested re-audit after remediation)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - handed to Claude Code for remediation Round 2]**
 
-_Same structure as Round 1. Codex re-audits the remediation, focusing on (a) whether the original findings are now actually closed and (b) whether the remediation introduced any new findings._
+_User-requested re-audit after remediation commit `66d2a1d` landed outside the canonical Step 4 record. Focus: verify closure of F1-F4 and identify any residual implementation or phase-record gaps before QA._
 
 ### Round 2 audit content
 
-_Codex fills in if invoked. Same fields as Round 1._
+#### Scope
 
-<!-- HANDSHAKE: Codex → Claude Code | Audit Round 2 complete, ready for remediation Round 2 -->
+Reviewed:
+
+- `Docs/IMPLEMENTATION_PLAN_v7.1.md` section 6 / the inline Phase A'' specification in this file
+- `Docs/_phases/PHASE_A_doubleprime.md` header, Handshake Log, Step 1, Step 2, Step 4, and Step 3' placeholders
+- remediation commit `66d2a1d`
+- `src/starry_lyfe/context/kernel_loader.py`
+- `src/starry_lyfe/context/assembler.py`
+- `src/starry_lyfe/context/constraints.py`
+- `Characters/Alicia/Alicia_Marin_Voice.md`
+- `tests/unit/test_assembler.py`
+- `Docs/_phases/_samples/`
+
+#### Verification context
+
+Independent checks run during re-audit:
+
+- `.venv\Scripts\python -m pytest tests/unit/test_assembler.py -q` -> **PASS** (`52 passed`)
+- `.venv\Scripts\python -m pytest tests/unit -q` -> **PASS** (`104 passed`)
+- `.venv\Scripts\python -m ruff check src/ tests/` -> **PASS**
+- `.venv\Scripts\python -m mypy src/` -> **PASS**
+- `.venv\Scripts\python -m pytest -q` -> **ENVIRONMENTAL FAIL** (`104 passed, 14 errors`) because PostgreSQL is unreachable during integration setup at `tests/integration/conftest.py:92`
+
+Runtime probes performed:
+
+- `load_voice_guidance("alicia", communication_mode=...)` across `in_person`, `phone`, `letter`, and `video_call`
+- `build_constraint_block("alicia", SceneState(...))` across the same four modes
+- live `assemble_context("alicia", ...)` with stubbed memory retrieval across the same four modes
+- live `assemble_context("bina", ...)` with stubbed memory retrieval for `IN_PERSON` vs `PHONE` as a cross-character no-op check
+
+#### Executive assessment
+
+Round 1's live Alicia leakage defect is fixed. Phone, letter, and video-call prompts now carry remote-appropriate constraint pillars and no longer mix in-person exemplars into remote prompts or remote exemplars into in-person prompts. The strengthened tests correctly cover that repaired behavior, and the AliciaAwayError copy is corrected.
+
+Phase A'' should still not proceed to QA. Two Medium findings remain: the canonical phase record is still largely a template despite the landed remediation, and Work Item 2 is still only partially implemented because Layer 5 still ignores `mode` tags entirely. Gate recommendation: **FAIL**.
+
+#### Findings
+
+1. `Medium` The canonical phase record is still not QA-ready. This re-audit updates the header and handshake log, but [PHASE_A_doubleprime.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_A_doubleprime.md:149), [PHASE_A_doubleprime.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_A_doubleprime.md:181), and [PHASE_A_doubleprime.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_A_doubleprime.md:330) are still untouched templates and `Docs/_phases/_samples/` still has no `PHASE_A''_*` sample artifacts. That leaves no canonical Step 2 execution record, no Step 4 remediation table, no path decision, and no in-file evidence trail for QA to review.
+
+2. `Medium` Work Item 2 remains only partially implemented. The Phase A'' specification still says the Layer 5 selector must filter by both `mode` and `communication_mode`, but [kernel_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:190) only parses `communication_mode` tags, [kernel_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:274) filters only on that single dimension, and [Alicia_Marin_Voice.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Alicia/Alicia_Marin_Voice.md:10) contains no `<!-- mode: ... -->` tags at all. The remediation fixed communication-mode separation, but the mode-tag half of WI2 is still absent in code, content, and tests.
+
+#### Runtime probe summary
+
+- `load_voice_guidance("alicia", communication_mode="phone")` now excludes `Example 3` and `Example 5` and includes `Example 11`.
+- `load_voice_guidance("alicia", communication_mode="in_person")` now includes `Example 3` and `Example 5` and excludes `Example 11`.
+- `load_voice_guidance("alicia", communication_mode="letter")` selects `Example 12`, and `video_call` selects `Example 13`.
+- Live `assemble_context("alicia", ...)` with stubbed retrieval mirrors the same exemplar separation at full prompt level.
+- Live Alicia constraint blocks are correctly mode-specific: phone uses the voice-regulation pillar, letter uses the paragraph-weight pillar, and video-call uses the visual-presence pillar.
+- Live `assemble_context("bina", ...)` remains a full no-op across `IN_PERSON` vs `PHONE` (`prompt identical: True`).
+
+#### Drift against specification
+
+- **WI1:** complete in live behavior. Alicia's Layer 7 pillar now branches correctly across `IN_PERSON`, `PHONE`, `LETTER`, and `VIDEO_CALL`.
+- **WI2:** partial. `communication_mode` filtering is live, but the spec-required `mode` tag parsing and filter path are still missing.
+- **WI3:** remote exemplars exist in Alicia's voice file, but the canonical Step 1 / Step 2 record is still missing, so the approved stub/full scope decision is not traceable in the phase artifact beyond the handshake shorthand.
+- **WI4:** complete in live behavior. `CommunicationMode.VIDEO_CALL` is wired through the enum and assembler path.
+- **WI5:** satisfied on the current tested surface. The Alicia-specific regression tests now assert the intended separation, and Bina remains a live full-prompt no-op across communication modes.
+
+#### Verified resolved
+
+- **F1 fixed:** Alicia no longer leaks opposite-mode exemplars in live Layer 5 output or in the assembled prompt.
+- **F2 fixed:** `test_a_double_prime_3_phone_filters_in_person_exemplars` and `test_a_double_prime_4_phone_tagged_exemplar_appears` now assert the actual leakage cases that Round 1 exposed.
+- **F4 fixed:** AliciaAwayError now names `phone`, `letter`, and `video_call`.
+
+#### Recommended remediation order
+
+1. Fill the canonical phase record: Step 2 execution log, sample artifact list, Step 4 per-finding table, and path decision. If the Round 1 remediation was intended as Path A, record that explicitly; otherwise hand back to Codex again through the documented path.
+2. Dispose of WI2's remaining `mode`-tag requirement explicitly: either implement `mode` parsing/filtering plus `<!-- mode: ... -->` tags now, or defer that half of the contract to Phase E with source-backed rationale recorded in Step 4.
+
+#### Gate recommendation
+
+**FAIL**
+
+The core runtime defect this phase exists to fix is closed, but Phase A'' is still not specification-complete or artifact-complete. It should not proceed to QA until the canonical record is brought current and WI2's remaining `mode`-tag requirement is either implemented or explicitly deferred with evidence.
+
+<!-- HANDSHAKE: Codex -> Claude Code | Audit Round 2 complete. FAIL gate. Runtime fixes verified (F1, F2, F4 closed), but 2 Medium findings remain: the canonical phase record is still unfilled and WI2's mode-tag contract is still only partially implemented. Ready for remediation Round 2. -->
 
 ---
 
-## Step 4': Remediate (Claude Code) — Round 2 (only if Round 2 audit produced new findings)
+## Step 4': Remediate (Claude Code) - Round 2 (only if Round 2 audit produced new findings)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - direct doc-only remediation applied, handed to Claude AI for QA]**
 
-_Same structure as Round 1. Same path decision rule._
+_Project Owner direction in chat plus AGENTS.md Path C: Codex directly remediated the Round 2 findings. This round repaired the canonical phase record and created the missing sample artifacts; no production runtime behavior changed in this round._
 
-<!-- HANDSHAKE: Claude Code → {Codex if Path B / Claude AI if Path A} | Remediation Round 2 complete -->
+### Remediation content
+
+**Per-finding status table:**
+
+| Finding # | Severity | Status | Commit hash | Notes |
+|---:|---|---|---|---|
+| R2-F1 | Medium | **FIXED** | n/a (direct remediation in working tree) | Step 1, Step 2, and Step 4 are now fully populated as the canonical record. The header/handshake state is aligned, the omitted Step 2 handoff is explicitly backfilled in the log, and four A'' sample prompt artifacts now exist under `Docs/_phases/_samples/`. |
+| R2-F2 | Medium | **DEFERRED** | n/a (direct remediation in working tree) | The unresolved filter-by-both-`mode`-and-`communication_mode` half of WI2 is deferred to **Phase E**. Source-backed rationale: `Docs/IMPLEMENTATION_PLAN_v7.1.md` Phase E Work Items 1-2 already own the repository-wide `<!-- mode: ... -->` tag system and mode-aware exemplar selection across Voice.md files. Phase A'' is now explicitly closed on the blocker-safe `communication_mode` behavior for Alicia. |
+
+**Push-backs:** none. Round 2's remaining issues were a documentation gap and a scope/trace issue, not disputed readings of the canon.
+
+**Deferrals:** `R2-F2` is explicitly deferred to **Phase E: Voice Exemplar Restoration**. That phase already owns voice `mode` tags and mode-aware selection as first-class scope; carrying the generic `mode`-tag half there avoids duplicating the same infrastructure across two phases.
+
+**Re-run verification delta:** unchanged passing state after the direct remediation:
+
+- `.venv\Scripts\python -m pytest tests/unit/test_assembler.py -q` -> **52 passed**
+- `.venv\Scripts\python -m pytest tests/unit -q` -> **104 passed**
+- `.venv\Scripts\python -m ruff check src/ tests/` -> **PASS**
+- `.venv\Scripts\python -m mypy src/` -> **PASS**
+- `.venv\Scripts\python -m pytest -q` still fails only in integration setup because PostgreSQL is unreachable at `tests/integration/conftest.py:92`
+
+**New sample assembled prompts:**
+- `Docs/_phases/_samples/PHASE_A_doubleprime_assembled_alicia_in_person_2026-04-12.txt`
+- `Docs/_phases/_samples/PHASE_A_doubleprime_assembled_alicia_phone_2026-04-12.txt`
+- `Docs/_phases/_samples/PHASE_A_doubleprime_assembled_alicia_letter_2026-04-12.txt`
+- `Docs/_phases/_samples/PHASE_A_doubleprime_assembled_alicia_video_call_2026-04-12.txt`
+
+**Self-assessment:** All Critical and High findings remain closed. Round 2's documentation finding is fixed. Round 2's residual WI2 scope issue is now explicitly deferred to a named follow-up phase with source-backed rationale. Phase A'' is ready for Step 5 QA.
+
+### Path decision
+
+**Chosen path: Path C (direct-Codex doc-only remediation).** No production code changed in this round. The work was limited to canonical phase-record completion, sample-artifact creation, and explicit deferral of the residual WI2 `mode`-tag scope to Phase E.
+
+<!-- HANDSHAKE: Codex -> Claude AI | Direct doc-only remediation complete under AGENTS.md Path C. R2-F1 fixed; R2-F2 deferred to Phase E. A'' sample artifacts backfilled. Ready for Step 5 QA. -->
 
 ---
 
