@@ -73,6 +73,21 @@ def _make_bundle(character_id: str) -> Any:
             "dominant_function_descriptor": "Si-dominant declarative steadiness",
             "internal_member": "reina",
         },
+        "reina": {
+            "full_name": "Reina Torres",
+            "epithet": "The Operator",
+            "mbti": "ESTP-A",
+            "dominant_function": "Se",
+            "pair_name": "kinetic",
+            "pair_classification": "asymmetrical leverage",
+            "pair_mechanism": "Temporal collision converted to engine heat",
+            "pair_core_metaphor": "The Mastermind and the Operator",
+            "heritage": "Barcelona Catalan-Castilian",
+            "profession": "Criminal defence lawyer",
+            "response_length_range": "1-3 paragraphs",
+            "dominant_function_descriptor": "Se-dominant tactical presence",
+            "internal_member": "bina",
+        },
         "alicia": {
             "full_name": "Alicia Marin",
             "epithet": "The Solstice",
@@ -554,6 +569,71 @@ async def test_assemble_context_adelia_retains_identity_and_protocol_surface(
     assert "## 2. Core Identity" in prompt.prompt
     assert "TALK-TO-EACH-OTHER" not in prompt.prompt
     assert "Relationship adelia-bina" not in prompt.prompt
+
+
+# --- Phase A' WI5: Adelia + Reina solo pair smoke tests ---
+
+
+async def test_assemble_context_adelia_solo_pair(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Adelia solo pair assembly: succeeds, terminally anchored, no Msty artifacts."""
+
+    async def stub_retrieve_memories(*args: Any, **kwargs: Any) -> Any:
+        return _make_bundle("adelia")
+
+    monkeypatch.setattr(assembler_module, "retrieve_memories", stub_retrieve_memories)
+    clear_kernel_cache()
+
+    prompt = await assemble_context(
+        character_id="adelia",
+        scene_context="Adelia is working on a commission in the warehouse.",
+        scene_state=SceneState(
+            present_characters=["adelia", "whyze"],
+            scene_description="Manchester warehouse; sparks from the bench; late afternoon.",
+            communication_mode=CommunicationMode.IN_PERSON,
+        ),
+        session=cast(AsyncSession, None),
+        embedding_service=_StubEmbeddingService(),
+    )
+
+    assert prompt.is_terminally_anchored
+    assert prompt.prompt.rstrip().endswith("</CONSTRAINTS>")
+    assert "## 2. Core Identity" in prompt.prompt
+    assert "I am Adelia Raye" in prompt.prompt
+    assert "Msty Persona Studio" not in prompt.prompt
+    assert "**User:**" not in prompt.prompt
+
+
+async def test_assemble_context_reina_solo_pair(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reina solo pair assembly: succeeds, terminally anchored, no Msty artifacts."""
+
+    async def stub_retrieve_memories(*args: Any, **kwargs: Any) -> Any:
+        return _make_bundle("reina")
+
+    monkeypatch.setattr(assembler_module, "retrieve_memories", stub_retrieve_memories)
+    clear_kernel_cache()
+
+    prompt = await assemble_context(
+        character_id="reina",
+        scene_context="Reina reviewing case files in the home office.",
+        scene_state=SceneState(
+            present_characters=["reina", "whyze"],
+            scene_description="Home office; case binder open; evening quiet.",
+            communication_mode=CommunicationMode.IN_PERSON,
+        ),
+        session=cast(AsyncSession, None),
+        embedding_service=_StubEmbeddingService(),
+    )
+
+    assert prompt.is_terminally_anchored
+    assert prompt.prompt.rstrip().endswith("</CONSTRAINTS>")
+    assert "## 2. Core Identity" in prompt.prompt
+    assert "I am Reina Torres" in prompt.prompt
+    assert "Msty Persona Studio" not in prompt.prompt
+    assert "**User:**" not in prompt.prompt
 
 
 # --- Bina conversion audit regression tests ---
