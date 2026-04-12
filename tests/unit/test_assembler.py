@@ -29,7 +29,7 @@ from starry_lyfe.context.kernel_loader import (
     load_kernel,
     load_voice_guidance,
 )
-from starry_lyfe.context.layers import format_voice_directives
+from starry_lyfe.context.layers import format_scene_blocks, format_voice_directives
 from starry_lyfe.context.types import AssembledPrompt, CommunicationMode, SceneState
 
 
@@ -532,13 +532,40 @@ def test_one_woman_plus_child_no_talk_mandate() -> None:
     assert "TALK-TO-EACH-OTHER" not in block
 
 
-def test_recalled_dyad_included_when_other_absent() -> None:
-    """F2 regression: recalled_dyads allows explicit absent-member dyad recall."""
-    scene = SceneState(
-        present_characters=["bina", "whyze"],
-        recalled_dyads={"bina-reina"},
+async def test_recalled_dyad_included_when_other_absent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """F2 regression: explicit absent-member dyad recall renders in Layer 6."""
+    bundle = _make_bundle("bina")
+
+    without_recall = format_scene_blocks(
+        "bina",
+        bundle.dyad_states_whyze,
+        bundle.dyad_states_internal,
+        bundle.open_loops,
+        ["bina", "whyze"],
+        "Shop closed; Reina still at court.",
     )
-    assert "bina-reina" in scene.recalled_dyads
+    assert "Relationship bina-reina" not in without_recall.text
+
+    async def stub_retrieve_memories(*args: Any, **kwargs: Any) -> Any:
+        return bundle
+
+    monkeypatch.setattr(assembler_module, "retrieve_memories", stub_retrieve_memories)
+    clear_kernel_cache()
+
+    prompt = await assemble_context(
+        character_id="bina",
+        scene_context="Bina thinking about Reina while Reina is still at court.",
+        scene_state=SceneState(
+            present_characters=["bina", "whyze"],
+            scene_description="Shop closed; Reina still at court.",
+            recalled_dyads={"bina-reina"},
+        ),
+        session=cast(AsyncSession, None),
+        embedding_service=_StubEmbeddingService(),
+    )
+    assert "Relationship bina-reina" in prompt.prompt
 
 
 def test_adelia_voice_guidance_multiple_modes() -> None:
