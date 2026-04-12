@@ -174,7 +174,7 @@ def format_voice_directives(
             "[Voice directives trimmed to token budget.]",
         )
         sections.append(metadata_text)
-        remaining = max(0, remaining - estimate_tokens(metadata_text))
+        remaining = max(0, remaining - estimate_tokens(metadata_text) - 3)
 
     # Runtime uses compact teaching notes, not full human-authored prose blocks.
     guidance_items = load_voice_guidance(character_id)

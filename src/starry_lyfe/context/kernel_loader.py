@@ -27,13 +27,13 @@ VOICE_PATHS: dict[str, str] = {
 # The goal is not to include whole documents. It is to ensure each runtime
 # kernel still carries identity substrate, pair mechanics, and protocol surface.
 SECTION_TOKEN_TARGETS: dict[int, int] = {
-    1: 240,  # Runtime Directives
-    2: 400,  # Core Identity
-    3: 420,  # Whyze / Pair section
-    4: 180,  # Silent Routing
-    5: 380,  # Behavioral Tier Framework
-    7: 220,  # Emotional / Relational / Operational Frameworks
-    6: 120,  # Voice Architecture
+    1: 240,   # Runtime Directives
+    2: 480,   # Core Identity (raised from 400 — the identity paragraphs are the soul substrate)
+    3: 420,   # Whyze / Pair section
+    4: 120,   # Silent Routing (lowered from 180 — routing rules are terse)
+    5: 360,   # Behavioral Tier Framework (lowered from 380)
+    7: 220,   # Emotional / Relational / Operational Frameworks
+    6: 100,   # Voice Architecture (lowered from 120 — compressed at compile time)
 }
 
 PRIMARY_SECTION_ORDER: list[int] = [1, 2, 3, 4, 5, 7, 6]
@@ -143,11 +143,10 @@ def compile_kernel(character_id: str, budget: int) -> str:
         if not text:
             continue
         section_budget = allocated_budgets.get(num, 0)
-        trimmed = trim_text_to_budget(text, section_budget, None)
+        trimmed = trim_text_to_budget(text, section_budget, strict=True)
         if trimmed and estimate_tokens(trimmed) > 10:
             assembled.append(trimmed)
 
-    # Use any spare budget on lower-priority sections in canonical order.
     for num in FILL_SECTION_ORDER:
         text = section_map.get(num)
         if not text:
@@ -155,7 +154,7 @@ def compile_kernel(character_id: str, budget: int) -> str:
         section_budget = allocated_budgets.get(num, 0)
         if section_budget <= 0:
             continue
-        trimmed = trim_text_to_budget(text, section_budget, None)
+        trimmed = trim_text_to_budget(text, section_budget, strict=True)
         if trimmed and estimate_tokens(trimmed) > 10:
             assembled.append(trimmed)
 

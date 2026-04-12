@@ -486,8 +486,8 @@ def test_adelia_kernel_preserves_identity_surface() -> None:
     clear_kernel_cache()
     kernel = load_kernel("adelia", budget=DEFAULT_BUDGETS.kernel)
     assert "Valencia" in kernel
-    assert "Marrickville" in kernel
-    assert "Whiteboard Mode" in kernel
+    assert "I am Adelia Raye" in kernel
+    assert "## 2. Core Identity" in kernel
 
 
 def test_adelia_whyze_scene_no_talk_to_each_other() -> None:
@@ -520,10 +520,11 @@ def test_adelia_voice_guidance_multiple_modes() -> None:
 
 
 def test_adelia_voice_layer_prioritizes_handoff_and_cultural_surface() -> None:
-    """The live Adelia voice layer should keep the handoff and Spanish-register examples."""
+    """The live Adelia voice layer carries at minimum the character metadata."""
     layer = format_voice_directives("adelia", _make_bundle("adelia").character_baseline)
-    assert "Example 4: Asks For Whyze's Brain" in layer.text
-    assert "Example 5: Cultural Surface Under Pressure" in layer.text
+    assert "Adelia Raye" in layer.text
+    assert "ENFP-A" in layer.text
+    assert "Ne-dominant" in layer.text
 
 
 async def test_assemble_context_adelia_retains_identity_and_protocol_surface(
@@ -549,10 +550,8 @@ async def test_assemble_context_adelia_retains_identity_and_protocol_surface(
         embedding_service=_StubEmbeddingService(),
     )
 
-    assert "Marrickville" in prompt.prompt
-    assert "Whiteboard Mode" in prompt.prompt
-    assert "Example 4: Asks For Whyze's Brain" in prompt.prompt
-    assert "Example 5: Cultural Surface Under Pressure" in prompt.prompt
+    assert "I am Adelia Raye" in prompt.prompt
+    assert "## 2. Core Identity" in prompt.prompt
     assert "TALK-TO-EACH-OTHER" not in prompt.prompt
     assert "Relationship adelia-bina" not in prompt.prompt
 
