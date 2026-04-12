@@ -74,7 +74,7 @@ async def assemble_context(
     ):
         msg = (
             "Cannot assemble in-person Alicia prompt while she is away on operations. "
-            "Set scene_state.alicia_home=True or communication_mode to 'phone' or 'letter'."
+            "Set scene_state.alicia_home=True or communication_mode to 'phone', 'letter', or 'video_call'."
         )
         raise AliciaAwayError(msg)
 

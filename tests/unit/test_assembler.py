@@ -595,21 +595,29 @@ def test_a_double_prime_2_alicia_phone_has_substituted_pillar() -> None:
 
 
 def test_a_double_prime_3_phone_filters_in_person_exemplars() -> None:
-    """A''3: In-person-only examples do NOT appear in a phone-mode voice layer."""
+    """A''3: In-person examples do NOT appear in phone-mode voice guidance."""
     clear_kernel_cache()
-    all_items = load_voice_guidance("alicia")
     phone_items = load_voice_guidance("alicia", communication_mode="phone")
-    assert all_items is not None
+    in_person_items = load_voice_guidance("alicia", communication_mode="in_person")
     assert phone_items is not None
-    assert len(phone_items) < len(all_items)
+    assert in_person_items is not None
+    assert len(phone_items) < len(in_person_items)
+    phone_text = " ".join(phone_items)
+    assert "Example 3" not in phone_text
+    assert "Example 5" not in phone_text
 
 
 def test_a_double_prime_4_phone_tagged_exemplar_appears() -> None:
-    """A''4: A phone-tagged exemplar DOES appear in a phone-mode prompt."""
+    """A''4: Phone-tagged exemplar appears in phone mode, NOT in in-person mode."""
     clear_kernel_cache()
     phone_items = load_voice_guidance("alicia", communication_mode="phone")
+    in_person_items = load_voice_guidance("alicia", communication_mode="in_person")
     assert phone_items is not None
-    assert any("Phone Call" in item or "phone" in item.lower() for item in phone_items)
+    assert in_person_items is not None
+    phone_text = " ".join(phone_items)
+    in_person_text = " ".join(in_person_items)
+    assert "Example 11" in phone_text or "Phone Call" in phone_text
+    assert "Example 11" not in in_person_text
 
 
 def test_a_double_prime_5_bina_phone_mode_is_noop() -> None:

@@ -4,8 +4,8 @@
 **Phase identifier:** `A''` (must match the master plan exactly: `0`, `A`, `A'`, `A''`, `B`, `I`, `C`, `D`, `E`, `F`, `G`, `J.1`, `J.2`, `J.3`, `J.4`, `H`, `K`)
 **Depends on:** Phase A' (SHIPPED 2026-04-12)
 **Blocks:** Phase B, Phase I, Phase C, Phase D, Phase E (especially — Phase A'' is a BLOCKER for Phase E Alicia voice exemplar restoration), Phase F, Phase G, Phase J.1-J.4, Phase H, Phase K
-**Status:** IN PROGRESS — Step 2 execution begun
-**Last touched:** 2026-04-12 by Claude Code (Step 1 plan approved, Step 2 in progress)
+**Status:** AWAITING CLAUDE CODE REMEDIATION (Round 1 audit complete)
+**Last touched:** 2026-04-12 by Codex (Step 3 audit complete, handed to Claude Code)
 
 ---
 
@@ -27,6 +27,7 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 2 | 2026-04-12 | Project Owner | Claude Code | Authorization to begin planning granted. |
 | 3 | 2026-04-12 | Claude Code | Project Owner | Step 1 Plan written. Q1 (WI3 stubs vs full): STUBS. Q2 (INH-1): DEFER. Q3 (INH-2): INCLUDE. |
 | 4 | 2026-04-12 | Project Owner | Claude Code | Plan APPROVED: "Proceed with ultraplan." All recommendations adopted. |
+| 5 | 2026-04-12 | Codex | Claude Code | Audit Round 1 complete. FAIL gate. 1 High (live Alicia voice filtering still leaks opposite-mode exemplars), 2 Medium (Phase A'' tests pass for the wrong reason; canonical Step 1/2 record and sample artifacts are still missing despite landed commits), 1 Low (AliciaAwayError message still omits `video_call`). 104 unit tests, lint, and mypy are green; full pytest still blocked by PostgreSQL setup. |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 ---
@@ -209,34 +210,119 @@ _Claude Code fills in this subsection during and after execution. Required field
 
 ---
 
-## Step 3: Audit (Codex) — Round 1
+## Step 3: Audit (Codex) - Round 1
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - handed to Claude Code for remediation Round 1]**
 **Owner:** Codex
 **Prerequisite:** Step 2 execution complete with handshake to Codex
-**Reads:** Master plan §6, the plan and execution log above, git diff against the pre-phase commit, the actual test files, sample assembled prompts in `Docs/_phases/_samples/`, character kernel files for any phase that touches a character, the four archived character conversion audits in `Docs/_archive/` for template reference
+**Reads:** Master plan section 6, the plan and execution log above, git diff against the pre-phase commit, the actual test files, sample assembled prompts in `Docs/_phases/_samples/`, character kernel files for any phase that touches a character, the four archived character conversion audits in `Docs/_archive/` for template reference
 **Writes:** This section. Codex does NOT modify production code, does NOT commit fixes, does NOT touch the canon directly. Trivial typos go in the audit as Low-severity findings for Claude Code to apply.
 
 ### Audit content
 
-_Codex fills in this subsection. Follows the template of the four archived character conversion audits. Required fields:_
+#### Scope
 
-- **Scope:** _which files reviewed, which Phase specification consulted_
-- **Verification context:** _test suite state, lint state, type-check state_
-- **Executive assessment:** _2-3 paragraph plain-language verdict_
-- **Findings (numbered, severity-tagged):**
+Reviewed:
+
+- `Docs/IMPLEMENTATION_PLAN_v7.1.md` section 6 / the inline Phase A'' specification in this file
+- `Docs/_phases/PHASE_A_doubleprime.md`
+- A'' implementation commits `e8bdf7d`, `e1e1f7b`, and `9c5d3c1`
+- `src/starry_lyfe/context/types.py`
+- `src/starry_lyfe/context/assembler.py`
+- `src/starry_lyfe/context/constraints.py`
+- `src/starry_lyfe/context/layers.py`
+- `src/starry_lyfe/context/kernel_loader.py`
+- `Characters/Alicia/Alicia_Marin_Voice.md`
+- `tests/unit/test_assembler.py`
+- archived audit templates in `Docs/_archive/`
+
+Note: `Docs/_phase_status.md` is absent in this repo state, so the phase file itself was used as the canonical workflow record.
+
+#### Verification context
+
+Independent checks run during audit:
+
+- `.venv\Scripts\python -m pytest tests/unit/test_assembler.py -q` -> **PASS** (`52 passed`)
+- `.venv\Scripts\python -m pytest tests/unit -q` -> **PASS** (`104 passed`)
+- `.venv\Scripts\python -m ruff check src/ tests/` -> **PASS**
+- `.venv\Scripts\python -m mypy src/` -> **PASS**
+- `.venv\Scripts\python -m pytest -q` -> **ENVIRONMENTAL FAIL** (`104 passed, 14 errors`) because PostgreSQL is unreachable during integration setup at `tests/integration/conftest.py:92`
+
+Runtime probes performed:
+
+- `load_voice_guidance("alicia")`
+- `load_voice_guidance("alicia", communication_mode="phone" / "letter" / "video_call" / "in_person")`
+- `format_voice_directives("alicia", baseline, communication_mode=...)`
+- `assemble_context("alicia", ...)` across `IN_PERSON`, `PHONE`, `LETTER`, and `VIDEO_CALL`
+- `assemble_context("bina", ...)` with `IN_PERSON` vs `PHONE` as a cross-character no-op check
+- `build_constraint_block("alicia", SceneState(...))` across remote modes
+
+#### Executive assessment
+
+Phase A'' is only partially correct.
+
+The substantive Alicia-specific constraint work landed: `VIDEO_CALL` exists in the enum, `assemble_context()` now passes `scene_state.communication_mode` into Layer 5, and Alicia's Layer 7 constraint pillar really does substitute correctly for phone, letter, and video-call scenes. On the constraint side, the core Phase A'' premise is now live.
+
+But the voice-exemplar half of the phase is not actually mode-safe in runtime behavior. The implementation defaults every untagged exemplar to `"any"` and treats `in_person` as "return all items", so live prompts still mix opposite-mode exemplars. A phone-mode Alicia prompt still carries in-person examples 3 and 5, and an in-person Alicia prompt now carries the remote phone exemplar 11. The current tests stay green because they assert on helper-level behavior and item counts, not on actual assembled prompt content.
+
+The workflow record is also not audit-clean. Three A'' commits landed, but Step 1 and Step 2 are still untouched templates, there is no Claude Code -> Codex handshake in the canonical file, and there are no `PHASE_A''_*` sample prompt artifacts under `Docs/_phases/_samples/`. So even where real work exists, the canonical phase record does not describe it.
+
+#### Findings
 
 | # | Severity | Finding | Evidence | Recommended fix |
 |---:|---|---|---|---|
-| 1 | _Critical/High/Medium/Low_ | _description_ | _file:line or test name_ | _what should change_ |
+| F1 | High | Live Alicia voice filtering still leaks opposite-mode exemplars. Phone-mode prompts retain in-person examples 3 and 5, and in-person prompts now retain the remote phone exemplar 11. The phase therefore does not yet deliver communication-mode-safe Layer 5 behavior. | `src/starry_lyfe/context/kernel_loader.py:255-280` defaults untagged items to `"any"` and returns all items for `in_person`. `Characters/Alicia/Alicia_Marin_Voice.md:37` and `:77` show in-person examples 3 and 5 without any `communication_mode` tag, while only examples `11-13` at `:203`, `:220`, and `:237` are tagged. Live probes produced `counts 13 13 11 11 11`; phone-mode guidance still included `Example 3` and `Example 5`, and in-person guidance still included `Example 11`. The assembled Alicia phone prompt carried `Example 3`, `Example 5`, and `Example 11` together. | Tag Alicia's in-person exemplars explicitly, stop treating untagged legacy items as safe for all modes, and filter `in_person` to `in_person` + `any` rather than "everything". Then add live `assemble_context()` assertions proving Examples 3 and 5 are absent from phone/letter/video prompts and Example 11 is absent from in-person prompts. |
+| F2 | Medium | The Phase A'' regression bundle passes for the wrong reason. The current A'' tests mostly assert on helper-level blocks or item counts, so they miss the actual assembled-prompt leakage that F1 exposed. | `tests/unit/test_assembler.py:574-646` checks `build_constraint_block()` for A''1/A''2/A''6 and only checks `len(phone_items) < len(all_items)` for A''3. None of those tests assert that the live phone-mode Alicia prompt excludes `Example 3` / `Example 5`, and none assert that an in-person Alicia prompt excludes `Example 11`. A live probe of `assemble_context("alicia", communication_mode=PHONE)` showed both in-person examples still present while all A'' tests remained green. | Strengthen the regression bundle around live prompts, not just helper functions. Add assembled-prompt assertions for phone, letter, video-call, and in-person Alicia modes, plus at least one full-prompt cross-character no-op assertion like the Bina `IN_PERSON == PHONE` probe Codex ran. |
+| F3 | Medium | The canonical phase record is still missing the actual Step 1 and Step 2 content despite three landed A'' commits. The header and handshake log say planning/execution happened, but the phase body remains the untouched template and no A'' sample prompt artifacts exist. | `Docs/_phases/PHASE_A_doubleprime.md:149-175` still shows Step 1 as `NOT STARTED` with placeholder bullets and `Project Owner approval: _PENDING_`. `Docs/_phases/PHASE_A_doubleprime.md:181-208` still shows Step 2 as `NOT STARTED` with `_pending_` commit rows and placeholder test/sample sections. `Docs/_phases/_samples/` contains only Phase A files; there are no `PHASE_A''_*` artifacts. Meanwhile `git log --oneline -n 12` shows real A'' commits `e8bdf7d`, `e1e1f7b`, and `9c5d3c1`. | Fill Step 1 and Step 2 as the canonical record before remediation is considered audit-clean. Record the actual files touched, tests added, owner decisions for WI3 / INH-1 / INH-2, the real commit list, and sample Alicia outputs for at least in-person plus one remote mode. Add the missing Claude Code -> Codex handshake row if Claude Code still wants the workflow trail to reflect a real Step 2 handoff. |
+| F4 | Low | The Alicia away-state error message is stale after `VIDEO_CALL` was added as a canonical communication mode. | `src/starry_lyfe/context/assembler.py:77` still tells callers to set `communication_mode` to `'phone' or 'letter'`, even though `VIDEO_CALL` now exists in `src/starry_lyfe/context/types.py:15` and is handled in `src/starry_lyfe/context/constraints.py:132`. | Update the error message and add a tiny regression assertion so the allowed remote modes listed in the exception stay in sync with the enum. |
 
-- **Runtime probe summary:** _live observations from running the code_
-- **Drift against specification:** _places where the implementation diverged from the master plan_
-- **Verified resolved:** _items from the execution log that Codex independently confirmed_
-- **Adversarial scenarios constructed:** _at least 3 red-team scenarios specific to this Phase_
-- **Gate recommendation:** PASS / PASS WITH MINOR FIXES / FAIL
+#### Runtime probe summary
 
-<!-- HANDSHAKE: Codex → Claude Code | Audit Round 1 complete, ready for remediation -->
+Live observations from the audited code:
+
+- Alicia's remote constraint pillars are real and survive assembly:
+  - phone-mode prompts include `Your voice carries the regulation when the body cannot`
+  - letter-mode prompts include `Letters are weight made of paragraphs`
+  - video-call prompts include `Eye contact and posture are your somatic anchors`
+- Bina's cross-character no-op behavior holds at full assembled-prompt level: a Bina `PHONE` prompt was byte-for-byte identical to the same Bina `IN_PERSON` prompt in Codex's live probe
+- Alicia Layer 5 does not yet honor mode boundaries:
+  - `load_voice_guidance("alicia", communication_mode="phone")` returned 11 items and still contained `Example 3` and `Example 5`
+  - `load_voice_guidance("alicia", communication_mode="in_person")` returned all 13 items and still contained `Example 11`
+  - the assembled Alicia phone prompt still carried `Example 3`, `Example 5`, and `Example 11` together in `<VOICE_DIRECTIVES>`
+
+#### Drift against specification
+
+- **WI1 / WI4:** substantially implemented; Alicia's constraint pillar really is mode-conditional and `VIDEO_CALL` is wired through the enum and assembler path
+- **WI2:** incomplete in live behavior; selector does not yet produce clean mode-separated Alicia prompts
+- **WI2 spec detail:** filter-by-both-`mode`-and-`communication_mode` is still unimplemented in code; there is no `mode` tag parsing in `kernel_loader.py`, and Alicia's file currently carries only `communication_mode` tags
+- **WI3:** stub authoring landed, which matches the Project Owner handshake choice, but that choice is not recorded in Step 1 or Step 2 proper
+- **WI5:** cross-character no-op behavior is real for Bina in live probes, but the checked-in regression tests do not assert it at assembled-prompt level
+- **Workflow contract:** Step 1 and Step 2 canonical sections are still empty despite landed execution commits
+
+#### Verified resolved
+
+Independently confirmed closed:
+
+- `CommunicationMode.VIDEO_CALL` exists and round-trips through `SceneState`
+- `assemble_context()` now passes `scene_state.communication_mode` into `format_voice_directives()`
+- Alicia's Layer 7 constraint block substitutes correctly for phone, letter, and video-call scenes
+- Alicia away-state `IN_PERSON` assembly is still blocked, while remote assembly is allowed
+- Bina remains a communication-mode no-op at full prompt level in the live probe
+
+#### Adversarial scenarios constructed
+
+1. **Opposite-mode exemplar leak check:** compare Alicia `PHONE` and `IN_PERSON` prompts and scan for `Example 3`, `Example 5`, and `Example 11`. This exposed both directions of leakage.
+2. **Remote-mode split check:** run Alicia through `PHONE`, `LETTER`, and `VIDEO_CALL` and inspect the live `<CONSTRAINTS>` block for the mode-specific substituted pillar phrases. This confirmed the constraint side is working even while Layer 5 is not.
+3. **Cross-character no-op check:** build Bina `IN_PERSON` and `PHONE` prompts with identical scene data and compare full prompt equality. This confirmed the phase-specific leakage is Alicia-local, not a global side effect.
+4. **Spec-trace artifact check:** compare the A'' commit history with `PHASE_A_doubleprime.md` Step 1 / Step 2 and with `Docs/_phases/_samples/`. This exposed the missing canonical execution record and missing sample outputs.
+
+#### Gate recommendation
+
+**FAIL**
+
+Phase A'' should not proceed to QA yet. The Alicia constraint substitution work is real, but the live voice layer still mixes in-person and remote exemplars across modes, which is the core runtime defect this phase exists to prevent. The checked-in tests do not catch that defect, and the phase file still lacks the canonical Step 1 / Step 2 record and required sample artifacts.
+
+<!-- HANDSHAKE: Codex -> Claude Code | Audit Round 1 complete. FAIL gate. F1 High: Alicia voice filtering still leaks opposite-mode exemplars in live prompts. F2 Medium: A'' tests pass for the wrong reason. F3 Medium: Step 1/2 canonical record and sample artifacts are still missing. F4 Low: AliciaAwayError message omits video_call. Ready for remediation Round 1. -->
 
 ---
 

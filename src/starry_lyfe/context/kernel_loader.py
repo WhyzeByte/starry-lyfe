@@ -271,7 +271,7 @@ def load_voice_guidance(
     if raw is None:
         return None
 
-    if communication_mode and communication_mode != "in_person":
+    if communication_mode:
         filtered = [
             text for text, mode in raw
             if mode in (communication_mode, "any")
