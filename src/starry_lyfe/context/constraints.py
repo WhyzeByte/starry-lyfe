@@ -96,9 +96,8 @@ def build_constraint_block(
         for constraint in char_constraints:
             sections.append(constraint)
 
-    # Talk-to-Each-Other mandate: only when 2+ women are actually present.
-    # Does NOT fire for Adelia-Whyze solo scenes.
-    women_present = [c for c in scene_state.present_characters if c != "whyze"]
+    canonical_women = {"adelia", "bina", "reina", "alicia"}
+    women_present = [c for c in scene_state.present_characters if c in canonical_women]
     if len(women_present) >= 2:
         sections.append(
             "=== SCENE CONSTRAINT: TALK-TO-EACH-OTHER MANDATE ===\n"

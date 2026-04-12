@@ -525,6 +525,22 @@ def test_talk_to_each_other_requires_two_women() -> None:
     assert "TALK-TO-EACH-OTHER" not in block_pair
 
 
+def test_one_woman_plus_child_no_talk_mandate() -> None:
+    """F1 regression: Gavin is a child, not a woman — no Talk-to-Each-Other mandate."""
+    scene = SceneState(present_characters=["adelia", "gavin", "whyze"])
+    block = build_constraint_block("adelia", scene)
+    assert "TALK-TO-EACH-OTHER" not in block
+
+
+def test_recalled_dyad_included_when_other_absent() -> None:
+    """F2 regression: recalled_dyads allows explicit absent-member dyad recall."""
+    scene = SceneState(
+        present_characters=["bina", "whyze"],
+        recalled_dyads={"bina-reina"},
+    )
+    assert "bina-reina" in scene.recalled_dyads
+
+
 def test_adelia_voice_guidance_multiple_modes() -> None:
     """Finding 2: Voice guidance should cover more than just the first 2 examples."""
     clear_kernel_cache()

@@ -24,6 +24,7 @@ class SceneState:
     alicia_home: bool = False
     scene_description: str = ""
     communication_mode: CommunicationMode = CommunicationMode.IN_PERSON
+    recalled_dyads: set[str] = field(default_factory=set)
 
     def __post_init__(self) -> None:
         if not isinstance(self.communication_mode, CommunicationMode):

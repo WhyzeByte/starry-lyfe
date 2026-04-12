@@ -214,6 +214,7 @@ def format_scene_blocks(
     present_characters: list[str],
     scene_description: str = "",
     budget: int = DEFAULT_BUDGETS.scene,
+    recalled_dyads: set[str] | None = None,
 ) -> LayerContent:
     """Layer 6: Format relationship state, open loops, and current scene activity."""
     sections: list[str] = []
@@ -230,11 +231,12 @@ def format_scene_blocks(
             f"conflict={wd.conflict:.2f}, tension={wd.unresolved_tension:.2f}"
         )
 
-    # Internal dyad states: only include if the OTHER member is actually present.
-    # This prevents offstage women from leaking into the focal character's prompt.
+    recalled = recalled_dyads or set()
     for iwd in dyads_internal:
         other = iwd.member_b if iwd.member_a == character_id else iwd.member_a
-        if other in present_characters:
+        dyad_key = f"{iwd.member_a}-{iwd.member_b}"
+        dyad_key_rev = f"{iwd.member_b}-{iwd.member_a}"
+        if other in present_characters or dyad_key in recalled or dyad_key_rev in recalled:
             sections.append(
                 f"Relationship {iwd.member_a}-{iwd.member_b} ({iwd.interlock or 'n/a'}): "
                 f"trust={iwd.trust:.2f}, intimacy={iwd.intimacy:.2f}, "

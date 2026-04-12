@@ -102,6 +102,7 @@ async def assemble_context(
         memories.open_loops,
         scene_state.present_characters,
         scene_state.scene_description,
+        recalled_dyads=scene_state.recalled_dyads,
     )
 
     # Build Layer 7: terminal constraints (character-specific)
