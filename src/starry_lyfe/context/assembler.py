@@ -115,6 +115,36 @@ async def assemble_context(
         recalled_dyads=scene_state.recalled_dyads,
     )
 
+    from .soul_cards import find_activated_cards, format_soul_cards
+
+    activated = find_activated_cards(
+        character_id,
+        scene_state=scene_state,
+        communication_mode=str(scene_state.communication_mode),
+    )
+    pair_cards = [c for c in activated if c.card_type == "pair"]
+    knowledge_cards = [c for c in activated if c.card_type == "knowledge"]
+
+    if pair_cards:
+        pair_text = format_soul_cards(pair_cards, 700)
+        if pair_text:
+            layer_1 = LayerContent(
+                name="persona_kernel",
+                text=f"{layer_1.text}\n\n{pair_text}",
+                estimated_tokens=estimate_tokens(f"{layer_1.text}\n\n{pair_text}"),
+                layer_number=1,
+            )
+
+    if knowledge_cards:
+        knowledge_text = format_soul_cards(knowledge_cards, 500)
+        if knowledge_text:
+            layer_6 = LayerContent(
+                name="scene_blocks",
+                text=f"{layer_6.text}\n\n{knowledge_text}",
+                estimated_tokens=estimate_tokens(f"{layer_6.text}\n\n{knowledge_text}"),
+                layer_number=6,
+            )
+
     # Build Layer 7: terminal constraints (character-specific)
     # The non-echo instruction is embedded WITHIN the constraint block
     # so nothing follows Layer 7 in the final prompt.

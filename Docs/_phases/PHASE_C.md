@@ -4,8 +4,8 @@
 **Phase identifier:** `C` (must match the master plan exactly: `0`, `A`, `A'`, `A''`, `B`, `I`, `C`, `D`, `E`, `F`, `G`, `J.1`, `J.2`, `J.3`, `J.4`, `H`, `K`)
 **Depends on:** Phase A/A'/A''/B (all SHIPPED 2026-04-12)
 **Blocks:** Phase D, E, F, G, H, J.1-J.4, K
-**Status:** IN PROGRESS — Step 2 execution begun
-**Last touched:** 2026-04-12 by Claude Code (Step 1 plan approved, Step 2 in progress)
+**Status:** IN PROGRESS — Round 1 audit complete, awaiting remediation
+**Last touched:** 2026-04-12 by Codex (Round 1 audit recorded)
 
 ---
 
@@ -26,6 +26,7 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 1 | 2026-04-12 | Claude AI | Project Owner | Phase C created after Phase B shipped. Two URGENT preconditions: INH-2 + INH-8. |
 | 2 | 2026-04-12 | Project Owner | Claude Code | Authorization to begin. "Execute Ultraplan." All recommendations adopted. |
 | 3 | 2026-04-12 | Claude Code | — | PRE-2 DONE: AGENTS.md Path C restrictive amendment committed (d6b20cc). PRE-1 DONE: INH-2 master plan audit — all VERIFIED RESOLVED claims live-probed and confirmed accurate (WI1 Gavin fix live, WI2 recalled_dyads live, WI3 Vision §5 clean, false positive in Appendix A changelog only). |
+| 4 | 2026-04-12 | Codex | Claude Code | Round 1 audit recorded from the landed Phase C code surface because Step 2 was never canonically filled. Gate recommendation: FAIL. Findings: F1 High (soul cards are still excluded from the live Layer 1 / Layer 6 assembly path), F2 Medium (Phase C tests pass for the wrong reason and the placeholder validation contract is not actually enforced), F3 Medium (the canonical Phase C record is still execution-incomplete: Step 1 remains partially templated, Step 2 is untouched, and there are no `PHASE_C_*` sample artifacts), F4 Low (the declared `scene_type` activation schema is not implemented). |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 ---
@@ -249,7 +250,7 @@ _Claude Code fills in this subsection during and after execution. Required field
 
 ## Step 3: Audit (Codex) — Round 1
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - handed to Claude Code for remediation Round 1]**
 **Owner:** Codex
 **Prerequisite:** Step 2 execution complete with handshake to Codex
 **Reads:** Master plan §3, the plan and execution log above, git diff against the pre-phase commit, the actual test files, sample assembled prompts in `Docs/_phases/_samples/`, character kernel files for any phase that touches a character, the four archived character conversion audits in `Docs/_archive/` for template reference
@@ -257,24 +258,104 @@ _Claude Code fills in this subsection during and after execution. Required field
 
 ### Audit content
 
-_Codex fills in this subsection. Follows the template of the four archived character conversion audits. Required fields:_
+#### Scope
 
-- **Scope:** _which files reviewed, which Phase specification consulted_
-- **Verification context:** _test suite state, lint state, type-check state_
-- **Executive assessment:** _2-3 paragraph plain-language verdict_
-- **Findings (numbered, severity-tagged):**
+Reviewed:
+
+- `Docs/IMPLEMENTATION_PLAN_v7.1.md` Phase C and the inline Phase C specification in this file
+- `Docs/_phases/PHASE_C.md` header, Handshake Log, Step 1, Step 2, and acceptance-criteria carry-forward state
+- landed Phase C commit `59da789` and precondition commit `d6b20cc`
+- `src/starry_lyfe/context/soul_cards.py`
+- `src/starry_lyfe/context/layers.py`
+- `src/starry_lyfe/context/assembler.py`
+- `src/starry_lyfe/context/types.py`
+- all 15 placeholder files under `src/starry_lyfe/canon/soul_cards/`
+- `tests/unit/test_soul_cards.py`
+- `Docs/_phases/_samples/` for checked-in `PHASE_C_*` artifacts
+
+Because Step 2 was never populated canonically, this audit used the landed commit surface and live runtime probes as the execution record.
+
+#### Verification context
+
+Independent checks run during audit:
+
+- `.venv\Scripts\python -m pytest tests/unit/test_soul_cards.py -q` -> **PASS WITH ANOMALY** (`11 passed, 2 xpassed`)
+- `.venv\Scripts\python -m pytest tests/unit -q` -> **PASS WITH ANOMALY** (`123 passed, 2 xpassed`)
+- `.venv\Scripts\python -m ruff check src/ tests/` -> **PASS**
+- `.venv\Scripts\python -m mypy src/` -> **PASS**
+- `.venv\Scripts\python -m pytest -q` -> **ENVIRONMENTAL FAIL** (`123 passed, 2 xpassed, 14 errors`) because PostgreSQL is unreachable during integration setup at `tests/integration/conftest.py:92`
+
+Runtime probes performed:
+
+- commit-surface diff check for claimed Layer 1 / Layer 6 integration
+- live `assemble_context(...)` probe with the canonical unit-test style stub bundle patched into `retrieve_memories`
+- crash-on-call probe that patched `starry_lyfe.context.soul_cards.find_activated_cards` and `load_all_soul_cards` to raise if reached from live assembly
+- artifact presence check for `Docs/_phases/_samples/PHASE_C_*`
+
+#### Executive assessment
+
+Phase C has real scaffolding: the new soul-card loader exists, the canonical directory contains all 15 placeholder files, frontmatter parsing works, and the helper-level activation/formatting code is coherent for the currently used activation tags. Static checks are clean, and the placeholder formatter is safely inert.
+
+The core phase objective is still unmet. The live assembly path never calls the soul-card machinery, so pair cards do not reach Layer 1 and knowledge cards do not reach Layer 6. The green test file did not catch this because it never touches `assemble_context()` and the placeholder-validation tests are vacuous enough to report `XPASS` instead of failure. The canonical phase record is also materially incomplete: Step 2 is still an untouched template and there are no Phase C sample prompt artifacts.
+
+Gate recommendation: **FAIL**.
+
+#### Findings
 
 | # | Severity | Finding | Evidence | Recommended fix |
 |---:|---|---|---|---|
-| 1 | _Critical/High/Medium/Low_ | _description_ | _file:line or test name_ | _what should change_ |
+| F1 | High | Soul cards are still excluded from the live runtime prompt path. Phase C's core Layer 1 / Layer 6 integration work item did not land. | The spec requires pair cards in Layer 1 and knowledge cards in Layer 6 at `Docs/_phases/PHASE_C.md:99-103`. But `src/starry_lyfe/context/layers.py:42-53` builds Layer 1 only from `load_kernel()`, `src/starry_lyfe/context/layers.py:210-255` builds Layer 6 only from scene state / dyads / open loops, and `src/starry_lyfe/context/assembler.py:93-116` wires only those existing formatters. The landed Phase C diff also never touched `layers.py` or `assembler.py`; `git diff --stat d6b20cc..59da789 -- ...` shows only `src/starry_lyfe/context/soul_cards.py`, the 15 card files, and `tests/unit/test_soul_cards.py`. In a live probe, `assemble_context()` still succeeded after patching `starry_lyfe.context.soul_cards.find_activated_cards` and `load_all_soul_cards` to raise on use, printing `assembled_ok`, `contains_pair_header False`, `contains_placeholder False`. | Wire pair-card activation/formatting into Layer 1 and knowledge-card activation/formatting into Layer 6 on the live `assemble_context()` path. Add end-to-end regression tests that patch in non-placeholder cards and assert their bodies appear in the correct wrapped layers. |
+| F2 | Medium | The Phase C test suite passes for the wrong reason and does not enforce the placeholder-validation contract described by the spec. | `tests/unit/test_soul_cards.py:114-130` marks the content-validation tests `xfail`, but both tests skip every placeholder via `and not card.is_placeholder`, so with the current all-placeholder corpus they make no assertions and report `XPASS` instead of failing. The targeted run returned `11 passed, 2 xpassed`. The Phase C spec explicitly says placeholders should fail validation until human prose lands at `Docs/_phases/PHASE_C.md:101-103`, and the spec's named `test_knowledge_cards_within_500_token_budget` case at `Docs/_phases/PHASE_C.md:107-113` is absent entirely. The file also contains no `assemble_context()` or Layer 1 / Layer 6 integration coverage anywhere in `tests/unit/test_soul_cards.py:1-130`. | Make the placeholder-authoring state explicit and trustworthy: either use strict `xfail` or a separate failing/skip-gated validation path that actually signals "content not authored yet," add the missing knowledge-card budget test, and add live assembly-path coverage so the integration cannot be omitted while the suite stays green. |
+| F3 | Medium | The canonical Phase C record is execution-incomplete. Step 1 still contains template residue, Step 2 is untouched, and there are no Phase C sample prompt artifacts. | The header claims execution began at `Docs/_phases/PHASE_C.md:7-8`, but the Handshake Log stops before any ready-for-audit handoff at `:26-30`. Step 1 still contains template residue at `:194-213`, Step 2 remains `NOT STARTED` at `:217-246`, and the sample-artifact check found no `PHASE_C_*` files under `Docs/_phases/_samples/`. That leaves AC-PRE-3 (`Step 1 and Step 2 are written during execution, not backfilled`) unproven at `Docs/_phases/PHASE_C.md:166-169`. | Fill Step 2 truthfully from the landed work, remove the leftover Step 1 template scaffolding, add the proper handshake state, and generate real `PHASE_C_assembled_*` prompt artifacts after the runtime integration actually exists. |
+| F4 | Low | The declared `scene_type` activation schema is not implemented in the runtime model. | `Docs/_phases/PHASE_C.md:95` declares `scene_type: [...]` as a supported activation type, but `src/starry_lyfe/context/soul_cards.py:90-110` only handles `always`, `communication_mode`, `with_character`, and `scene_keyword`. `src/starry_lyfe/context/types.py:22-28` also has no `scene_type` field on `SceneState`, so there is no state surface that could satisfy the declared schema. | Either implement `scene_type` end to end or remove it from the canonical Phase C schema until a later phase introduces it. |
 
-- **Runtime probe summary:** _live observations from running the code_
-- **Drift against specification:** _places where the implementation diverged from the master plan_
-- **Verified resolved:** _items from the execution log that Codex independently confirmed_
-- **Adversarial scenarios constructed:** _at least 3 red-team scenarios specific to this Phase_
-- **Gate recommendation:** PASS / PASS WITH MINOR FIXES / FAIL
+#### Runtime probe summary
 
-<!-- HANDSHAKE: Codex → Claude Code | Audit Round 1 complete, ready for remediation -->
+- `load_all_soul_cards()` currently loads **15** cards successfully: **4 pair** and **11 knowledge**, all placeholders.
+- The live-assembly crash-on-call probe showed the core integration gap directly:
+  - patched `starry_lyfe.context.soul_cards.find_activated_cards` and `load_all_soul_cards` to raise if called
+  - `assemble_context()` still completed successfully
+  - probe output: `assembled_ok`, `contains_pair_header False`, `contains_placeholder False`
+- The targeted Phase C suite is green but anomalous:
+  - `tests/unit/test_soul_cards.py` -> `11 passed, 2 xpassed`
+  - the two `XPASS` results are the placeholder validation tests that are supposed to represent "not authored yet"
+- No `PHASE_C_*` sample prompt artifacts are present under `Docs/_phases/_samples/`
+
+#### Drift against specification
+
+- Work Item 2 (Layer 1 / Layer 6 runtime integration) is absent from the live code path.
+- Work Item 5 is only partially implemented: the named `test_knowledge_cards_within_500_token_budget` case is missing, and there is no live assembly-path test coverage.
+- The placeholder validation state does not match the stated contract that placeholders fail validation until the Project Owner authors real prose.
+- The canonical Step 2 execution record and Phase C sample prompt artifacts are missing, so the phase file does not currently satisfy its own execution-record requirements.
+
+#### Verified resolved
+
+- `src/starry_lyfe/context/soul_cards.py` exists and correctly parses YAML frontmatter plus markdown body.
+- The canonical soul-card directory exists with the expected **15** placeholder files.
+- Helper-level activation works for the currently used activation types (`always`, `scene_keyword`, `communication_mode`) in `tests/unit/test_soul_cards.py`.
+- Placeholder bodies are inert in `format_soul_cards()` and do not leak placeholder text into the prompt surface.
+
+#### Adversarial scenarios constructed
+
+1. **Crash-on-call integration probe:** patched the soul-card activation functions to raise if the live assembler touched them. `assemble_context()` still succeeded, proving the runtime path never consulted soul cards.
+2. **Placeholder validation trap:** ran the dedicated Phase C suite expecting a "not authored yet" signal. Instead the validation tests came back `XPASS`, showing the suite is green for a vacuous reason.
+3. **Spec-to-runtime schema mismatch check:** compared the declared activation schema against the actual runtime surface and confirmed that `scene_type` has no implementation path in either `SceneState` or `find_activated_cards()`.
+4. **Artifact existence probe:** scanned `Docs/_phases/_samples/` for `PHASE_C_*` outputs and found none, despite the phase header claiming execution is underway.
+
+#### Recommended remediation order
+
+1. Fix F1 first. Until pair cards and knowledge cards actually reach Layers 1 and 6, Phase C has not delivered its core runtime value.
+2. Fix F2 next. Tighten the tests so the missing integration and placeholder state cannot hide behind a green suite.
+3. Fix F3 after the code/test corrections. The canonical phase record needs a truthful Step 2 execution log and real sample artifacts before QA can review the phase.
+4. Fix or explicitly defer F4 last. It is lower-risk because no current placeholder card uses `scene_type`, but the schema should not overclaim.
+
+#### Gate recommendation
+
+**FAIL**
+
+Phase C should not proceed to QA. The loader and placeholder corpus exist, but the main runtime integration work did not land, the test suite is giving a false sense of safety, and the canonical phase record is not execution-complete.
+
+<!-- HANDSHAKE: Codex -> Claude Code | Audit Round 1 complete. FAIL gate. F1 High: soul cards are still excluded from the live Layer 1 / Layer 6 assembly path. F2 Medium: Phase C tests pass for the wrong reason and the placeholder validation contract is not actually enforced. F3 Medium: the canonical Phase C record is still execution-incomplete with no Step 2 log or PHASE_C sample artifacts. F4 Low: the declared scene_type activation schema is not implemented. Ready for remediation Round 1. -->
 
 ---
 
