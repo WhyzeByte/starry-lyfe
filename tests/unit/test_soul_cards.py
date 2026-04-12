@@ -1,12 +1,12 @@
-"""Phase C tests for soul card infrastructure.
-
-Infrastructure tests (loader, activation, formatting) pass on placeholder
-content. Content validation tests (required_concepts, budget compliance)
-are marked xfail until the Project Owner authors real card prose.
-"""
+"""Phase C tests for soul card infrastructure."""
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
+from starry_lyfe.context import assembler as assembler_module
+from starry_lyfe.context.assembler import assemble_context
+from starry_lyfe.context.budgets import DEFAULT_BUDGETS, resolve_kernel_budget
 from starry_lyfe.context.soul_cards import (
     SoulCard,
     find_activated_cards,
@@ -14,6 +14,46 @@ from starry_lyfe.context.soul_cards import (
     load_all_soul_cards,
     load_soul_card,
 )
+from starry_lyfe.context.types import CommunicationMode, SceneState
+
+
+class _StubEmbeddingService:
+    async def embed(self, text: str) -> list[float]:
+        return [0.0] * 768
+
+    async def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        return [[0.0] * 768 for _ in texts]
+
+
+def _make_bina_bundle() -> SimpleNamespace:
+    baseline = SimpleNamespace(
+        full_name="Bina Malek",
+        epithet="The Sentinel",
+        mbti="ISFJ-A",
+        dominant_function="Si",
+        pair_name="circuit",
+        heritage="Assyrian-Iranian Canadian",
+        profession="Mechanic",
+        voice_params={
+            "response_length_range": "2-4 sentences",
+            "dominant_function_descriptor": "Si-dominant declarative steadiness",
+        },
+    )
+    return SimpleNamespace(
+        canon_facts=[],
+        character_baseline=baseline,
+        dyad_states_whyze=[],
+        dyad_states_internal=[],
+        episodic_memories=[],
+        open_loops=[],
+        somatic_state=SimpleNamespace(
+            character_id="bina",
+            fatigue=0.10,
+            stress_residue=0.10,
+            injury_residue=0.00,
+            active_protocols=[],
+        ),
+    )
 
 
 class TestSoulCardLoader:
@@ -139,27 +179,53 @@ class TestContentValidation:
 class TestAssemblyIntegration:
     """F1 regression: soul cards must be wired into the live assembly path."""
 
-    def test_pair_card_body_appears_in_assembled_layer_1(self) -> None:
-        """A non-placeholder pair card's body reaches Layer 1."""
-        from unittest.mock import patch
-
-        real_card = SoulCard(
+    async def test_soul_cards_reach_assembled_layers_within_layer_budgets(
+        self,
+        monkeypatch,
+    ) -> None:
+        """Non-placeholder soul cards reach live assembly without breaking layer budgets."""
+        pair_card = SoulCard(
             character="bina",
             card_type="pair",
             source="test",
             budget_tokens=700,
             activation={"always": True},
-            body="Bina and Whyze run the Circuit Pair on total division of operational domains.",
+            body=("Circuit Pair " + ("pairword " * 1200)).strip(),
+        )
+        knowledge_card = SoulCard(
+            character="bina",
+            card_type="knowledge",
+            source="test",
+            budget_tokens=500,
+            activation={"scene_keyword": ["kitchen"]},
+            body=("knowledgeword " * 900).strip(),
         )
 
-        def mock_find(character_id: str, **kwargs: object) -> list[SoulCard]:
-            if character_id == "bina":
-                return [real_card]
-            return []
+        async def stub_retrieve_memories(*args: object, **kwargs: object) -> SimpleNamespace:
+            return _make_bina_bundle()
 
-        with patch("starry_lyfe.context.soul_cards.find_activated_cards", side_effect=mock_find):
-            from starry_lyfe.context.soul_cards import format_soul_cards
+        monkeypatch.setattr(assembler_module, "retrieve_memories", stub_retrieve_memories)
+        monkeypatch.setattr(
+            "starry_lyfe.context.soul_cards.find_activated_cards",
+            lambda *args, **kwargs: [pair_card, knowledge_card],
+        )
 
-            pair_text = format_soul_cards([real_card], 700)
-            assert "Circuit Pair" in pair_text
-            assert not real_card.is_placeholder
+        prompt = await assemble_context(
+            character_id="bina",
+            scene_context="Bina is in the kitchen after the shop closes.",
+            scene_state=SceneState(
+                present_characters=["bina", "whyze"],
+                scene_description="Kitchen after the shop closes.",
+                communication_mode=CommunicationMode.IN_PERSON,
+            ),
+            session=None,
+            embedding_service=_StubEmbeddingService(),
+        )
+
+        layer_1 = next(layer for layer in prompt.layers if layer.layer_number == 1)
+        layer_6 = next(layer for layer in prompt.layers if layer.layer_number == 6)
+
+        assert "pairword" in layer_1.text
+        assert "knowledgeword" in layer_6.text
+        assert layer_1.estimated_tokens <= resolve_kernel_budget("bina")
+        assert layer_6.estimated_tokens <= DEFAULT_BUDGETS.scene

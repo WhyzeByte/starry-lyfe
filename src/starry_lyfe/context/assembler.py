@@ -92,7 +92,31 @@ async def assemble_context(
 
     profile = get_scene_profile(scene_profile)
     kernel_budget = resolve_kernel_budget(character_id, base_budget=profile.kernel)
-    layer_1 = format_kernel(character_id, budget=kernel_budget)
+
+    from .soul_cards import find_activated_cards, format_soul_cards
+
+    activated = find_activated_cards(
+        character_id,
+        scene_state=scene_state,
+        communication_mode=str(scene_state.communication_mode),
+    )
+    pair_cards = [c for c in activated if c.card_type == "pair"]
+    knowledge_cards = [c for c in activated if c.card_type == "knowledge"]
+
+    pair_text = format_soul_cards(pair_cards, min(700, kernel_budget)) if pair_cards else ""
+    knowledge_text = (
+        format_soul_cards(knowledge_cards, min(500, profile.scene))
+        if knowledge_cards
+        else ""
+    )
+
+    reserved_kernel_tokens = estimate_tokens(pair_text) if pair_text else 0
+    reserved_scene_tokens = estimate_tokens(knowledge_text) if knowledge_text else 0
+
+    layer_1 = format_kernel(
+        character_id,
+        budget=max(1, kernel_budget - reserved_kernel_tokens),
+    )
     layer_2 = format_canon_facts(memories.canon_facts)
     layer_3 = format_memory_fragments(memories.episodic_memories)
     layer_4 = format_sensory_grounding(
@@ -111,39 +135,27 @@ async def assemble_context(
         memories.open_loops,
         scene_state.present_characters,
         scene_state.scene_description,
-        budget=profile.scene,
+        budget=max(1, profile.scene - reserved_scene_tokens),
         recalled_dyads=scene_state.recalled_dyads,
     )
 
-    from .soul_cards import find_activated_cards, format_soul_cards
+    if pair_text:
+        combined_layer_1 = f"{layer_1.text}\n\n{pair_text}"
+        layer_1 = LayerContent(
+            name="persona_kernel",
+            text=combined_layer_1,
+            estimated_tokens=estimate_tokens(combined_layer_1),
+            layer_number=1,
+        )
 
-    activated = find_activated_cards(
-        character_id,
-        scene_state=scene_state,
-        communication_mode=str(scene_state.communication_mode),
-    )
-    pair_cards = [c for c in activated if c.card_type == "pair"]
-    knowledge_cards = [c for c in activated if c.card_type == "knowledge"]
-
-    if pair_cards:
-        pair_text = format_soul_cards(pair_cards, 700)
-        if pair_text:
-            layer_1 = LayerContent(
-                name="persona_kernel",
-                text=f"{layer_1.text}\n\n{pair_text}",
-                estimated_tokens=estimate_tokens(f"{layer_1.text}\n\n{pair_text}"),
-                layer_number=1,
-            )
-
-    if knowledge_cards:
-        knowledge_text = format_soul_cards(knowledge_cards, 500)
-        if knowledge_text:
-            layer_6 = LayerContent(
-                name="scene_blocks",
-                text=f"{layer_6.text}\n\n{knowledge_text}",
-                estimated_tokens=estimate_tokens(f"{layer_6.text}\n\n{knowledge_text}"),
-                layer_number=6,
-            )
+    if knowledge_text:
+        combined_layer_6 = f"{layer_6.text}\n\n{knowledge_text}"
+        layer_6 = LayerContent(
+            name="scene_blocks",
+            text=combined_layer_6,
+            estimated_tokens=estimate_tokens(combined_layer_6),
+            layer_number=6,
+        )
 
     # Build Layer 7: terminal constraints (character-specific)
     # The non-echo instruction is embedded WITHIN the constraint block

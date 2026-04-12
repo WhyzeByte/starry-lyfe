@@ -4,8 +4,8 @@
 **Phase identifier:** `C` (must match the master plan exactly: `0`, `A`, `A'`, `A''`, `B`, `I`, `C`, `D`, `E`, `F`, `G`, `J.1`, `J.2`, `J.3`, `J.4`, `H`, `K`)
 **Depends on:** Phase A/A'/A''/B (all SHIPPED 2026-04-12)
 **Blocks:** Phase D, E, F, G, H, J.1-J.4, K
-**Status:** IN PROGRESS — Round 1 audit complete, awaiting remediation
-**Last touched:** 2026-04-12 by Codex (Round 1 audit recorded)
+**Status:** READY FOR CLAUDE AI QA under Project Owner override
+**Last touched:** 2026-04-12 by Codex (direct remediation recorded)
 
 ---
 
@@ -27,6 +27,8 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 2 | 2026-04-12 | Project Owner | Claude Code | Authorization to begin. "Execute Ultraplan." All recommendations adopted. |
 | 3 | 2026-04-12 | Claude Code | — | PRE-2 DONE: AGENTS.md Path C restrictive amendment committed (d6b20cc). PRE-1 DONE: INH-2 master plan audit — all VERIFIED RESOLVED claims live-probed and confirmed accurate (WI1 Gavin fix live, WI2 recalled_dyads live, WI3 Vision §5 clean, false positive in Appendix A changelog only). |
 | 4 | 2026-04-12 | Codex | Claude Code | Round 1 audit recorded from the landed Phase C code surface because Step 2 was never canonically filled. Gate recommendation: FAIL. Findings: F1 High (soul cards are still excluded from the live Layer 1 / Layer 6 assembly path), F2 Medium (Phase C tests pass for the wrong reason and the placeholder validation contract is not actually enforced), F3 Medium (the canonical Phase C record is still execution-incomplete: Step 1 remains partially templated, Step 2 is untouched, and there are no `PHASE_C_*` sample artifacts), F4 Low (the declared `scene_type` activation schema is not implemented). |
+| 5 | 2026-04-12 | Codex | Claude Code | Round 2 re-audit after remediation commit `1e12a95`. Gate recommendation: FAIL. Verified fixed: F1 live Layer 1 / Layer 6 integration now works, and the XPASS anomaly from F2 is gone. Remaining findings: R2-F1 Medium (new budget overrun risk introduced by appending soul-card text after kernel compilation; live probe produced `layer1_tokens=7266` against a `7200` budget), R2-F2 Medium (the canonical Step 4 remediation record and `PHASE_C_*` sample artifacts are still missing), R2-F3 Low (the new F1 regression test still does not exercise `assemble_context()`). |
+| 6 | 2026-04-12 | Codex | Claude AI | Direct remediation complete under Project Owner override. R2-F1 fixed via reserved Layer 1 / Layer 6 soul-card budget in `assemble_context()` plus a live assembler-path budget regression. R2-F2 fixed via canonical Step 1 / Step 2 / Step 4 backfill and four `PHASE_C_assembled_*_2026-04-12.txt` sample artifacts. R2-F3 fixed by replacing the helper-only regression with a real `assemble_context()` test. Ready for Step 5 QA. |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 ---
@@ -182,42 +184,54 @@ required_concepts:
 
 ### Plan content
 
-**Scope:** Infrastructure + placeholders. Per AGENTS.md Phase C customization, Claude Code builds the soul card loader, schema, directory structure, and placeholder files. Validation tests for content will fail until PO authors real card prose. Soul card authoring is NOT part of the four-agent cycle.
+_Backfilled by Codex on 2026-04-12 at Project Owner request from the approved pre-execution state and the landed Phase C commit surface. This records the actual plan that was approved before execution began._
 
-**Files:** `src/starry_lyfe/context/soul_cards.py` (new), `src/starry_lyfe/canon/soul_cards/{pair,knowledge}/` (15 placeholder files), `src/starry_lyfe/context/layers.py` + `assembler.py` (Layer 1/6 integration), `tests/unit/test_soul_cards.py` (new).
-
-**Commits:** ~4 (loader+schema, placeholders, integration, tests+docs).
-
-### Plan approval
-
-**Project Owner approval:** APPROVED on 2026-04-12 — "Execute Ultraplan."
-
-_Claude Code fills in this subsection. Required fields:_
-
-- **Files Claude Code intends to create or modify:**
-  - _list with full paths_
-- **Test cases Claude Code intends to add:**
-  - _list with test names matching the master plan_
+- **Files Claude Code intended to create or modify:**
+  - `src/starry_lyfe/context/soul_cards.py`
+  - `src/starry_lyfe/canon/soul_cards/pair/*.md`
+  - `src/starry_lyfe/canon/soul_cards/knowledge/*.md`
+  - `src/starry_lyfe/context/assembler.py`
+  - `src/starry_lyfe/context/layers.py`
+  - `tests/unit/test_soul_cards.py`
+  - `Docs/_phases/PHASE_C.md`
+- **Test cases Claude Code intended to add:**
+  - `test_soul_card_loader_parses_frontmatter`
+  - `test_pair_cards_within_700_token_budget`
+  - `test_knowledge_cards_within_500_token_budget`
+  - `test_required_concepts_present_in_each_card`
+  - `test_pair_card_always_activated_for_focal_character`
+  - `test_knowledge_card_scene_activation`
+  - `test_alicia_remote_card_activates_on_communication_mode_phone`
 - **Acceptance criteria (mirror the master plan exit criteria):**
-  - _list, marked as PENDING during planning_
+  - `AC-PRE-1` PENDING: log the INH-2 audit first in Step 2 before soul-card code
+  - `AC-PRE-2` PENDING: land the AGENTS.md Path C amendment before first soul-card code commit
+  - `AC-PRE-3` PENDING: keep Step 1 and Step 2 current during execution rather than backfilling later
+  - `AC-PRE-4` PENDING: keep Phase C on the standard cycle with zero Path C uses
+  - Work Item 1 PENDING: loader module and schema live
+  - Work Item 2 PENDING: pair cards in Layer 1 and knowledge cards in Layer 6 on the live assembly path
+  - Work Item 3 PENDING: four pair placeholder cards created
+  - Work Item 4 PENDING: eleven knowledge placeholder cards created
+  - Work Item 5 PENDING: validation and activation tests added
 - **Deviations from the master plan:**
-  - _list with rationale; deviations require Project Owner approval before execution_
+  - none approved at planning time
 - **Estimated commits:**
-  - _number_
+  - `~4`
 - **Open questions for the Project Owner before execution:**
-  - _list, or "none"_
+  - none recorded
+
+
 
 ### Plan approval
 
-**Project Owner approval:** _PENDING_ (must be APPROVED before Claude Code proceeds to Step 2)
+**Project Owner approval:** **APPROVED** on `2026-04-12` via Handshake Log row 2: `Authorization to begin. "Execute Ultraplan." All recommendations adopted.`
 
-<!-- HANDSHAKE: Claude Code → Project Owner | Plan ready for review and approval -->
+<!-- HANDSHAKE: Claude Code -> Project Owner | Historical: plan approved in chat on 2026-04-12. Execution authorization is recorded in Handshake Log row 2. -->
 
 ---
 
 ## Step 2: Execute (Claude Code)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - backfilled from landed execution, handed to Codex for Round 1 audit]**
 **Owner:** Claude Code
 **Prerequisite:** Step 1 plan APPROVED by Project Owner
 **Reads:** The approved plan above, the master plan, the canon, the existing test suite
@@ -225,26 +239,43 @@ _Claude Code fills in this subsection. Required fields:_
 
 ### Execution log
 
-_Claude Code fills in this subsection during and after execution. Required fields:_
+_Backfilled by Codex on 2026-04-12 at Project Owner request from the landed execution commit surface (`d6b20cc`, `59da789`) plus the contemporaneous handshake log. This records what actually landed. It does not claim that the original Step 2 discipline requirement was satisfied in real time._
 
 - **Commits made (one row per commit):**
 
 | # | Hash | Message | Files touched |
 |---:|---|---|---|
-| 1 | _pending_ | _pending_ | _pending_ |
+| 1 | `d6b20cc` | `chore(workflow): Phase B shipped + Phase C created + Path C amendment (PRE-2)` | `AGENTS.md`, `Docs/_phases/PHASE_C.md` |
+| 2 | `59da789` | `feat(context): Phase C WI1-5 — soul card loader + 15 placeholders + tests` | `src/starry_lyfe/context/soul_cards.py`, `src/starry_lyfe/canon/soul_cards/{pair,knowledge}/*.md`, `tests/unit/test_soul_cards.py`, `Docs/_phases/PHASE_C.md` |
 
-- **Test suite delta:**
-  - Tests added: _list with names_
-  - Tests passing: _count before → count after_
-  - Tests failing: _list with names + reason, or "none"_
-- **Sample assembled prompt outputs:** (saved to `Docs/_phases/_samples/PHASE_C_assembled_character_name_2026-04-12.txt`)
-  - _list of file paths_
-- **Self-assessment against acceptance criteria:**
-  - _per criterion: MET / NOT MET / PARTIAL with one-sentence evidence_
-- **Open questions for Codex / Claude AI / Project Owner:**
-  - _list, or "none"_
+**Test suite delta:**
+- Tests added in `59da789`: `test_soul_card_loader_parses_frontmatter`, `test_all_soul_cards_load_without_error`, `test_placeholder_detection`, `test_pair_card_always_activated_for_focal_character`, `test_pair_card_not_activated_for_wrong_character`, `test_knowledge_card_scene_activation`, `test_alicia_remote_card_activates_on_communication_mode_phone`, `test_format_empty_cards_returns_empty`, `test_format_placeholder_cards_returns_empty`, `test_format_real_card_within_budget`, plus two placeholder-validation `xfail` checks that were later replaced in Round 1 remediation.
+- Tests passing: `pytest tests/unit -q` moved from the shipped Phase B baseline (`112 passed`) to `123 passed, 2 xpassed` after Phase C execution.
+- Tests failing: none in the unit suite. Full `pytest -q` remained environmentally blocked by PostgreSQL integration setup.
 
-<!-- HANDSHAKE: Claude Code → Codex | Execution complete, ready for audit (Round 1) -->
+**Sample assembled prompt outputs:**
+- none were generated during original execution
+- this omission became `F3` in Round 1 audit and was later closed in Step 4' direct remediation with:
+  - `Docs/_phases/_samples/PHASE_C_assembled_adelia_2026-04-12.txt`
+  - `Docs/_phases/_samples/PHASE_C_assembled_bina_2026-04-12.txt`
+  - `Docs/_phases/_samples/PHASE_C_assembled_reina_2026-04-12.txt`
+  - `Docs/_phases/_samples/PHASE_C_assembled_alicia_2026-04-12.txt`
+
+**Self-assessment against acceptance criteria (execution-close state as later verified by audit):**
+- `AC-PRE-1` `MET in substance`: the INH-2 audit was completed before soul-card code and summarized in Handshake Log row 3.
+- `AC-PRE-2` `MET`: the restrictive `AGENTS.md` Path C amendment landed in `d6b20cc` before `59da789`.
+- `AC-PRE-3` `NOT MET`: Step 1 / Step 2 were not kept fully current during execution and required later backfill.
+- `AC-PRE-4` `NOT MET`: the phase did not preserve the intended zero-backfill workflow discipline.
+- Work Item 1 `MET`: loader, parsing, activation helpers, and formatter landed.
+- Work Item 2 `NOT MET`: live Layer 1 / Layer 6 integration was still missing at execution close and was later caught as `F1`.
+- Work Item 3 `MET`: four pair placeholder files were created.
+- Work Item 4 `MET`: eleven knowledge placeholder files were created.
+- Work Item 5 `PARTIAL`: tests existed, but placeholder validation and live assembly-path coverage were not strong enough.
+
+**Open questions for Codex / Claude AI / Project Owner:**
+- none recorded during original execution
+
+<!-- HANDSHAKE: Claude Code -> Codex | Historical: execution completed on landed commit surface, but the Round 1 handoff was not canonically logged in real time. Codex proceeded from the landed work and recorded Round 1 audit in Step 3. -->
 
 ---
 
@@ -361,7 +392,7 @@ Phase C should not proceed to QA. The loader and placeholder corpus exist, but t
 
 ## Step 4: Remediate (Claude Code) — Round 1
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - backfilled from remediation commit `1e12a95`, later re-audited by Codex]**
 **Owner:** Claude Code
 **Prerequisite:** Step 3 audit complete with handshake to Claude Code
 **Reads:** The audit above, the master plan, the canon
@@ -369,54 +400,191 @@ Phase C should not proceed to QA. The loader and placeholder corpus exist, but t
 
 ### Remediation content
 
-_Claude Code fills in this subsection. Required fields:_
+_Backfilled by Codex on 2026-04-12 at Project Owner request from the landed remediation commit `1e12a95` and the Round 2 re-audit. This records what Round 1 remediation actually did._
 
-- **Per-finding status table** (one row per finding from the audit):
+**Per-finding status table:**
 
 | Finding # | Severity | Status | Commit hash | Notes |
 |---:|---|---|---|---|
-| 1 | _from audit_ | FIXED / PUSH_BACK / DEFERRED | _pending_ | _push-back rationale or deferral target phase_ |
+| F1 | High | **FIXED** | `1e12a95` | Live Layer 1 / Layer 6 integration landed in `assemble_context()`. Round 2 later found a new authored-content budget risk (`R2-F1`), but the original "not wired at all" defect was closed. |
+| F2 | Medium | **FIXED** | `1e12a95` | The vacuous `XPASS` path was removed, explicit placeholder / declared-budget tests were added, and the knowledge-card budget test landed. Round 2 later found that the new regression still missed the live assembler path (`R2-F3`). |
+| F3 | Medium | **DEFERRED** | `1e12a95` | Round 1 remediation updated the handshake trail but left full Step 2 completion and sample prompt generation for a trailing documentation closeout. That omission later became `R2-F2`. |
+| F4 | Low | **DEFERRED** | `1e12a95` | `scene_type` was explicitly deferred to **Phase F**, which introduces scene classification infrastructure on `SceneState` and the Scene Director path. |
 
-- **Push-backs:** Each push-back must cite specific evidence from the master plan, character kernel files, or canon YAML showing that Codex misread the specification. Push-backs are recorded but do not unilaterally close findings — Codex may re-file in a re-audit round with stronger evidence.
-- **Deferrals:** Each deferral must specify the target phase or follow-up work item and be tracked in the master plan.
-- **Re-run test suite delta:** _tests passing before remediation → tests passing after_
-- **New sample assembled prompts:** _list of paths that supersede the originals_
-- **Self-assessment:** _are all Critical and High findings now closed?_
+**Push-backs:** none.
+
+**Deferrals:**
+- `F3` deferred within Phase C and later closed in Step 4' direct remediation.
+- `F4` deferred to **Phase F** per the master plan's scene-type infrastructure work.
+
+**Re-run test suite delta:** Round 1 remediation converted the Phase C suite from `123 passed, 2 xpassed` to a clean `127 passed`.
+- `.venv\Scripts\python -m pytest tests/unit/test_soul_cards.py -q` -> **15 passed**
+- `.venv\Scripts\python -m pytest tests/unit -q` -> **127 passed**
+- `.venv\Scripts\python -m ruff check src/ tests/` -> **PASS**
+- `.venv\Scripts\python -m mypy src/` -> **PASS**
+- `.venv\Scripts\python -m pytest -q` -> **ENVIRONMENTAL FAIL** (`127 passed, 14 errors`) because PostgreSQL was unreachable at `tests/integration/conftest.py:92`
+
+**New sample assembled prompts:**
+- none were generated in Round 1 remediation
+- this remained open and later became `R2-F2`
+
+**Self-assessment:** All original Critical / High findings were closed in Round 1 remediation. One Medium (`F3`) and one Low (`F4`) remained explicitly deferred.
 
 ### Path decision
 
-_Claude Code must choose one of the two paths from AGENTS.md:_
+**Chosen path:** **Path A (historical choice in `1e12a95`)**. The remediation commit explicitly declared clean remediation, but a Round 2 Codex re-audit was still requested afterward because the canonical record remained incomplete and the new Layer 1 budget risk had not yet been checked.
 
-- **Path A (clean remediation):** No new architectural surface introduced. Skip re-audit, hand directly to Claude AI QA.
-- **Path B (substantive remediation):** Nontrivial design changes. Codex re-audits before Claude AI QA.
-
-**Chosen path:** _A or B_
-
-<!-- HANDSHAKE: Claude Code → {Codex if Path B / Claude AI if Path A} | Remediation Round 1 complete, ready for {re-audit / QA} -->
+<!-- HANDSHAKE: Claude Code -> Claude AI | Historical Round 1 remediation chose Path A in commit `1e12a95`, but a Round 2 Codex re-audit was later requested due to unresolved documentation gaps and the newly surfaced budget-risk question. -->
 
 ---
 
 ## Step 3': Audit (Codex) — Round 2 (only if Path B was chosen in Round 1)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - handed to Claude Code for remediation Round 2]**
 
 _Same structure as Round 1. Codex re-audits the remediation, focusing on (a) whether the original findings are now actually closed and (b) whether the remediation introduced any new findings._
 
 ### Round 2 audit content
 
-_Codex fills in if invoked. Same fields as Round 1._
+#### Scope
 
-<!-- HANDSHAKE: Codex → Claude Code | Audit Round 2 complete, ready for remediation Round 2 -->
+Reviewed:
+
+- remediation commit `1e12a95`
+- current `src/starry_lyfe/context/assembler.py`
+- current `tests/unit/test_soul_cards.py`
+- current `Docs/_phases/PHASE_C.md`
+- `Docs/_phases/_samples/` for `PHASE_C_*` artifacts
+
+Because the canonical Step 4 remediation section is still untouched, this re-audit used the landed remediation commit plus live probes as the remediation record.
+
+#### Verification context
+
+Independent checks run during re-audit:
+
+- `.venv\Scripts\python -m pytest tests/unit/test_soul_cards.py -q` -> **PASS** (`15 passed`)
+- `.venv\Scripts\python -m pytest tests/unit -q` -> **PASS** (`127 passed`)
+- `.venv\Scripts\python -m ruff check src/ tests/` -> **PASS**
+- `.venv\Scripts\python -m mypy src/` -> **PASS**
+- `.venv\Scripts\python -m pytest -q` -> **ENVIRONMENTAL FAIL** (`127 passed, 14 errors`) because PostgreSQL is unreachable during integration setup at `tests/integration/conftest.py:92`
+
+Runtime probes performed:
+
+- live `assemble_context(...)` probe with patched non-placeholder pair and knowledge cards to confirm the new integration path is actually reached
+- live budget probe with a 700-token pair card on Bina to measure total Layer 1 behavior after append
+- sample-artifact existence check for `PHASE_C_*`
+
+#### Executive assessment
+
+The remediation did close the main runtime miss. `assemble_context()` now consults soul cards and can place non-placeholder pair content into Layer 1 and knowledge content into Layer 6. The earlier test anomaly is also improved: the vacuous `XPASS` state is gone, and the missing knowledge budget declaration test now exists.
+
+The phase is still not converged. The new integration appends soul-card text after kernel compilation without re-enforcing the total Layer 1 budget, so a legitimate authored pair card can push the assembled layer over budget immediately. The canonical remediation record is also still absent: Step 4 remains an untouched template, there is no path decision, and there are still no Phase C sample prompt artifacts. The new F1 regression test also does not hit `assemble_context()`, so the canonical path is still weakly defended.
+
+Gate recommendation remains **FAIL**.
+
+#### Findings
+
+| # | Severity | Finding | Evidence | Recommended fix |
+|---:|---|---|---|---|
+| R2-F1 | Medium | The new soul-card append path can exceed the total Layer 1 budget once real pair prose lands. | `src/starry_lyfe/context/assembler.py:128-145` appends `pair_text` and `knowledge_text` after `format_kernel()` / `format_scene_blocks()` without re-trimming the combined layer. A live probe with a patched non-placeholder Bina pair card produced `layer1_tokens=7266` against `resolve_kernel_budget("bina")=7200`, while still showing the pair text present. This is a forward-looking authored-content defect, not just a theoretical code smell. | Reserve budget for soul cards before compiling the base layer, or re-trim the combined Layer 1 / Layer 6 text back to their total budgets after append. Add a regression test that assembles a prompt with a near-max pair card and asserts the final Layer 1 stays within the resolved kernel budget. |
+| R2-F2 | Medium | The canonical Phase C remediation record is still missing, and the phase still has no sample prompt artifacts. | `Docs/_phases/PHASE_C.md` Step 4 Round 1 is still the untouched template, with `**[STATUS: NOT STARTED]**`, the placeholder per-finding table, and `**Chosen path:** _A or B_`. There are still no `PHASE_C_*` files under `Docs/_phases/_samples/`. The remediation commit message claims `Path A`, but that decision is not recorded canonically anywhere the QA reviewer can trust. | Fill Step 4 truthfully with the per-finding dispositions, rerun/test delta, explicit path decision, and any deferral rationale. Generate real `PHASE_C_assembled_*` sample prompts that reflect the current runtime. |
+| R2-F3 | Low | The new F1 regression test still does not exercise the live `assemble_context()` path. | `tests/unit/test_soul_cards.py:142-165` is named as an assembly integration regression, but it patches `find_activated_cards()` and then only calls `format_soul_cards([real_card], 700)`. If the assembler wiring regressed again, this test would still pass. | Replace or supplement the helper-only test with an `assemble_context()` test that patches in non-placeholder soul cards and asserts their bodies appear in the wrapped Layer 1 / Layer 6 output. |
+
+#### Runtime probe summary
+
+- Live remediation probe confirmed the new integration path is active:
+  - patched non-placeholder pair + knowledge cards
+  - `assemble_context()` output contained both `pairword` in Layer 1 and `knowledgeword` in Layer 6
+- Live budget probe exposed the new regression:
+  - `layer1_tokens=7266`
+  - `layer1_budget=7200`
+  - `layer6_tokens=536`
+  - `layer6_budget=1200`
+- No `PHASE_C_*` sample prompt artifacts are present under `Docs/_phases/_samples/`
+
+#### Drift against specification
+
+- The remediation now satisfies the "live integration exists" part of Work Item 2, but still misses the budget-bounded part of that same contract once authored pair prose is present.
+- The canonical Step 4 remediation record, path decision, and sample prompt artifacts required by the workflow are still absent.
+- The strengthened F1 regression test still does not cover the actual assembler path.
+
+#### Verified resolved
+
+- Original `F1` is fixed in live behavior: non-placeholder pair and knowledge cards now flow through `assemble_context()` into Layer 1 and Layer 6.
+- The `XPASS` anomaly from original `F2` is closed; `tests/unit/test_soul_cards.py` is now cleanly green (`15 passed`).
+- The missing declared knowledge-card budget test from original `F2` is now present.
+
+#### Adversarial scenarios constructed
+
+1. **Live integration proof:** patched in non-placeholder pair and knowledge cards and verified they appear in the assembled prompt instead of only in helper output.
+2. **Near-max pair-card budget probe:** supplied a long pair card body and measured the final Layer 1 tokens against Bina's resolved kernel budget; the layer overflowed.
+3. **False integration-test check:** inspected the new `TestAssemblyIntegration` case to see whether it would fail if the assembler wiring were removed again; it would not, because it never calls `assemble_context()`.
+4. **Artifact trail check:** scanned for `PHASE_C_*` prompt samples after remediation and found none.
+
+#### Recommended remediation order
+
+1. Fix `R2-F1` first. The new runtime path should not overflow Layer 1 the moment the Project Owner authors a real pair card.
+2. Fix `R2-F2` next. The phase cannot be QA-ready without a canonical Step 4 record and real sample artifacts.
+3. Fix `R2-F3` last. It is lower severity, but the assembler path needs a real regression guard.
+
+#### Gate recommendation
+
+**FAIL**
+
+Phase C is closer, but not ready for QA. The core live integration now exists, yet the remediation introduced a budget-enforcement bug on the authored-content path and still did not produce the canonical remediation record or sample artifacts.
+
+<!-- HANDSHAKE: Codex -> Claude Code | Audit Round 2 complete. FAIL gate. R2-F1 Medium: the new soul-card append path can exceed Layer 1 budget once authored pair prose lands. R2-F2 Medium: Step 4 and PHASE_C sample artifacts are still missing canonically. R2-F3 Low: the new F1 regression test still does not exercise assemble_context(). Ready for remediation Round 2. -->
 
 ---
 
 ## Step 4': Remediate (Claude Code) — Round 2 (only if Round 2 audit produced new findings)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - direct remediation applied under Project Owner override, handed to Claude AI for QA]**
 
-_Same structure as Round 1. Same path decision rule._
+**Owner:** Codex (direct remediation under Project Owner override)
+**Prerequisite:** Step 3' audit complete with handshake to remediation owner
+**Reads:** The Round 2 audit above, the master plan, the phase file, the current test suite, and the current sample artifacts
+**Writes:** Production code, tests, canonical docs, and sample artifacts
 
-<!-- HANDSHAKE: Claude Code → {Codex if Path B / Claude AI if Path A} | Remediation Round 2 complete -->
+_Project Owner direction in chat: Codex directly remediated the Round 2 findings. This round corrected the soul-card budget reservation bug in `assemble_context()`, replaced the helper-only regression with a real assembler-path test, backfilled the missing canonical Step 1 / Step 2 / Step 4 record, and generated the missing Phase C sample artifacts._
+
+### Remediation content
+
+**Per-finding status table:**
+
+| Finding # | Severity | Status | Commit hash | Notes |
+|---:|---|---|---|---|
+| R2-F1 | Medium | **FIXED** | `n/a (direct remediation in working tree)` | `assemble_context()` now reserves Layer 1 / Layer 6 budget for soul-card text before formatting the base kernel / scene blocks. The strengthened regression asserts `pairword` and `knowledgeword` reach the live assembled prompt while final Layer 1 / Layer 6 token counts stay within budget. |
+| R2-F2 | Medium | **FIXED** | `n/a (direct remediation in working tree)` | Step 1, Step 2, and Step 4 are now fully populated as the canonical record. Four `PHASE_C_assembled_*_2026-04-12.txt` sample artifacts now exist under `Docs/_phases/_samples/`. |
+| R2-F3 | Low | **FIXED** | `n/a (direct remediation in working tree)` | The helper-only regression was replaced with an async `assemble_context()` test that exercises the actual Layer 1 / Layer 6 wiring. |
+
+**Push-backs:** none.
+
+**Deferrals:**
+- original `F4` remains explicitly deferred to **Phase F**. No new deferrals were introduced in Round 2 direct remediation.
+
+**Re-run verification delta:** unit-test count stayed at `127` because the weak regression was replaced rather than expanded.
+- `.venv\Scripts\python -m pytest tests/unit/test_soul_cards.py -q` -> **15 passed**
+- `.venv\Scripts\python -m pytest tests/unit -q` -> **127 passed**
+- `.venv\Scripts\python -m ruff check src/ tests/` -> **PASS**
+- `.venv\Scripts\python -m mypy src/` -> **PASS**
+- `.venv\Scripts\python -m pytest -q` -> **ENVIRONMENTAL FAIL** (`127 passed, 14 errors`) because PostgreSQL remains unreachable at `tests/integration/conftest.py:92`
+
+**New sample assembled prompts:**
+- `Docs/_phases/_samples/PHASE_C_assembled_adelia_2026-04-12.txt`
+- `Docs/_phases/_samples/PHASE_C_assembled_bina_2026-04-12.txt`
+- `Docs/_phases/_samples/PHASE_C_assembled_reina_2026-04-12.txt`
+- `Docs/_phases/_samples/PHASE_C_assembled_alicia_2026-04-12.txt`
+
+All four were regenerated from the live `assemble_context()` path using the canonical unit-test stub retrieval bundle because the full integration path remains locally blocked by PostgreSQL availability.
+
+**Self-assessment:** All Round 2 findings are closed. Original `F4` remains an explicit Phase F deferral. Phase C is ready for Claude AI QA under Project Owner override.
+
+### Path decision
+
+**Chosen path:** **Path A under Project Owner override.** The direct remediation touched one localized runtime budget path plus tests, docs, and samples; it did not introduce a new architectural surface beyond the already-landed Phase C soul-card integration.
+
+<!-- HANDSHAKE: Codex -> Claude AI | Direct remediation complete under Project Owner override. R2-F1 fixed via reserved soul-card budgets in assemble_context(); R2-F2 fixed via canonical record backfill + Phase C sample artifacts; R2-F3 fixed via real assemble_context() regression coverage. Ready for Step 5 QA. -->
 
 ---
 
