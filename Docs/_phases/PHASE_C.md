@@ -4,8 +4,8 @@
 **Phase identifier:** `C` (must match the master plan exactly: `0`, `A`, `A'`, `A''`, `B`, `I`, `C`, `D`, `E`, `F`, `G`, `J.1`, `J.2`, `J.3`, `J.4`, `H`, `K`)
 **Depends on:** Phase A/A'/A''/B (all SHIPPED 2026-04-12)
 **Blocks:** Phase D, E, F, G, H, J.1-J.4, K
-**Status:** AWAITING PROJECT OWNER APPROVAL TO BEGIN
-**Last touched:** 2026-04-12 by Claude AI
+**Status:** IN PROGRESS — Step 2 execution begun
+**Last touched:** 2026-04-12 by Claude Code (Step 1 plan approved, Step 2 in progress)
 
 ---
 
@@ -23,7 +23,9 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 
 | # | Date | From | To | Message |
 |---:|---|---|---|---|
-| 1 | 2026-04-12 | Claude AI | Project Owner | Phase C created after Phase B shipped. Two URGENT preconditions carried forward from Phase B Step 5 verdict: INH-2 (master plan VERIFIED RESOLVED claim audit - silently dropped in Phase B) and INH-8 (AGENTS.md Path C amendment - Path C drift now 1-1-2-3 across 4 phases). Both must resolve BEFORE any Phase C code work begins. |
+| 1 | 2026-04-12 | Claude AI | Project Owner | Phase C created after Phase B shipped. Two URGENT preconditions: INH-2 + INH-8. |
+| 2 | 2026-04-12 | Project Owner | Claude Code | Authorization to begin. "Execute Ultraplan." All recommendations adopted. |
+| 3 | 2026-04-12 | Claude Code | — | PRE-2 DONE: AGENTS.md Path C restrictive amendment committed (d6b20cc). PRE-1 DONE: INH-2 master plan audit — all VERIFIED RESOLVED claims live-probed and confirmed accurate (WI1 Gavin fix live, WI2 recalled_dyads live, WI3 Vision §5 clean, false positive in Appendix A changelog only). |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 ---
@@ -172,12 +174,22 @@ required_concepts:
 
 ## Step 1: Plan (Claude Code)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: APPROVED by Project Owner on 2026-04-12]**
 **Owner:** Claude Code
-**Reads:** Master plan §3, Vision, character kernels (if phase touches a character), canon YAML
+**Reads:** Master plan §3, Phase C spec above, AGENTS.md Phase C customization
 **Writes:** This section
 
 ### Plan content
+
+**Scope:** Infrastructure + placeholders. Per AGENTS.md Phase C customization, Claude Code builds the soul card loader, schema, directory structure, and placeholder files. Validation tests for content will fail until PO authors real card prose. Soul card authoring is NOT part of the four-agent cycle.
+
+**Files:** `src/starry_lyfe/context/soul_cards.py` (new), `src/starry_lyfe/canon/soul_cards/{pair,knowledge}/` (15 placeholder files), `src/starry_lyfe/context/layers.py` + `assembler.py` (Layer 1/6 integration), `tests/unit/test_soul_cards.py` (new).
+
+**Commits:** ~4 (loader+schema, placeholders, integration, tests+docs).
+
+### Plan approval
+
+**Project Owner approval:** APPROVED on 2026-04-12 — "Execute Ultraplan."
 
 _Claude Code fills in this subsection. Required fields:_
 
