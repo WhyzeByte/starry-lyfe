@@ -4,8 +4,8 @@
 **Phase identifier:** `A''` (must match the master plan exactly: `0`, `A`, `A'`, `A''`, `B`, `I`, `C`, `D`, `E`, `F`, `G`, `J.1`, `J.2`, `J.3`, `J.4`, `H`, `K`)
 **Depends on:** Phase A' (SHIPPED 2026-04-12)
 **Blocks:** Phase B, Phase I, Phase C, Phase D, Phase E (especially — Phase A'' is a BLOCKER for Phase E Alicia voice exemplar restoration), Phase F, Phase G, Phase J.1-J.4, Phase H, Phase K
-**Status:** AWAITING PROJECT OWNER APPROVAL TO BEGIN
-**Last touched:** 2026-04-12 by Claude AI (file created from _TEMPLATE.md after Phase A' shipped)
+**Status:** IN PROGRESS — Step 2 execution begun
+**Last touched:** 2026-04-12 by Claude Code (Step 1 plan approved, Step 2 in progress)
 
 ---
 
@@ -23,7 +23,10 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 
 | # | Date | From | To | Message |
 |---:|---|---|---|---|
-| 1 | 2026-04-12 | Claude AI | Project Owner | Phase A'' file created from _TEMPLATE.md after Phase A' shipped (Step 6) and Project Owner explicitly agreed in chat to proceed ("#3" selecting option 3 from the Step 5 verdict's "Your move" menu). Both gates passed. File status set to AWAITING PROJECT OWNER APPROVAL TO BEGIN. Master plan §6 specification reproduced inline below with staleness flags noting which work items are partially resolved in code (types.py CommunicationMode enum already canonical with IN_PERSON/PHONE/LETTER; VIDEO_CALL needs adding; assembler.py already uses communication_mode for the AliciaAwayError gate but not for format_constraints or format_voice_directives). |
+| 1 | 2026-04-12 | Claude AI | Project Owner | Phase A'' file created from _TEMPLATE.md after Phase A' shipped. Both gates passed. Status: AWAITING PROJECT OWNER APPROVAL TO BEGIN. |
+| 2 | 2026-04-12 | Project Owner | Claude Code | Authorization to begin planning granted. |
+| 3 | 2026-04-12 | Claude Code | Project Owner | Step 1 Plan written. Q1 (WI3 stubs vs full): STUBS. Q2 (INH-1): DEFER. Q3 (INH-2): INCLUDE. |
+| 4 | 2026-04-12 | Project Owner | Claude Code | Plan APPROVED: "Proceed with ultraplan." All recommendations adopted. |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 ---

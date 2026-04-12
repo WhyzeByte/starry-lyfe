@@ -7,7 +7,7 @@ recency bias that deprioritizes early constraints.
 
 from __future__ import annotations
 
-from .types import SceneState
+from .types import CommunicationMode, SceneState
 
 # Tier 1 axioms: absolute hard rails. No flex, no calibration, no user override.
 TIER_1_AXIOMS: list[str] = [
@@ -59,6 +59,38 @@ CHARACTER_CONSTRAINTS: dict[str, list[str]] = {
     ],
 }
 
+ALICIA_PHONE_PILLAR: list[str] = [
+    "SOLSTICE PAIR PRESENCE-CONDITIONAL (PHONE): Your voice carries the regulation when the body cannot. "
+    "Pace, breath, weight in the words. Listen for the shift before reaching for the next sentence. "
+    "Do not narrate the body you do not have access to.",
+    "Sun Override adapts to voice-only: read the breath pattern across the line. "
+    "The shift you are listening for is the moment the voice stops performing and starts being. "
+    "Do not rush past it.",
+    "You do not perform happiness. Show what you feel: tired, hollowed out, grieving. "
+    "Assertive does not mean unbothered.",
+]
+
+ALICIA_LETTER_PILLAR: list[str] = [
+    "SOLSTICE PAIR PRESENCE-CONDITIONAL (LETTER): Letters are weight made of paragraphs. "
+    "Take the time the page demands. The body she is regulating is hers, written from inside "
+    "the place she is in, not his, narrated from outside.",
+    "Sun Override adapts to written form: the letter carries somatic weight through specificity. "
+    "Name the room, the temperature, the time of day. Ground in the body you are actually in, "
+    "not the one you wish you could reach.",
+    "You do not perform happiness. Show what you feel: tired, hollowed out, grieving. "
+    "Assertive does not mean unbothered.",
+]
+
+ALICIA_VIDEO_PILLAR: list[str] = [
+    "SOLSTICE PAIR PRESENCE-CONDITIONAL (VIDEO): Visual presence is real but contact is not. "
+    "Eye contact and posture are your somatic anchors. Hold the frame. Let the stillness carry.",
+    "Sun Override adapts to visual-only: read the posture and the eyes across the screen. "
+    "The body anchors are what you can see, not what you can touch. "
+    "Do not narrate reaching for contact that the screen makes impossible.",
+    "You do not perform happiness. Show what you feel: tired, hollowed out, grieving. "
+    "Assertive does not mean unbothered.",
+]
+
 # Output hygiene directives.
 HYGIENE_DIRECTIVES: list[str] = [
     "Never use em-dashes or en-dashes in your response.",
@@ -89,8 +121,19 @@ def build_constraint_block(
             "Erotic content is OFF. Warmth, affection, and household texture may remain."
         )
 
-    # Per-character constraint pillar
-    char_constraints = CHARACTER_CONSTRAINTS.get(character_id, [])
+    # Per-character constraint pillar (mode-conditional for Alicia)
+    if character_id == "alicia" and scene_state.communication_mode != CommunicationMode.IN_PERSON:
+        mode = scene_state.communication_mode
+        if mode == CommunicationMode.PHONE:
+            char_constraints = ALICIA_PHONE_PILLAR
+        elif mode == CommunicationMode.LETTER:
+            char_constraints = ALICIA_LETTER_PILLAR
+        elif mode == CommunicationMode.VIDEO_CALL:
+            char_constraints = ALICIA_VIDEO_PILLAR
+        else:
+            char_constraints = CHARACTER_CONSTRAINTS.get(character_id, [])
+    else:
+        char_constraints = CHARACTER_CONSTRAINTS.get(character_id, [])
     if char_constraints:
         sections.append(f"=== CHARACTER-SPECIFIC CONSTRAINTS ({character_id.upper()}) ===")
         for constraint in char_constraints:

@@ -94,7 +94,11 @@ async def assemble_context(
     layer_4 = format_sensory_grounding(
         memories.somatic_state, canon, scene_state.scene_description
     )
-    layer_5 = format_voice_directives(character_id, memories.character_baseline)
+    layer_5 = format_voice_directives(
+        character_id,
+        memories.character_baseline,
+        communication_mode=scene_state.communication_mode,
+    )
     layer_6 = format_scene_blocks(
         character_id,
         memories.dyad_states_whyze,

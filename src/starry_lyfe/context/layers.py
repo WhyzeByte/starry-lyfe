@@ -148,6 +148,7 @@ def format_voice_directives(
     character_id: str,
     baseline: CharacterBaseline | None,
     budget: int = DEFAULT_BUDGETS.voice,
+    communication_mode: str | None = None,
 ) -> LayerContent:
     """Layer 5: Format voice directives and calibration material.
 
@@ -177,7 +178,7 @@ def format_voice_directives(
         remaining = max(0, remaining - estimate_tokens(metadata_text) - 3)
 
     # Runtime uses compact teaching notes, not full human-authored prose blocks.
-    guidance_items = load_voice_guidance(character_id)
+    guidance_items = load_voice_guidance(character_id, communication_mode=communication_mode)
     if guidance_items and remaining > 0:
         compact_items = [_compact_voice_guidance_item(item) for item in guidance_items]
         header = "Voice calibration guidance:\n"

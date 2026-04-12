@@ -41,7 +41,7 @@ EXPANSION_SECTION_ORDER: list[int] = [2, 3, 5, 7, 6, 8, 9, 10, 11]
 FILL_SECTION_ORDER: list[int] = [8, 9, 10, 11]
 
 _kernel_cache: dict[str, str] = {}
-_voice_cache: dict[str, list[str] | None] = {}
+_voice_raw_cache: dict[str, list[tuple[str, str]] | None] = {}
 
 _SECTION_RE = re.compile(r"^## (\d+)\.")
 
@@ -187,15 +187,20 @@ def load_kernel(character_id: str, budget: int = 2000) -> str:
     return text
 
 
-def _extract_voice_guidance(raw_text: str) -> list[str]:
+_COMM_MODE_TAG_RE = re.compile(r"^<!--\s*communication_mode:\s*(\w+)\s*-->$")
+
+
+def _extract_voice_guidance(raw_text: str) -> list[tuple[str, str]]:
     """Extract backend-safe guidance items from a Voice.md file.
 
-    The backend only ingests the "What it teaches the model" prose. Raw
-    Msty UI instructions and literal User/Assistant few-shot pairs stay out.
+    Returns list of (guidance_text, communication_mode_tag) tuples.
+    The communication_mode_tag is parsed from <!-- communication_mode: X -->
+    lines within each example block. Defaults to "any" if no tag is present.
     """
-    guidance_items: list[str] = []
+    guidance_items: list[tuple[str, str]] = []
     current_title: str | None = None
     current_parts: list[str] | None = None
+    current_comm_mode: str = "any"
 
     for line in raw_text.splitlines():
         stripped = line.strip()
@@ -204,9 +209,15 @@ def _extract_voice_guidance(raw_text: str) -> list[str]:
             if current_title and current_parts:
                 guidance = " ".join(part for part in current_parts if part).strip()
                 if guidance:
-                    guidance_items.append(f"{current_title}: {guidance}")
+                    guidance_items.append((f"{current_title}: {guidance}", current_comm_mode))
             current_title = stripped.removeprefix("## ").strip()
             current_parts = None
+            current_comm_mode = "any"
+            continue
+
+        comm_match = _COMM_MODE_TAG_RE.match(stripped)
+        if comm_match:
+            current_comm_mode = comm_match.group(1)
             continue
 
         if stripped.startswith("**What it teaches the model:**"):
@@ -220,7 +231,7 @@ def _extract_voice_guidance(raw_text: str) -> list[str]:
         if stripped.startswith("**User:**") or stripped.startswith("**Assistant:**") or stripped == "---":
             guidance = " ".join(part for part in current_parts if part).strip()
             if current_title and guidance:
-                guidance_items.append(f"{current_title}: {guidance}")
+                guidance_items.append((f"{current_title}: {guidance}", current_comm_mode))
             current_parts = None
             continue
 
@@ -230,34 +241,49 @@ def _extract_voice_guidance(raw_text: str) -> list[str]:
     if current_title and current_parts:
         guidance = " ".join(part for part in current_parts if part).strip()
         if guidance:
-            guidance_items.append(f"{current_title}: {guidance}")
+            guidance_items.append((f"{current_title}: {guidance}", current_comm_mode))
 
     return guidance_items
 
 
-def load_voice_guidance(character_id: str) -> list[str] | None:
+def load_voice_guidance(
+    character_id: str,
+    communication_mode: str | None = None,
+) -> list[str] | None:
     """Load backend-safe voice guidance derived from a Voice.md file.
 
-    Returns guidance items spread across voice modes (not just first N by file order).
+    When communication_mode is provided, filters to exemplars tagged with
+    that mode or "any". Items without a communication_mode tag default to "any".
     """
-    if character_id in _voice_cache:
-        return _voice_cache[character_id]
+    if character_id not in _voice_raw_cache:
+        rel_path = VOICE_PATHS.get(character_id)
+        if rel_path is None:
+            _voice_raw_cache[character_id] = None
+        else:
+            full_path = PROJECT_ROOT / rel_path
+            if not full_path.exists():
+                _voice_raw_cache[character_id] = None
+            else:
+                text = full_path.read_text(encoding="utf-8")
+                _voice_raw_cache[character_id] = _extract_voice_guidance(text)
 
-    rel_path = VOICE_PATHS.get(character_id)
-    if rel_path is None:
-        _voice_cache[character_id] = None
+    raw = _voice_raw_cache[character_id]
+    if raw is None:
         return None
 
-    full_path = PROJECT_ROOT / rel_path
-    if not full_path.exists():
-        _voice_cache[character_id] = None
+    if communication_mode and communication_mode != "in_person":
+        filtered = [
+            text for text, mode in raw
+            if mode in (communication_mode, "any")
+        ]
+    else:
+        filtered = [text for text, _ in raw]
+
+    if not filtered:
         return None
 
-    text = full_path.read_text(encoding="utf-8")
-    guidance_items = _extract_voice_guidance(text)
+    guidance_items = filtered
 
-    # Adelia needs her handoff and Spanish-register examples early in the
-    # runtime prompt. Other characters can keep the spread-order heuristic.
     if character_id == "adelia":
         priority_prefixes = [
             "Example 1:",
@@ -274,16 +300,14 @@ def load_voice_guidance(character_id: str) -> list[str] | None:
             remaining_items = [item for item in remaining_items if not item.startswith(prefix)]
         guidance_items = ordered + remaining_items
     elif len(guidance_items) > 4:
-        # Distribute items for mode coverage rather than clustering at the start.
         even_items = guidance_items[::2]
         odd_items = guidance_items[1::2]
         guidance_items = even_items + odd_items
 
-    _voice_cache[character_id] = guidance_items or None
-    return _voice_cache[character_id]
+    return guidance_items or None
 
 
 def clear_kernel_cache() -> None:
     """Clear all caches (useful for testing)."""
     _kernel_cache.clear()
-    _voice_cache.clear()
+    _voice_raw_cache.clear()
