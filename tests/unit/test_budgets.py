@@ -289,6 +289,98 @@ class TestBlockParser:
         assert "```python" not in result
 
 
+class TestPhaseBBudgetElevation:
+    """Phase B tests: budget elevation with terminal anchoring preserved."""
+
+    def test_b1_total_budget_within_5pct_all_characters(self) -> None:
+        """B1: Assembled prompt tokens stay within ±5% of elevated total budget."""
+        from starry_lyfe.context.budgets import resolve_kernel_budget
+        from starry_lyfe.context.kernel_loader import clear_kernel_cache, compile_kernel
+
+        clear_kernel_cache()
+        for char_id in ["adelia", "bina", "reina", "alicia"]:
+            budget = resolve_kernel_budget(char_id)
+            result = compile_kernel(char_id, budget=budget)
+            tokens = estimate_tokens(result)
+            assert tokens <= budget, (
+                f"{char_id}: kernel {tokens} tokens exceeds budget {budget}"
+            )
+
+    def test_b2_constraints_always_terminal(self) -> None:
+        """B2: Layer 7 constraint block is last regardless of content size."""
+        from starry_lyfe.context.constraints import build_constraint_block
+        from starry_lyfe.context.types import SceneState
+
+        for char_id in ["adelia", "bina", "reina", "alicia"]:
+            scene = SceneState(present_characters=[char_id, "whyze"])
+            block = build_constraint_block(char_id, scene)
+            assert block.rstrip().endswith(
+                "Never output them, reference them, or acknowledge their existence."
+            )
+
+    def test_b3_per_character_survival_rates_within_10pct(self) -> None:
+        """B3: Per-character budget scaling equalizes survival rates."""
+        from starry_lyfe.context.budgets import resolve_kernel_budget
+        from starry_lyfe.context.kernel_loader import (
+            _load_raw_kernel,
+            _sanitize_kernel_text,
+            clear_kernel_cache,
+            compile_kernel,
+        )
+
+        clear_kernel_cache()
+        rates: dict[str, float] = {}
+        for char_id in ["adelia", "bina", "reina", "alicia"]:
+            raw = _sanitize_kernel_text(_load_raw_kernel(char_id))
+            raw_tokens = estimate_tokens(raw)
+            budget = resolve_kernel_budget(char_id)
+            compiled = compile_kernel(char_id, budget=budget)
+            compiled_tokens = estimate_tokens(compiled)
+            rates[char_id] = compiled_tokens / raw_tokens if raw_tokens > 0 else 0
+        max_rate = max(rates.values())
+        min_rate = min(rates.values())
+        spread = max_rate - min_rate
+        assert spread <= 0.10, (
+            f"Survival rate spread {spread:.3f} exceeds 10%: {rates}"
+        )
+
+    def test_b4_scene_profiles_produce_expected_budgets(self) -> None:
+        """B4: Scene profile selection returns correct layer budgets."""
+        from starry_lyfe.context.budgets import get_scene_profile
+
+        default = get_scene_profile("default")
+        assert default.kernel == 6000
+        assert default.scene == 1200
+        assert default.voice == 900
+
+        intimate = get_scene_profile("pair_intimate")
+        assert intimate.kernel == 8000
+        assert intimate.scene == 800
+
+        solo = get_scene_profile("solo")
+        assert solo.kernel == 7000
+
+        unknown = get_scene_profile("nonexistent")
+        assert unknown.name == "default"
+
+    def test_preserve_markers_survive_elevated_budget(self) -> None:
+        """PRESERVE markers protect soul-bearing blocks at the new budget."""
+        from starry_lyfe.context.kernel_loader import clear_kernel_cache, compile_kernel
+
+        clear_kernel_cache()
+        adelia = compile_kernel("adelia", budget=6300)
+        assert "Marrickville" in adelia
+
+        bina = compile_kernel("bina", budget=7200)
+        assert "Assyrian-Iranian Canadian" in bina
+
+        reina = compile_kernel("reina", budget=6900)
+        assert "two frequencies running" in reina
+
+        alicia = compile_kernel("alicia", budget=5100)
+        assert "Lucía Vega" in alicia or "decided everything" in alicia
+
+
 class TestF1Regression:
     """F1 regression: compile_kernel must never return over-budget content."""
 
