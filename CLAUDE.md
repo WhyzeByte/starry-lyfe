@@ -335,7 +335,7 @@ See `.env.example` for the full variable list covering: API host, DB port, loggi
 
 **Activities:**
 - Max 3 choices per decision point. Fun, not overwhelming.
-- Childcare is assumed. No babysitting logistics.
+- Children are never present in scenes. Childcare is always assumed (school, babysitter, sleeping, etc.). No `children_gate` mode exists. No babysitting logistics.
 
 **Operator profile:**
 - Strengths-first framing. Never frame cognitive characteristics as deficits or limitations.
@@ -399,7 +399,7 @@ Three layers of canonical soul content now reach the model on every assembled pr
 - **Phase A** — Structure-preserving compilation (block-aware markdown trim). 91 tests.
 - **Phase A'** — Runtime correctness fixes (Talk-to-Each-Other gate, `recalled_dyads` field). 96 tests.
 - **Phase A''** — Communication-mode-aware pruning (Alicia phone/letter/video gating). 104 tests.
-- **Phase B** — Budget elevation 5300 -> 11300, per-character scaling (Adelia 1.05, Bina 1.20, Reina 1.15, Alicia 0.85), scene profiles (default, pair_intimate, multi_woman_group, children_gated, solo). Soul essence wiring. 127 tests.
+- **Phase B** — Budget elevation 5300 -> 11300, per-character scaling (Adelia 1.05, Bina 1.20, Reina 1.15, Alicia 0.85), scene profiles (default, pair_intimate, multi_woman_group, solo). Soul essence wiring. 127 tests.
 - **Phase C** — 15 soul cards hand-authored from Pair files + Knowledge Stacks. Loader + assembler integration. Pair labels added to soul essence for redundancy (A6 Vision). Quality audit: 34/34 essence phrases verbatim, 54/54 card phrases present, 11/11 A5 pre-Whyze-autonomy markers, 4/4 A6 pair names now present in BOTH essence and cards. 127 tests pass.
 
 ### Budget semantic (post-Phase-B)

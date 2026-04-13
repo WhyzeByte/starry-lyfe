@@ -227,18 +227,13 @@ def test_alicia_constraints_mention_presence_conditional() -> None:
     assert "PRESENCE-CONDITIONAL" in block
 
 
-def test_children_gate_activates() -> None:
-    """Children present activates the gate directive."""
-    scene = SceneState(present_characters=["adelia"], children_present=True)
+def test_public_scene_gate_wording_and_activation() -> None:
+    """Public scenes should trigger the gate and use public-only wording."""
+    scene = SceneState(present_characters=["adelia"], public_scene=True)
     block = build_constraint_block("adelia", scene)
-    assert "ACTIVE GATE" in block
-
-
-def test_children_gate_inactive_by_default() -> None:
-    """No children = no gate directive."""
-    scene = SceneState(present_characters=["adelia"], children_present=False)
-    block = build_constraint_block("adelia", scene)
-    assert "ACTIVE GATE" not in block
+    assert "AXIOM 2.1: Public-scene gate." in block
+    assert "Children and public-scene gate" not in block
+    assert "ACTIVE GATE: Public scene detected." in block
 
 
 def test_talk_to_each_other_mandate_multi_character() -> None:
@@ -696,10 +691,12 @@ def test_adelia_voice_guidance_multiple_modes() -> None:
 
 def test_adelia_voice_layer_prioritizes_handoff_and_cultural_surface() -> None:
     """The live Adelia voice layer carries metadata and at least some guidance."""
+    clear_kernel_cache()
     layer = format_voice_directives("adelia", _make_bundle("adelia").character_baseline)
     assert "Adelia Raye" in layer.text
     assert "ENFP-A" in layer.text
-    assert "Voice calibration guidance:" in layer.text
+    # Phase E: mode-tagged files use "Voice rhythm exemplars:", untagged use "Voice calibration guidance:"
+    assert "Voice rhythm exemplars:" in layer.text or "Voice calibration guidance:" in layer.text
 
 
 async def test_assemble_context_adelia_retains_identity_and_protocol_surface(
@@ -827,3 +824,65 @@ def test_bina_whyze_scene_no_talk_mandate() -> None:
     scene = SceneState(present_characters=["bina", "whyze"])
     block = build_constraint_block("bina", scene)
     assert "TALK-TO-EACH-OTHER" not in block
+
+
+# --- Phase E R2-F3: Layer 5 scene_state wiring regression ---
+
+
+async def test_assemble_context_layer5_varies_by_scene_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Layer 5 voice directives must change when scene_state changes.
+
+    Regression: if scene_state is ever dropped from the assembler call
+    to format_voice_directives(), this test will fail because both
+    prompts will produce identical VOICE_DIRECTIVES blocks.
+    """
+
+    async def stub_retrieve_memories(*args: Any, **kwargs: Any) -> Any:
+        return _make_bundle("adelia")
+
+    monkeypatch.setattr(assembler_module, "retrieve_memories", stub_retrieve_memories)
+    clear_kernel_cache()
+
+    # Solo pair domestic scene
+    domestic_prompt = await assemble_context(
+        character_id="adelia",
+        scene_context="Adelia and Whyze alone in the warehouse.",
+        scene_state=SceneState(
+            present_characters=["adelia", "whyze"],
+            scene_description="Warehouse; late afternoon; welding bench still warm.",
+            communication_mode=CommunicationMode.IN_PERSON,
+        ),
+        session=cast(AsyncSession, None),
+        embedding_service=_StubEmbeddingService(),
+    )
+
+    clear_kernel_cache()
+
+    # Multi-character group scene
+    group_prompt = await assemble_context(
+        character_id="adelia",
+        scene_context="Adelia, Bina, Reina, and Whyze at the kitchen island.",
+        scene_state=SceneState(
+            present_characters=["adelia", "bina", "reina", "whyze"],
+            scene_description="Kitchen island; wine glasses; evening light.",
+            communication_mode=CommunicationMode.IN_PERSON,
+        ),
+        session=cast(AsyncSession, None),
+        embedding_service=_StubEmbeddingService(),
+    )
+
+    def _extract_voice_block(prompt_text: str) -> str:
+        start = prompt_text.find("<VOICE_DIRECTIVES>")
+        end = prompt_text.find("</VOICE_DIRECTIVES>")
+        assert start != -1 and end != -1, "VOICE_DIRECTIVES block missing"
+        return prompt_text[start:end]
+
+    domestic_voice = _extract_voice_block(domestic_prompt.prompt)
+    group_voice = _extract_voice_block(group_prompt.prompt)
+
+    assert domestic_voice != group_voice, (
+        "Layer 5 VOICE_DIRECTIVES must differ between solo_pair and group scenes. "
+        "If they are identical, scene_state is not reaching format_voice_directives()."
+    )

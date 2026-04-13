@@ -26,7 +26,6 @@ class VoiceMode(StrEnum):
     DOMESTIC = "domestic"
     CONFLICT = "conflict"
     INTIMATE = "intimate"
-    CHILDREN_GATE = "children_gate"
     PUBLIC = "public"
     GROUP = "group"
     REPAIR = "repair"
@@ -58,7 +57,6 @@ class SceneState:
     """Current scene state for context assembly decisions."""
 
     present_characters: list[str] = field(default_factory=list)
-    children_present: bool = False
     public_scene: bool = False
     alicia_home: bool = False
     scene_description: str = ""

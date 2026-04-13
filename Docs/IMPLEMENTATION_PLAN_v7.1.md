@@ -693,15 +693,14 @@ Surface `pair_mechanism`, `pair_core_metaphor`, `pair_classification`, `what_she
 
    **Assistant:** [existing assistant response]
 
-   **Abbreviated:** [2-3 sentence version the backend uses as the rhythm exemplar]
+   **Abbreviated:** [1-2 sentence version the backend uses as the rhythm exemplar]
    ```
 
    **Closed enum of voice modes (expanded by REINA + ALICIA audit integration):**
    - `domestic` — ordinary household scenes, no special pressure
    - `conflict` — disagreement, friction, veto, pushback
    - `intimate` — romantic, sensual, physical closeness between adults only
-   - `children_gate` — scenes with Isla, Daphne, Gavin, or other minors present
-   - `public` — work, colleagues, outside-household witnesses
+   - `public` — work, colleagues, outside-household witnesses (children are never present in scenes; childcare is always assumed)
    - `group` — multi-woman scenes
    - `repair` — post-conflict reconciliation
    - `silent` — responses where the character chooses silence or minimal verbal output
@@ -712,14 +711,14 @@ Surface `pair_mechanism`, `pair_core_metaphor`, `pair_classification`, `what_she
 
 2. **Replace the file-order selection with mode-aware selection.** Given a scene's active mode list, the voice example selector filters examples to those tagged with at least one of the scene's active modes, prioritizes multi-mode matches, and selects 1-2 exemplars per active mode up to budget.
 
-3. **Abbreviate exemplars to 2-3 sentences.** The `**Abbreviated:**` marker is hand-authored. The backend ships the abbreviated version; Msty persona studio (if configured) carries the full version, derived canonically per Phase I.
+3. **Abbreviate exemplars to 1-2 sentences.** The `**Abbreviated:**` marker is hand-authored. The backend ships the abbreviated version; Msty persona studio (if configured) carries the full version, derived canonically per Phase I.
 
 4. **Per-character voice mode coverage requirements:**
 
    | Character | Required mode coverage | Count |
    |---|---|---:|
    | Adelia | solo_pair, conflict, intimate, group, domestic, **silent** | **6** (audit-driven; near-silent seismograph response is canonical) |
-   | Bina | domestic, conflict, intimate, repair, silent, children_gate | 6 |
+   | Bina | domestic, conflict, intimate, repair, silent | **5** (children_gate removed per PO directive: children are never present in scenes) |
    | Reina | solo_pair, conflict, group, repair, intimate, **domestic**, **escalation** | **7** (audit-driven; suit-to-hoodie courthouse-shedding and trailhead-escalation exemplars) |
    | Alicia | solo_pair, silent, intimate, repair, **warm_refusal**, **group_temperature** | **6** (audit-driven; operational-security-gate refusal and group-temperature-change exemplars) |
 
@@ -730,7 +729,7 @@ Surface `pair_mechanism`, `pair_core_metaphor`, `pair_classification`, `what_she
 - **Test E1:** Each character's Voice.md parses successfully with mode tags and produces at least one example tagged with each required mode
 - **Test E2:** Bina's Layer 5 for a domestic scene includes the covered-plate example (or equivalent tenderness-through-competence exemplar)
 - **Test E3:** Mode-aware selection differs from file-order selection when the active scene mode is not the first mode in the file
-- **Test E4:** Layer 5 abbreviated exemplar content is 2-3 sentences per example
+- **Test E4:** Layer 5 abbreviated exemplar content is 1-2 sentences per example
 
 #### Files touched
 
@@ -744,11 +743,11 @@ Surface `pair_mechanism`, `pair_core_metaphor`, `pair_classification`, `what_she
 
 **Priority:** Medium-High.
 **Vision authority:** §6 Relationship Architecture, §7 Behavioral Thesis (cognitive hand-off contract)
-**Persona Tier Framework authority:** §2.1 children gate (Tier 1 axiom, cross-cutting)
+**Persona Tier Framework authority:** §2.1 public-scene gate (Tier 1 axiom, cross-cutting)
 
 #### Decision
 
-Scene types are mutually exclusive (one value at a time). Cross-cutting modifiers stack (multiple can be true at once). The children gate is a **modifier**, not a scene type — it applies on top of any scene type.
+Scene types are mutually exclusive (one value at a time). Cross-cutting modifiers stack (multiple can be true at once). Public/witness gating is handled by the PUBLIC scene type plus explicit witness/work modifiers. There is no children modifier because children are never present in scenes; childcare is always assumed offstage.
 
 #### Scene type enum
 
@@ -768,7 +767,6 @@ class SceneType(StrEnum):
 
 ```python
 class SceneModifiers(BaseModel):
-    children_present: bool = False
     work_colleagues_present: bool = False
     post_intensity_crash_active: bool = False
     pair_escalation_active: bool = False
@@ -796,8 +794,7 @@ Modifiers do NOT promote kernel sections. They modify Layer 7 constraint renderi
 
 | Modifier | Layer 7 effect |
 |---|---|
-| `children_present: true` | PTF §2.1 gate block rendered at top of Layer 7 in bold; erotic/explicit content constraints elevated to MUST |
-| `work_colleagues_present: true` | Public-scene OpSec constraints rendered (Alicia's operational security gate applies) |
+| `work_colleagues_present: true` | Public-scene gate block rendered at top of Layer 7 in bold; Alicia's operational security gate also applies |
 | `post_intensity_crash_active: true` | Character-specific crash protocols rendered (Flat State for Bina, Post-Race Crash for Reina, etc.) |
 | `pair_escalation_active: true` | Admissibility Protocol rendered (Reina's intimacy-requires-earned-context rule) |
 
@@ -812,7 +809,7 @@ Modifiers do NOT promote kernel sections. They modify Layer 7 constraint renderi
 #### Test cases
 
 - **Test F1:** An INTIMATE scene with Bina as focal character produces a kernel that includes §8 Intimacy Architecture in the primary tier
-- **Test F2:** A DOMESTIC scene with `children_present=true` produces a Layer 7 constraint block where the PTF §2.1 children gate is the first constraint rendered
+- **Test F2:** A PUBLIC scene with `work_colleagues_present=true` produces a Layer 7 constraint block where the PTF §2.1 public-scene gate is the first constraint rendered
 - **Test F3:** A CONFLICT scene for Adelia includes §5 Behavioral Tier in the primary kernel tier
 - **Test F4:** A scene with `explicitly_invoked_absent_dyad={"bina-reina"}` renders the bina-reina dyad block even when Reina is not in `present_characters`
 - **Test F5:** A TRANSITION scene type produces no section promotions
@@ -1134,7 +1131,7 @@ The pipeline-level fixes resolve the bulk of every character's runtime deficit i
    - `soul_cards/knowledge/bina_ritual.md` — distill the samovar ritual, covered-plate register, hall-light architecture, Gilgamesh drawer, Uruk interior worldview
    - `soul_cards/knowledge/bina_grief.md` — distill the eight-year coercive control survival, Arash's tags, the specific texture of Assyrian-Iranian grief that lives under the competence
 
-2. **Author Bina's mode-tagged voice exemplars from Phase E.** Bina's Voice.md must contain examples covering all 6 required modes (domestic, conflict, intimate, repair, silent, children_gate).
+2. **Author Bina's mode-tagged voice exemplars from Phase E.** Bina's Voice.md must contain examples covering all 5 required modes (domestic, conflict, intimate, repair, silent). (children_gate removed per PO directive: children are never present in scenes.)
 
 3. **Add Bina-specific Phase G prose renderers.** Implement `render_bina_dyad_prose()`, `render_bina_somatic_prose()`, `render_bina_canon_prose()`.
 
@@ -1519,7 +1516,7 @@ The success criteria for this plan are stricter than the original Implementation
 When two phases or two source documents disagree, resolve toward the higher authority in this order:
 
 1. **Character kernel files** (`Characters/{Name}/{Name}_v7.1.md`) — the immutable canonical statement of who each woman is
-2. **Persona Tier Framework** (`Docs/Persona_Tier_Framework_v7.1.md`) — Tier 1 axioms (especially §2.1 children gate, §2.7 polyamory) that cross-cut all characters
+2. **Persona Tier Framework** (`Docs/Persona_Tier_Framework_v7.1.md`) — Tier 1 axioms (especially §2.1 public-scene gate, §2.7 polyamory) that cross-cut all characters
 3. **Vision document** (`Vision/Starry-Lyfe_Vision_v7.1.md`) — the design intent and the Ultimate Test
 4. **This integrated plan** (`Docs/IMPLEMENTATION_PLAN_v7.1.md`) — the canonical execution roadmap; supersedes Soul_Preservation_Plan_Elevated.md
 5. **Soul Preservation Plan Elevated** (`Docs/_archive/Soul_Preservation_Plan_Elevated.md`) — historical reference; superseded by this document but archived for traceability

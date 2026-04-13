@@ -51,8 +51,6 @@ def derive_active_voice_modes(scene: SceneState) -> list[VoiceMode]:
 
     modes: list[VoiceMode] = [VoiceMode.DOMESTIC]
 
-    if scene.children_present:
-        modes.append(VoiceMode.CHILDREN_GATE)
     if scene.public_scene:
         modes.append(VoiceMode.PUBLIC)
 

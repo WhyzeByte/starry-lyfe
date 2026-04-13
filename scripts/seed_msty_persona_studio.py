@@ -61,6 +61,7 @@ def _extract_few_shots(raw_text: str) -> list[FewShotEntry]:
     current_user_lines: list[str] = []
     current_abbreviated: str | None = None
     in_user_block = False
+    in_abbreviated_block = False
 
     for line in raw_text.splitlines():
         stripped = line.strip()
@@ -78,17 +79,21 @@ def _extract_few_shots(raw_text: str) -> list[FewShotEntry]:
             current_user_lines = []
             current_abbreviated = None
             in_user_block = False
+            in_abbreviated_block = False
             continue
 
         abbreviated_match = _ABBREVIATED_RE.match(stripped)
         if abbreviated_match:
-            current_abbreviated = abbreviated_match.group(1).strip()
+            first_line = abbreviated_match.group(1).strip()
+            current_abbreviated = first_line if first_line else None
             in_user_block = False
+            in_abbreviated_block = True
             continue
 
         user_match = _USER_RE.match(stripped)
         if user_match:
             in_user_block = True
+            in_abbreviated_block = False
             first_line = user_match.group(1).strip()
             current_user_lines = [first_line] if first_line else []
             continue
@@ -96,13 +101,21 @@ def _extract_few_shots(raw_text: str) -> list[FewShotEntry]:
         assistant_match = _ASSISTANT_RE.match(stripped)
         if assistant_match:
             in_user_block = False
+            in_abbreviated_block = False
             continue
 
         if stripped == "---":
             in_user_block = False
+            in_abbreviated_block = False
             continue
 
-        if in_user_block and stripped:
+        if in_abbreviated_block and stripped:
+            current_abbreviated = (
+                current_abbreviated + " " + stripped
+                if current_abbreviated is not None
+                else stripped
+            )
+        elif in_user_block and stripped:
             current_user_lines.append(stripped)
 
     # Flush last example

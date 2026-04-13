@@ -127,6 +127,7 @@ async def assemble_context(
         memories.character_baseline,
         budget=profile.voice,
         communication_mode=scene_state.communication_mode,
+        scene_state=scene_state,
     )
     layer_6 = format_scene_blocks(
         character_id,

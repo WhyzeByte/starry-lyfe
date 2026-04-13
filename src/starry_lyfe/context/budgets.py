@@ -91,7 +91,6 @@ SCENE_PROFILES: dict[str, SceneBudgetProfile] = {
     "default": SceneBudgetProfile(name="default", kernel=6000, scene=1200, voice=900),
     "pair_intimate": SceneBudgetProfile(name="pair_intimate", kernel=8000, scene=800, voice=700),
     "multi_woman_group": SceneBudgetProfile(name="multi_woman_group", kernel=5500, scene=1800, voice=1000),
-    "children_gated": SceneBudgetProfile(name="children_gated", kernel=5500, scene=1400, voice=800),
     "solo": SceneBudgetProfile(name="solo", kernel=7000, scene=800, voice=900),
 }
 

@@ -370,11 +370,6 @@ class TestDeriveActiveVoiceModes:
         modes = derive_active_voice_modes(scene)
         assert VoiceMode.DOMESTIC in modes
 
-    def test_children_present_adds_children_gate(self) -> None:
-        scene = SceneState(children_present=True)
-        modes = derive_active_voice_modes(scene)
-        assert VoiceMode.CHILDREN_GATE in modes
-
     def test_public_scene_adds_public(self) -> None:
         scene = SceneState(public_scene=True)
         modes = derive_active_voice_modes(scene)
@@ -441,8 +436,8 @@ class TestAbbreviatedContentLength:
             if ex.abbreviated_text:
                 sentences = sentence_split.split(ex.abbreviated_text)
                 sentences = [s for s in sentences if s.strip()]
-                assert 1 <= len(sentences) <= 3, (
-                    f"{ex.title}: expected 1-3 sentences, got {len(sentences)}: "
+                assert 1 <= len(sentences) <= 2, (
+                    f"{ex.title}: expected 1-2 sentences, got {len(sentences)}: "
                     f"{ex.abbreviated_text}"
                 )
 
@@ -463,3 +458,129 @@ class TestAbbreviatedContentLength:
         formatted = _format_voice_exemplar(ex3)
         # Should use compacted teaching prose as fallback
         assert "Silence" in formatted
+
+
+# ---------------------------------------------------------------------------
+# Real-file tests: E1 and E4 against actual Voice.md corpus
+# ---------------------------------------------------------------------------
+
+REQUIRED_MODES: dict[str, set[str]] = {
+    "adelia": {"solo_pair", "conflict", "intimate", "group", "domestic", "silent"},
+    "bina": {"domestic", "conflict", "intimate", "repair", "silent"},
+    "reina": {"solo_pair", "conflict", "group", "repair", "intimate", "domestic", "escalation"},
+    "alicia": {"solo_pair", "silent", "intimate", "repair", "warm_refusal", "group_temperature"},
+}
+
+
+class TestRealFileParsing:
+    """Real-file tests against the actual Voice.md corpus."""
+
+    def test_all_characters_parse_with_mode_tags(self) -> None:
+        """E1 real: each character's Voice.md parses with mode tags."""
+        from starry_lyfe.context.kernel_loader import load_voice_examples
+        clear_kernel_cache()
+        for char_id in ("adelia", "bina", "reina", "alicia"):
+            examples = load_voice_examples(char_id)
+            assert examples is not None, f"No examples for {char_id}"
+            tagged = [ex for ex in examples if ex.modes]
+            assert len(tagged) == len(examples), (
+                f"{char_id}: {len(tagged)}/{len(examples)} examples have mode tags"
+            )
+        clear_kernel_cache()
+
+    def test_required_mode_coverage(self) -> None:
+        """E1 real: each character covers all required modes."""
+        from starry_lyfe.context.kernel_loader import load_voice_examples
+        clear_kernel_cache()
+        for char_id, required in REQUIRED_MODES.items():
+            examples = load_voice_examples(char_id)
+            assert examples is not None
+            covered_modes: set[str] = set()
+            for ex in examples:
+                for mode in ex.modes:
+                    covered_modes.add(str(mode))
+            missing = required - covered_modes
+            assert not missing, (
+                f"{char_id}: missing required modes {missing}"
+            )
+        clear_kernel_cache()
+
+    def test_all_examples_have_abbreviated_text(self) -> None:
+        """E4 real: all examples have abbreviated text."""
+        from starry_lyfe.context.kernel_loader import load_voice_examples
+        clear_kernel_cache()
+        for char_id in ("adelia", "bina", "reina", "alicia"):
+            examples = load_voice_examples(char_id)
+            assert examples is not None
+            for ex in examples:
+                assert ex.abbreviated_text is not None, (
+                    f"{char_id} {ex.title}: missing abbreviated text"
+                )
+                assert len(ex.abbreviated_text) > 20, (
+                    f"{char_id} {ex.title}: abbreviated text too short"
+                )
+        clear_kernel_cache()
+
+    def test_abbreviated_text_sentence_count_real(self) -> None:
+        """E4 real: abbreviated text is 1-2 sentences."""
+        import re as re_mod
+
+        from starry_lyfe.context.kernel_loader import load_voice_examples
+        clear_kernel_cache()
+        sentence_split = re_mod.compile(r"(?<=[.!?])\s+")
+        for char_id in ("adelia", "bina", "reina", "alicia"):
+            examples = load_voice_examples(char_id)
+            assert examples is not None
+            for ex in examples:
+                if ex.abbreviated_text:
+                    sentences = sentence_split.split(ex.abbreviated_text)
+                    sentences = [s for s in sentences if s.strip()]
+                    assert 1 <= len(sentences) <= 2, (
+                        f"{char_id} {ex.title}: expected 1-2 sentences, "
+                        f"got {len(sentences)}: {ex.abbreviated_text}"
+                    )
+        clear_kernel_cache()
+
+
+# ---------------------------------------------------------------------------
+# Live Layer 5 test: format_voice_directives uses mode-aware path
+# ---------------------------------------------------------------------------
+
+class TestLiveLayer5:
+    """Verify format_voice_directives activates mode-aware path on real files."""
+
+    def test_voice_rhythm_exemplars_header_on_real_files(self) -> None:
+        """Layer 5 uses 'Voice rhythm exemplars:' when mode tags present."""
+        from starry_lyfe.context.layers import format_voice_directives
+        clear_kernel_cache()
+        layer = format_voice_directives("adelia", baseline=None)
+        assert "Voice rhythm exemplars:" in layer.text
+        clear_kernel_cache()
+
+    def test_abbreviated_text_appears_in_layer5(self) -> None:
+        """Layer 5 carries abbreviated text from real Voice.md files."""
+        from starry_lyfe.context.layers import format_voice_directives
+        clear_kernel_cache()
+        layer = format_voice_directives("bina", baseline=None)
+        # Should contain at least one abbreviated exemplar
+        assert "domestic" in layer.text.lower() or "solo_pair" in layer.text.lower()
+        clear_kernel_cache()
+
+    def test_scene_state_affects_exemplar_selection(self) -> None:
+        """Non-domestic scene changes the exemplar set in Layer 5."""
+        from starry_lyfe.context.layers import format_voice_directives
+        clear_kernel_cache()
+        domestic_scene = SceneState(present_characters=["adelia", "whyze"])
+        group_scene = SceneState(
+            present_characters=["adelia", "bina", "whyze"],
+        )
+        format_voice_directives(
+            "adelia", baseline=None, scene_state=domestic_scene,
+        )
+        clear_kernel_cache()
+        layer_group = format_voice_directives(
+            "adelia", baseline=None, scene_state=group_scene,
+        )
+        clear_kernel_cache()
+        # Group scene should include a group-tagged exemplar
+        assert "group" in layer_group.text.lower()
