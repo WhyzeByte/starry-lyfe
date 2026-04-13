@@ -15,8 +15,8 @@ from starry_lyfe.db.models.open_loop import OpenLoop
 from starry_lyfe.db.retrieval import DecayedSomaticState
 
 from .budgets import DEFAULT_BUDGETS, estimate_tokens, trim_text_to_budget, trim_to_budget
-from .kernel_loader import load_kernel, load_voice_guidance
-from .types import LayerContent
+from .kernel_loader import load_kernel, load_voice_examples, load_voice_guidance
+from .types import LayerContent, SceneState, VoiceExample, VoiceMode
 
 _VOICE_GUIDANCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
 
@@ -37,6 +37,94 @@ def _compact_voice_guidance_item(item: str) -> str:
 
     compact = f"{label}: {first_sentence}" if label else first_sentence
     return compact.strip()
+
+
+def derive_active_voice_modes(scene: SceneState) -> list[VoiceMode]:
+    """Map a SceneState to a list of active VoiceModes for exemplar selection.
+
+    When ``scene.voice_modes`` is explicitly set, those modes are used
+    directly (future Phase F integration). Otherwise, modes are derived
+    from the existing scene state fields.
+    """
+    if scene.voice_modes is not None:
+        return scene.voice_modes
+
+    modes: list[VoiceMode] = [VoiceMode.DOMESTIC]
+
+    if scene.children_present:
+        modes.append(VoiceMode.CHILDREN_GATE)
+    if scene.public_scene:
+        modes.append(VoiceMode.PUBLIC)
+
+    char_count = len(scene.present_characters)
+    if char_count > 2:
+        modes.append(VoiceMode.GROUP)
+    elif char_count == 2:
+        modes.append(VoiceMode.SOLO_PAIR)
+
+    return modes
+
+
+def _select_voice_exemplars(
+    examples: list[VoiceExample],
+    active_modes: list[VoiceMode],
+    communication_mode: str | None = None,
+    max_exemplars: int = 2,
+) -> list[VoiceExample]:
+    """Select voice exemplars by mode overlap, respecting communication mode.
+
+    Algorithm:
+    1. Filter by communication_mode (Phase A'' behavior preserved).
+    2. Filter to examples tagged with at least one active mode.
+    3. Score by mode overlap count, rank by score desc then file order.
+    4. Take up to max_exemplars.
+    5. Fallback: first 2 by file order if no mode matches.
+    """
+    # Step 1: communication mode filter
+    if communication_mode:
+        candidates = [
+            ex for ex in examples
+            if ex.communication_mode in (communication_mode, "any")
+        ]
+    else:
+        candidates = list(examples)
+
+    if not candidates:
+        return examples[:max_exemplars]
+
+    # Step 2: mode overlap filter
+    active_set = set(active_modes)
+    mode_matched = [
+        ex for ex in candidates
+        if set(ex.modes) & active_set
+    ]
+
+    if not mode_matched:
+        # Fallback: no mode overlap, return first candidates by file order
+        return sorted(candidates, key=lambda ex: ex.index)[:max_exemplars]
+
+    # Step 3: score and rank
+    def score_key(ex: VoiceExample) -> tuple[int, int]:
+        overlap = len(set(ex.modes) & active_set)
+        return (-overlap, ex.index)
+
+    mode_matched.sort(key=score_key)
+
+    return mode_matched[:max_exemplars]
+
+
+def _format_voice_exemplar(example: VoiceExample) -> str:
+    """Format a selected VoiceExample as a runtime Layer 5 entry."""
+    modes_str = ", ".join(str(m) for m in example.modes)
+    if example.abbreviated_text:
+        return f"{example.title} [{modes_str}]: {example.abbreviated_text}"
+    # Fallback: compact teaching note
+    if example.teaching_prose:
+        compact = _compact_voice_guidance_item(
+            f"{example.title}: {example.teaching_prose}"
+        )
+        return compact
+    return example.title
 
 
 def format_kernel(
@@ -149,12 +237,16 @@ def format_voice_directives(
     baseline: CharacterBaseline | None,
     budget: int = DEFAULT_BUDGETS.voice,
     communication_mode: str | None = None,
+    scene_state: SceneState | None = None,
 ) -> LayerContent:
     """Layer 5: Format voice directives and calibration material.
 
-    Includes metadata from CharacterBaseline plus voice calibration notes
-    from the canonical Voice.md files. Full few-shot examples are Msty-owned
-    per the production authority split (Implementation Plan section 1).
+    Includes metadata from CharacterBaseline plus voice exemplars or
+    calibration notes from the canonical Voice.md files.
+
+    When Voice.md files contain mode tags (Phase E), uses mode-aware
+    exemplar selection. Otherwise falls back to the existing compact
+    teaching note path for backward compatibility.
     """
     sections: list[str] = []
     remaining = budget
@@ -184,25 +276,61 @@ def format_voice_directives(
         sections.append(metadata_text)
         remaining = max(0, remaining - estimate_tokens(metadata_text) - 3)
 
-    # Runtime uses compact teaching notes, not full human-authored prose blocks.
-    guidance_items = load_voice_guidance(character_id, communication_mode=communication_mode)
-    if guidance_items and remaining > 0:
-        compact_items = [_compact_voice_guidance_item(item) for item in guidance_items]
-        header = "Voice calibration guidance:\n"
-        header_tokens = estimate_tokens(header)
-        if remaining > header_tokens:
-            item_format_overhead = min(len(compact_items), 10) * 2
-            remaining_for_items = remaining - header_tokens - item_format_overhead
-            chosen_items = trim_to_budget(compact_items, remaining_for_items)
-            if not chosen_items:
-                chosen_items = [
-                    trim_text_to_budget(
-                        compact_items[0],
-                        remaining_for_items,
-                        "[Voice guidance trimmed to token budget.]",
-                    )
-                ]
-            sections.append(header + "\n".join(f"- {item}" for item in chosen_items))
+    # Phase E: try mode-aware exemplar selection first
+    voice_section_added = False
+    if remaining > 0:
+        voice_examples = load_voice_examples(character_id)
+        has_mode_tags = voice_examples and any(ex.modes for ex in voice_examples)
+
+        if has_mode_tags and voice_examples:
+            active_modes = (
+                derive_active_voice_modes(scene_state)
+                if scene_state is not None
+                else [VoiceMode.DOMESTIC]
+            )
+            selected = _select_voice_exemplars(
+                voice_examples,
+                active_modes=active_modes,
+                communication_mode=communication_mode,
+            )
+            if selected:
+                formatted = [_format_voice_exemplar(ex) for ex in selected]
+                header = "Voice rhythm exemplars:\n"
+                header_tokens = estimate_tokens(header)
+                if remaining > header_tokens:
+                    item_format_overhead = min(len(formatted), 4) * 2
+                    remaining_for_items = remaining - header_tokens - item_format_overhead
+                    chosen_items = trim_to_budget(formatted, remaining_for_items)
+                    if chosen_items:
+                        sections.append(
+                            header + "\n".join(f"- {item}" for item in chosen_items)
+                        )
+                        voice_section_added = True
+
+    # Fallback: existing compact teaching note path (pre-Phase E)
+    if not voice_section_added and remaining > 0:
+        guidance_items = load_voice_guidance(
+            character_id, communication_mode=communication_mode
+        )
+        if guidance_items:
+            compact_items = [_compact_voice_guidance_item(item) for item in guidance_items]
+            header = "Voice calibration guidance:\n"
+            header_tokens = estimate_tokens(header)
+            if remaining > header_tokens:
+                item_format_overhead = min(len(compact_items), 10) * 2
+                remaining_for_items = remaining - header_tokens - item_format_overhead
+                chosen_items = trim_to_budget(compact_items, remaining_for_items)
+                if not chosen_items:
+                    chosen_items = [
+                        trim_text_to_budget(
+                            compact_items[0],
+                            remaining_for_items,
+                            "[Voice guidance trimmed to token budget.]",
+                        )
+                    ]
+                sections.append(
+                    header + "\n".join(f"- {item}" for item in chosen_items)
+                )
 
     text = "\n\n".join(sections) if sections else "No voice directive data available."
     text = trim_text_to_budget(text, budget, "[Voice layer trimmed to token budget.]")

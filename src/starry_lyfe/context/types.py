@@ -15,6 +15,44 @@ class CommunicationMode(StrEnum):
     VIDEO_CALL = "video_call"
 
 
+class VoiceMode(StrEnum):
+    """Closed enum of voice modes for mode-aware exemplar selection (Phase E).
+
+    Each Voice.md example is tagged with one or more modes via
+    ``<!-- mode: X, Y -->`` comments. The mode-aware selector uses
+    these tags to filter and rank exemplars based on the active scene.
+    """
+
+    DOMESTIC = "domestic"
+    CONFLICT = "conflict"
+    INTIMATE = "intimate"
+    CHILDREN_GATE = "children_gate"
+    PUBLIC = "public"
+    GROUP = "group"
+    REPAIR = "repair"
+    SILENT = "silent"
+    SOLO_PAIR = "solo_pair"
+    ESCALATION = "escalation"
+    WARM_REFUSAL = "warm_refusal"
+    GROUP_TEMPERATURE = "group_temperature"
+
+
+@dataclass
+class VoiceExample:
+    """A parsed voice exemplar from a Voice.md file (Phase E).
+
+    Carries the structured data needed for mode-aware selection: mode
+    tags, teaching prose, and the abbreviated text that ships to Layer 5.
+    """
+
+    title: str
+    modes: list[VoiceMode]
+    teaching_prose: str
+    abbreviated_text: str | None
+    communication_mode: str  # "any" | CommunicationMode value
+    index: int  # Original file order position for stable sorting
+
+
 @dataclass
 class SceneState:
     """Current scene state for context assembly decisions."""
@@ -26,6 +64,7 @@ class SceneState:
     scene_description: str = ""
     communication_mode: CommunicationMode = CommunicationMode.IN_PERSON
     recalled_dyads: set[str] = field(default_factory=set)
+    voice_modes: list[VoiceMode] | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.communication_mode, CommunicationMode):

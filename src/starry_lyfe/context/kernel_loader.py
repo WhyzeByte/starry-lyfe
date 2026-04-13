@@ -7,6 +7,7 @@ from pathlib import Path
 
 from ..canon.soul_essence import format_soul_essence
 from .budgets import estimate_tokens, trim_text_to_budget
+from .types import VoiceExample, VoiceMode
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
@@ -224,6 +225,8 @@ def load_kernel_body_only(character_id: str, budget: int = 2000) -> str:
 
 
 _COMM_MODE_TAG_RE = re.compile(r"^<!--\s*communication_mode:\s*(\w+)\s*-->$")
+_MODE_TAG_RE = re.compile(r"^<!--\s*mode:\s*(.+?)\s*-->$")
+_ABBREVIATED_RE = re.compile(r"^\*\*Abbreviated:\*\*\s*(.*)$")
 
 
 def _extract_voice_guidance(raw_text: str) -> list[tuple[str, str]]:
@@ -343,7 +346,138 @@ def load_voice_guidance(
     return guidance_items or None
 
 
+_voice_examples_cache: dict[str, list[VoiceExample] | None] = {}
+
+
+def _extract_voice_examples(raw_text: str) -> list[VoiceExample]:
+    """Extract structured VoiceExample entries from a Voice.md file.
+
+    Parses mode tags (``<!-- mode: X, Y -->``), communication mode tags,
+    teaching prose, and abbreviated text from each example block. Returns
+    a list ordered by file position.
+    """
+    examples: list[VoiceExample] = []
+    current_title: str | None = None
+    current_teaching_parts: list[str] | None = None
+    current_teaching_text: str = ""
+    current_comm_mode: str = "any"
+    current_modes: list[VoiceMode] = []
+    current_abbreviated: str | None = None
+    example_index = 0
+    in_abbreviated = False
+
+    for line in raw_text.splitlines():
+        stripped = line.strip()
+
+        if stripped.startswith("## Example "):
+            # Flush previous example
+            if current_title is not None:
+                examples.append(VoiceExample(
+                    title=current_title,
+                    modes=current_modes,
+                    teaching_prose=current_teaching_text,
+                    abbreviated_text=current_abbreviated,
+                    communication_mode=current_comm_mode,
+                    index=example_index,
+                ))
+                example_index += 1
+            current_title = stripped.removeprefix("## ").strip()
+            current_teaching_parts = None
+            current_teaching_text = ""
+            current_comm_mode = "any"
+            current_modes = []
+            current_abbreviated = None
+            in_abbreviated = False
+            continue
+
+        mode_match = _MODE_TAG_RE.match(stripped)
+        if mode_match:
+            raw_modes = mode_match.group(1)
+            for raw_mode in raw_modes.split(","):
+                mode_str = raw_mode.strip()
+                if mode_str:
+                    current_modes.append(VoiceMode(mode_str))
+            continue
+
+        comm_match = _COMM_MODE_TAG_RE.match(stripped)
+        if comm_match:
+            current_comm_mode = comm_match.group(1)
+            continue
+
+        abbreviated_match = _ABBREVIATED_RE.match(stripped)
+        if abbreviated_match:
+            current_abbreviated = abbreviated_match.group(1).strip()
+            in_abbreviated = bool(current_abbreviated)
+            if not current_abbreviated:
+                current_abbreviated = None
+                in_abbreviated = True
+            continue
+
+        if stripped.startswith("**What it teaches the model:**"):
+            in_abbreviated = False
+            teaching_text = stripped.removeprefix("**What it teaches the model:**").strip()
+            current_teaching_parts = [teaching_text] if teaching_text else []
+            continue
+
+        if stripped.startswith("**User:**") or stripped.startswith("**Assistant:**") or stripped == "---":
+            in_abbreviated = False
+            # Finalize teaching prose before clearing the accumulator
+            if current_teaching_parts is not None:
+                current_teaching_text = " ".join(
+                    p for p in current_teaching_parts if p
+                ).strip()
+            current_teaching_parts = None
+            continue
+
+        if in_abbreviated and stripped and current_abbreviated is not None:
+            current_abbreviated = current_abbreviated + " " + stripped
+        elif in_abbreviated and stripped and current_abbreviated is None:
+            current_abbreviated = stripped
+        elif current_teaching_parts is not None and stripped:
+            current_teaching_parts.append(stripped)
+
+    # Flush last example
+    if current_title is not None:
+        if current_teaching_parts is not None:
+            current_teaching_text = " ".join(
+                p for p in current_teaching_parts if p
+            ).strip()
+        examples.append(VoiceExample(
+            title=current_title,
+            modes=current_modes,
+            teaching_prose=current_teaching_text,
+            abbreviated_text=current_abbreviated,
+            communication_mode=current_comm_mode,
+            index=example_index,
+        ))
+
+    return examples
+
+
+def load_voice_examples(character_id: str) -> list[VoiceExample] | None:
+    """Load structured VoiceExample entries from a Voice.md file.
+
+    Returns a list of VoiceExample dataclasses with mode tags, teaching
+    prose, and abbreviated text parsed from the canonical Voice.md. Returns
+    None if no Voice.md file exists for the character.
+    """
+    if character_id not in _voice_examples_cache:
+        rel_path = VOICE_PATHS.get(character_id)
+        if rel_path is None:
+            _voice_examples_cache[character_id] = None
+        else:
+            full_path = PROJECT_ROOT / rel_path
+            if not full_path.exists():
+                _voice_examples_cache[character_id] = None
+            else:
+                text = full_path.read_text(encoding="utf-8")
+                _voice_examples_cache[character_id] = _extract_voice_examples(text)
+
+    return _voice_examples_cache[character_id]
+
+
 def clear_kernel_cache() -> None:
     """Clear all caches (useful for testing)."""
     _kernel_cache.clear()
     _voice_raw_cache.clear()
+    _voice_examples_cache.clear()
