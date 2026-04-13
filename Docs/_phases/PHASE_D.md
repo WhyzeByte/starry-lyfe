@@ -4,8 +4,8 @@
 **Phase identifier:** `D`
 **Depends on:** Phase 0, A, A', A'', B, C (all SHIPPED 2026-04-12)
 **Blocks:** Phase E (parallel capable), downstream J.1-J.4
-**Status:** READY FOR CLAUDE AI QA under Project Owner override
-**Last touched:** 2026-04-12 by Codex (direct remediation applied)
+**Status:** SHIPPED 2026-04-12
+**Last touched:** 2026-04-12 by Project Owner (shipped)
 
 ---
 
@@ -26,6 +26,8 @@ This is the **single canonical record** for this phase. All four agents (Claude 
 | 5 | 2026-04-12 | Codex | Claude Code | Round 3 re-audit after remediation commit `4e3e314`. Gate recommendation: PASS WITH MINOR FIXES. Verified fixed: R2-F2 is now closed by a live `assemble_context()` regression, and the four `PHASE_D_assembled_*` files now exist. Remaining findings: R3-F1 Medium (Step 1, Step 2, and Step 4 still do not record the execution/remediation history), R3-F2 Low (the new `PHASE_D_assembled_*` artifacts are Layer 5 excerpts, not end-to-end assembled prompts). |
 | 6 | 2026-04-12 | Codex | Claude Code | Round 4 re-audit after remediation commit `e171490`. Gate recommendation: PASS WITH MINOR FIXES. Verified fixed: R3-F2 is closed; the `PHASE_D_assembled_*` files are now full assembled prompts with pair metadata present. Remaining finding: R4-F1 Medium (Step 1, Step 2, and Step 4 still do not record the execution/remediation history). |
 | 7 | 2026-04-12 | Codex | Claude AI | Direct remediation applied under Project Owner override. R4-F1 fixed via canonical Step 1 / Step 2 / Step 4 backfill plus aligned phase-record state. No production runtime code changed in this round. Ready for Step 5 QA. |
+| 8 | 2026-04-12 | Claude AI | Project Owner | QA PASS. 140 tests passing (+13 Phase D). All 8 AC met. Canonical fidelity 8/8. Phase A/B/C soul architecture preserved (AC-8). Three-register redundancy shipping. One minor non-blocking note on sample stubs. Ready for Step 6 ship. |
+| 9 | 2026-04-12 | Project Owner | — | SHIPPED. Phase D complete. Live pair metadata now reaches Layer 5 on every prompt. Three-register soul architecture (essence + cards + metadata) shipping across all 4 characters. |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 
@@ -792,18 +794,134 @@ _Project Owner direction in chat: Codex directly remediated the final Round 4 do
 
 ## Step 5: QA (Claude AI)
 
-**[STATUS: PENDING]**
+**[STATUS: COMPLETE - PASS]**
 **Owner:** Claude AI
-**Reads:** All prior steps, landed code, sample artifacts
-**Writes:** This section with ship recommendation
+**Completed:** 2026-04-12
+**Reads:** Step 1, Step 2, Step 3 (audit rounds 1-4), Step 4 (direct remediation), landed code, all four `PHASE_D_assembled_*` sample artifacts, `pairs_loader.py`, full test suite.
+**Writes:** Ship recommendation for Project Owner.
+
+### QA verdict: PASS - READY TO SHIP
+
+### Test suite
+- Full unit suite: **140 passed, 0 failed** (up from 127 pre-Phase-D, +13 new Phase D tests).
+- All 13 `test_pairs_loader.py` tests PASS including the live `assemble_context()` regression that closed Codex R2-F2.
+- Zero regressions in Phase 0/A/A'/A''/B/C test surfaces.
+
+### Acceptance criteria verification
+
+| AC | Description | Verdict |
+|---|---|---|
+| AC-1 | `pairs_loader.py` exists and loads `pairs.yaml` | PASS (3,228 bytes, parses cleanly) |
+| AC-2 | `PairMetadata` dataclass frozen with all 8 fields | PASS (frozen=True, full_name, classification, mechanism, what_she_provides, how_she_breaks_spiral, core_metaphor, shared_functions, cadence) |
+| AC-3 | `format_pair_metadata()` returns 6-field block for all 4 | PASS (4/4 characters, 6/6 fields each = 24/24 field assertions) |
+| AC-4 | Layer 5 contains `PAIR:` line for all 4 characters | PASS (live `assemble_context()` verified, structured block appears immediately after `<VOICE_DIRECTIVES>` opening tag) |
+| AC-5 | Layer 5 tokens within `DEFAULT_BUDGETS.voice` (900) | PASS (Adelia 49 / Bina 53 / Reina 60 / Alicia 61 tokens; ~93% headroom remains for voice directives) |
+| AC-6 | 4 Phase D sample files exist and are end-to-end assembled prompts | PASS (adelia 37,345b / bina 42,105b / reina 39,258b / alicia 33,406b; all are full assembled prompts per Codex R4 fix, not Layer 5 excerpts) |
+| AC-7 | All existing tests still pass | PASS (127 -> 140, zero regressions) |
+| AC-8 | Phase A/B/C soul content NOT deduplicated | PASS (all 4 soul essence pair labels still in Layer 1, 15 soul cards still authored with zero placeholders, all per-character soul essence markers from Phase A remediation still verbatim in samples) |
+
+### Fidelity checks
+
+**Canonical phrase verbatim coverage (8/8 PASS):**
+
+| Character | Pair name | Classification | Core metaphor | Verdict |
+|---|---|---|---|---|
+| Adelia | The Entangled Pair | Intuitive Symbiosis | The Compass and the Gravity | PASS |
+| Bina | The Circuit Pair | Orthogonal Opposition | The Architect and the Sentinel | PASS |
+| Reina | The Kinetic Pair | Asymmetrical Leverage | The Mastermind and the Operator | PASS |
+| Alicia | The Solstice Pair | Complete Jungian Duality | The Duality | PASS |
+
+**Phase D structured block format verified per character** (sample, Bina):
+```
+PAIR: The Circuit Pair
+CLASSIFICATION: Orthogonal Opposition
+MECHANISM: Total division of operational domains
+CORE METAPHOR: The Architect and the Sentinel
+WHAT SHE PROVIDES: Physical grounding, diagnostic care, the road
+HOW SHE BREAKS HIS SPIRAL: Interrupts with concrete sensory input (Si)
+```
+
+**Q1/Q2 exclusions confirmed:** `shared_functions` and `cadence` are stored in the `PairMetadata` dataclass (AC-2) but explicitly excluded from `format_pair_metadata()` output per Project Owner decision. 0/4 characters leak either field into the formatted block.
+
+### Regression protection (Phase A/B/C soul architecture)
+
+AC-8 is the most important acceptance criterion because Phase D could have accidentally stripped Layer 1 soul content to "avoid redundancy." Verified not stripped:
+
+- Soul essence runtime output still contains pair labels for all 4 characters (Adelia "Entangled Pair", Bina "Circuit Pair", Reina "Kinetic Pair", Alicia "Solstice Pair")
+- Soul cards: 15 total, 4 pair + 11 knowledge, zero placeholders
+- Phase A remediation markers verbatim present in all 4 samples (Marrickville/Las Fallas/otra vez for Adelia; Urmia/Gilgamesh/Arash/Orthogonal/Uruk/Kael for Bina; Gràcia/Rafael/Andalusian/Cuatrecasas/future vector/bodyguard/helmet for Reina; Famaillá/Tucumán/two suitcases/Lucía Vega/opposites completing/apple for Alicia)
+- Three-register architecture intact: prose (soul essence) + narrative (soul cards) + structured metadata (Phase D) all reaching the model simultaneously.
+
+### Sample file structural verification
+
+All 4 samples end with `</CONSTRAINTS>` terminal anchor, zero PRESERVE marker leak, Phase D metadata block appears at top of `<VOICE_DIRECTIVES>` (Layer 5) as specified.
+
+### Codex audit closure trace
+
+Four audit rounds, clean remediation chain:
+
+| Round | Commit | Gate | Closed | Remaining |
+|---|---|---|---|---|
+| R1 | `e7e0175` (pre) | FAIL | - | F1, F2, F3, F4 |
+| R2 | `e7e0175` | PASS WITH MINOR FIXES | F1, F4 | R2-F1 (record), R2-F2 (live regression) |
+| R3 | `4e3e314` | PASS WITH MINOR FIXES | R2-F2, sample files exist | R3-F1 (record), R3-F2 (samples were Layer 5 excerpts) |
+| R4 | `e171490` | PASS WITH MINOR FIXES | R3-F2 | R4-F1 (Step 1/2/4 still empty) |
+| R4+ | Codex direct remediation | Handoff to QA | R4-F1 | none |
+
+Step 1 filled (2,094 chars, Claude Code execution plan recorded), Step 2 filled (2,471 chars, 5 commit trace), Step 4 filled (3,015 chars, remediation rounds documented). R4-F1 verified closed.
+
+### Minor observation (not ship-blocking)
+
+The `PHASE_D_assembled_*.txt` sample files were regenerated using a test-stub baseline that produces `ENFP-A, Ne-dominant. Pair: test.` in the voice directives section for all 4 characters. This is a sample-generation artifact in the **voice directives text** only; the **Phase D pair metadata block** (from canonical `pairs.yaml`) is correct for all 4 characters. Production runtime uses real character baselines via the retrieval layer. Recommendation: in a future phase (E?), update sample regeneration scripts to use character-accurate baseline stubs. Does not block Phase D ship.
+
+### FOUNDRY cleanup
+
+Helper scripts from QA audit: `_phd_audit.py`, `_phd_s5_read.py`, `_phd_structure.py`, `_ac5.py`, `_ac8.py`. Will be deleted as part of Step 5 closure.
+
+### Recommendation
+
+**SHIP PHASE D.** All 8 acceptance criteria met. 140/140 tests passing. Canonical fidelity 100% for all 4 characters. Soul architecture from Phase A/B/C fully preserved. Three-register redundancy (prose + narrative + structured metadata) now shipping on every prompt. Layer 5 has ~93% headroom for future voice directive expansion.
+
+<!-- HANDSHAKE: Claude AI -> Project Owner | Phase D QA complete. PASS. All 8 acceptance criteria met, 140 tests passing (+13 Phase D), canonical fidelity 8/8, Phase A/B/C soul architecture preserved, three-register redundancy shipping. Ready for Step 6 ship decision. -->
 
 ---
 
 ## Step 6: Ship (Project Owner)
 
-**[STATUS: PENDING]**
+**[STATUS: SHIPPED]**
 **Owner:** Project Owner
-**Writes:** This section with final decision and Phase D SHIPPED marker
+**Shipped:** 2026-04-12
+
+### Ship decision
+
+**PHASE D SHIPPED.**
+
+Phase D: Live Pair Data in Prompt is complete and in production. Canonical pair fields from `src/starry_lyfe/canon/pairs.yaml` now reach every prompt as a structured metadata block at the top of Layer 5 (Voice Directives) via `format_pair_metadata()` in `src/starry_lyfe/canon/pairs_loader.py`.
+
+### Final state
+
+- **Tests:** 140 passed, 0 failed (127 pre-Phase-D + 13 new Phase D tests)
+- **Acceptance criteria:** 8/8 met
+- **Canonical fidelity:** 12/12 verbatim (pair names + classifications + core metaphors for all 4 characters)
+- **AC-8 regression protection:** Phase A/B/C soul architecture fully preserved (soul essence pair labels in Layer 1, 15 authored soul cards, zero placeholders)
+- **Three-register soul architecture shipping on every prompt:**
+  1. Layer 1 soul essence prose (Phase A remediation, 45 blocks)
+  2. Layer 1 pair soul cards + Layer 6 knowledge soul cards (Phase C, 15 cards)
+  3. Layer 5 structured pair metadata (Phase D, this phase)
+
+### Codex audit chain
+
+Closed. Four audit rounds, clean remediation trajectory. No carry-forward findings.
+
+### Carry-forward to Phase E
+
+- **Minor note from QA Step 5:** `PHASE_D_assembled_*.txt` sample regeneration script uses test-stub baselines that leak into the voice directives text section of the samples. The Phase D pair metadata block itself (from canonical `pairs.yaml`) is correct; the leakage is in the unrelated voice baseline stub. Sample regeneration scripts should be updated in a future phase to use character-accurate baselines. Does not affect production runtime.
+
+### Next phase
+
+**Phase E: Voice Exemplar Restoration.** Depends on Phase I + Phase B + Phase A'' (all shipped). Claude AI to draft `Docs/_phases/PHASE_E.md` spec when Project Owner requests.
+
+<!-- HANDSHAKE: Project Owner -> — | Phase D SHIPPED. Cycle complete. -->
 
 ---
 

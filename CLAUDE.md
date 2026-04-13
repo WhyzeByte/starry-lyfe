@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Version:** U1.3-P2.4 | **Format:** U{universal}.{minor}-P{project}.{minor}
+**Version:** U1.3-P2.6 | **Format:** U{universal}.{minor}-P{project}.{minor}
 
 > Universal sections (Part 1) are identical across all repositories.
 > Project sections (Part 2) are customized per service.
@@ -380,8 +380,8 @@ These corrections override any conflicting content in project files. Apply befor
 
 ## 19. CURRENT PHASE STATUS (2026-04-12)
 
-**Shipped phases (all 2026-04-12):** Phase 0, A, A', A'', B, C.
-**Approved and handed to Claude Code:** Phase D.
+**Shipped phases (all 2026-04-12):** Phase 0, A, A', A'', B, C, D.
+**Next phase awaiting spec:** Phase E (Voice Exemplar Restoration).
 
 ### Soul architecture shipping on every prompt
 
@@ -418,7 +418,7 @@ Three layers of canonical soul content now reach the model on every assembled pr
 | Reina | 6,900 | ~1,750 | ~8,650 |
 | Alicia | 5,100 | ~2,050 | ~7,150 |
 
-### Phase D (APPROVED, awaiting Claude Code execution)
+### Phase D (SHIPPED 2026-04-12)
 
 **What:** Surface 5 canonical pair fields (`full_name`, `classification`, `mechanism`, `what_she_provides`, `how_she_breaks_spiral`, `core_metaphor`) from `src/starry_lyfe/canon/pairs.yaml` as a structured metadata block at the top of Layer 5 (Voice Directives).
 
@@ -446,11 +446,11 @@ Removed: `Vision/{Adelia Raye,Alicia Marin,Bina Malek,Reina Torres}.md`, `Docs/_
 
 ### Test baseline
 
-**127 passed, 0 failed** as of 2026-04-12 post-Phase-C remediation and pair-label patch.
+**140 passed, 0 failed** as of 2026-04-12 post-Phase-D QA (127 pre-D + 13 new Phase D tests including live `assemble_context()` regression).
 
 ### Outstanding work (Phase D onward)
 
-- Phase D: Live Pair Data in Prompt (approved, Claude Code executing)
+- Phase D: Live Pair Data in Prompt — SHIPPED 2026-04-12
 - Phase E: Voice Exemplar Restoration (blocked on Phase I + Phase D)
 - Phase F: Scene-Aware Section Retrieval + Cross-Cutting Modifiers
 - Phase G: Dramaturgical Prose Rendering with Per-Character Templates
