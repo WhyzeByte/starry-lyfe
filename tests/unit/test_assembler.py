@@ -404,9 +404,13 @@ async def test_assemble_context_real_output_is_budgeted_and_backend_safe(
     assert "**Assistant:**" not in prompt.prompt
 
     from starry_lyfe.context.budgets import resolve_kernel_budget
+    from starry_lyfe.canon.soul_essence import soul_essence_token_estimate
 
+    # Layer 1 carries guaranteed soul essence that rides alongside the
+    # trimmable kernel body. The effective Layer 1 ceiling is therefore
+    # kernel_budget + soul_essence_token_estimate.
     layer_budgets = {
-        1: resolve_kernel_budget("bina"),
+        1: resolve_kernel_budget("bina") + soul_essence_token_estimate("bina"),
         2: DEFAULT_BUDGETS.canon_facts,
         3: DEFAULT_BUDGETS.episodic,
         4: DEFAULT_BUDGETS.somatic,

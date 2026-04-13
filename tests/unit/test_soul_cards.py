@@ -78,9 +78,11 @@ class TestSoulCardLoader:
         assert len(pair_cards) == 4
         assert len(knowledge_cards) == 11
 
-    def test_placeholder_detection(self) -> None:
+    def test_no_placeholders_remain(self) -> None:
+        """After 2026-04-12 direct remediation, all 15 cards should be authored."""
         cards = load_all_soul_cards()
-        assert all(c.is_placeholder for c in cards)
+        placeholders = [c for c in cards if c.is_placeholder]
+        assert not placeholders, f"Unexpected placeholders: {[c.file_path for c in placeholders]}"
 
 
 class TestActivation:
@@ -127,10 +129,12 @@ class TestFormatting:
     def test_format_empty_cards_returns_empty(self) -> None:
         assert format_soul_cards([], 700) == ""
 
-    def test_format_placeholder_cards_returns_empty(self) -> None:
+    def test_format_authored_cards_returns_content(self) -> None:
+        """After 2026-04-12 direct remediation, formatting should return non-empty content."""
         cards = load_all_soul_cards()
         result = format_soul_cards(cards, 5000)
-        assert result == ""
+        assert result != ""
+        assert len(result) > 1000
 
     def test_format_real_card_within_budget(self) -> None:
         card = SoulCard(
@@ -147,15 +151,15 @@ class TestFormatting:
 
 
 class TestContentValidation:
-    """Content tests that enforce the placeholder contract."""
+    """Content tests that enforce the authored contract."""
 
-    def test_all_cards_are_currently_placeholders(self) -> None:
-        """All cards should be placeholders until PO authors content."""
+    def test_all_cards_are_authored(self) -> None:
+        """After 2026-04-12 direct remediation, all 15 cards should be authored with full fidelity."""
         cards = load_all_soul_cards()
         placeholders = [c for c in cards if c.is_placeholder]
         authored = [c for c in cards if not c.is_placeholder]
-        assert len(placeholders) == 15, f"Expected 15 placeholders, got {len(placeholders)}"
-        assert len(authored) == 0, f"Unexpected authored cards: {[c.file_path for c in authored]}"
+        assert len(authored) == 15, f"Expected 15 authored cards, got {len(authored)}"
+        assert len(placeholders) == 0, f"Unexpected placeholders: {[c.file_path for c in placeholders]}"
 
     def test_knowledge_cards_within_500_token_budget(self) -> None:
         """Knowledge cards must declare budget ≤ 500 tokens."""
@@ -227,5 +231,11 @@ class TestAssemblyIntegration:
 
         assert "pairword" in layer_1.text
         assert "knowledgeword" in layer_6.text
-        assert layer_1.estimated_tokens <= resolve_kernel_budget("bina")
+        # Layer 1 carries guaranteed soul essence alongside the trimmable
+        # kernel body. Effective ceiling = kernel_budget + soul_essence.
+        from starry_lyfe.canon.soul_essence import soul_essence_token_estimate
+        effective_l1_ceiling = (
+            resolve_kernel_budget("bina") + soul_essence_token_estimate("bina")
+        )
+        assert layer_1.estimated_tokens <= effective_l1_ceiling
         assert layer_6.estimated_tokens <= DEFAULT_BUDGETS.scene

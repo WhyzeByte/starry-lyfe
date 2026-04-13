@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 from .budgets import estimate_tokens, trim_text_to_budget
+from ..canon.soul_essence import format_soul_essence
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
@@ -164,6 +165,25 @@ def compile_kernel(character_id: str, budget: int) -> str:
     return result
 
 
+def compile_kernel_with_soul(character_id: str, budget: int) -> str:
+    """Return compiled kernel prepended with guaranteed soul essence.
+
+    Soul essence is load-bearing canonical prose that must reach every
+    prompt for the focal character regardless of trim pressure. It rides
+    alongside the compiled kernel and is NEVER subject to the kernel
+    trim budget - the budget governs only the trimmable kernel body.
+
+    Use this function at the assembler layer (Layer 1) when building
+    the final prompt. Use compile_kernel() directly when you want only
+    the budget-bounded kernel body (e.g., for budget regression tests).
+    """
+    kernel_body = compile_kernel(character_id, budget)
+    soul = format_soul_essence(character_id)
+    if not soul:
+        return kernel_body
+    return soul + "\n\n" + kernel_body
+
+
 def _load_raw_kernel(character_id: str) -> str:
     """Load raw kernel text from filesystem."""
     rel_path = KERNEL_PATHS.get(character_id)
@@ -178,13 +198,29 @@ def _load_raw_kernel(character_id: str) -> str:
 
 
 def load_kernel(character_id: str, budget: int = 2000) -> str:
-    """Load a section-compiled character kernel. Cached after first load."""
+    """Load a section-compiled character kernel with guaranteed soul essence.
+
+    Returns the compiled kernel body (budget-bounded) with the character's
+    canonical soul essence prepended. Soul essence is load-bearing
+    substrate that rides alongside the kernel and is not subject to the
+    trim budget. The budget parameter governs only the trimmable kernel
+    body. Cached after first load.
+    """
     cache_key = f"{character_id}:{budget}"
     if cache_key in _kernel_cache:
         return _kernel_cache[cache_key]
-    text = compile_kernel(character_id, budget)
+    text = compile_kernel_with_soul(character_id, budget)
     _kernel_cache[cache_key] = text
     return text
+
+
+def load_kernel_body_only(character_id: str, budget: int = 2000) -> str:
+    """Load only the trimmable kernel body, without soul essence.
+
+    Use this when you need to verify budget compliance of the trimmable
+    kernel content in isolation (e.g., budget regression tests).
+    """
+    return compile_kernel(character_id, budget)
 
 
 _COMM_MODE_TAG_RE = re.compile(r"^<!--\s*communication_mode:\s*(\w+)\s*-->$")
