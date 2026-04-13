@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from .budgets import estimate_tokens, trim_text_to_budget
 from ..canon.soul_essence import format_soul_essence
+from .budgets import estimate_tokens, trim_text_to_budget
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 

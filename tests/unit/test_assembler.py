@@ -403,8 +403,8 @@ async def test_assemble_context_real_output_is_budgeted_and_backend_safe(
     assert "**User:**" not in prompt.prompt
     assert "**Assistant:**" not in prompt.prompt
 
-    from starry_lyfe.context.budgets import resolve_kernel_budget
     from starry_lyfe.canon.soul_essence import soul_essence_token_estimate
+    from starry_lyfe.context.budgets import resolve_kernel_budget
 
     # Layer 1 carries guaranteed soul essence that rides alongside the
     # trimmable kernel body. The effective Layer 1 ceiling is therefore
