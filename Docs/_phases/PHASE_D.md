@@ -4,8 +4,8 @@
 **Phase identifier:** `D`
 **Depends on:** Phase 0, A, A', A'', B, C (all SHIPPED 2026-04-12)
 **Blocks:** Phase E (parallel capable), downstream J.1-J.4
-**Status:** IN PROGRESS — Round 1 audit complete, awaiting remediation
-**Last touched:** 2026-04-12 by Codex (Round 1 audit recorded)
+**Status:** IN PROGRESS — Round 2 audit complete, awaiting remediation Round 2
+**Last touched:** 2026-04-12 by Codex (Round 2 re-audit recorded)
 
 ---
 
@@ -22,6 +22,7 @@ This is the **single canonical record** for this phase. All four agents (Claude 
 | 1 | 2026-04-12 | Claude AI | Project Owner | Phase D created after Phase C shipped and quality audit completed. Small scope, high value, Claude-Code-appropriate. |
 | 2 | 2026-04-12 | Project Owner | Claude Code | APPROVED. Proceed with execution. Answer open questions Q1/Q2 per recommendations (exclude shared_functions and cadence from structured block). |
 | 3 | 2026-04-12 | Codex | Claude Code | Round 1 audit recorded from the landed Phase D code surface because Step 1 and Step 2 were never canonically filled. Gate recommendation: FAIL. Findings: F1 High (Layer 5 silently drops pair metadata when the loader fails instead of raising a clear error), F2 Medium (the new Phase D tests do not cover the accepted spec or the live `assemble_context()` path), F3 Medium (the canonical Phase D record is still execution-incomplete and there are no `PHASE_D_assembled_*` sample artifacts), F4 Low (the loader does not parse `pairs.yaml` once at module init as specified; it reparses on each character cache miss). |
+| 4 | 2026-04-12 | Codex | Claude Code | Round 2 re-audit after remediation commit `e7e0175`. Gate recommendation: PASS WITH MINOR FIXES. Verified fixed: F1 silent Layer 5 fallback is gone, and F4 single-parse caching is live. Remaining findings: R2-F1 Medium (the canonical Phase D record is still not QA-ready: Step 1, Step 2, and Step 4 remain `PENDING`, and there are still no `PHASE_D_assembled_*` sample artifacts), R2-F2 Low (the accepted live `assemble_context()` regression test for Layer 5 pair metadata is still missing). |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 
@@ -251,6 +252,111 @@ Phase D should not proceed to QA yet. The happy path is working, but the failure
 
 **[STATUS: PENDING]**
 **Owner:** Claude Code (only if Step 3 returns FAIL)
+
+---
+
+## Step 3': Audit (Codex) — Round 2
+
+**[STATUS: COMPLETE - handed to Claude Code for remediation Round 2]**
+**Owner:** Codex
+**Reads:** Remediation commit `e7e0175`, current code/tests, and the current phase file
+**Writes:** This section with re-audit findings and updated gate recommendation
+
+### Round 2 audit content
+
+#### Scope
+
+Reviewed:
+
+- remediation commit `e7e0175`
+- current `src/starry_lyfe/canon/pairs_loader.py`
+- current `src/starry_lyfe/context/layers.py`
+- current `tests/unit/test_pairs_loader.py`
+- current `tests/unit/test_assembler.py`
+- current `Docs/_phases/PHASE_D.md`
+- `Docs/_phases/_samples/` for `PHASE_D_assembled_*` artifacts
+
+Because Step 4 is still not canonically filled, this re-audit used the landed remediation commit plus live runtime probes as the remediation record.
+
+#### Verification context
+
+Independent checks run during re-audit:
+
+- `.venv\Scripts\python -m pytest tests/unit/test_pairs_loader.py tests/unit/test_assembler.py -q` -> **PASS** (`64 passed`)
+- `.venv\Scripts\python -m pytest tests/unit -q` -> **PASS** (`139 passed`)
+- `.venv\Scripts\python -m ruff check src/ tests/` -> **PASS**
+- `.venv\Scripts\python -m mypy src/` -> **PASS**
+- `.venv\Scripts\python -m pytest -q` -> **ENVIRONMENTAL FAIL** (`139 passed, 14 errors`) because PostgreSQL remains unreachable during integration setup at `tests/integration/conftest.py:92`
+
+Runtime probes performed:
+
+- live `assemble_context(...)` probe across Adelia, Bina, Reina, and Alicia using the canonical unit-test stub retrieval path to confirm Layer 5 still carries `PAIR:`, `CLASSIFICATION:`, and `CORE METAPHOR:`
+- failure-path probe that patched `starry_lyfe.canon.pairs_loader.format_pair_metadata` to raise `FileNotFoundError`
+- single-parse probe that patched `yaml.safe_load` and counted parse calls while loading all four characters
+- sample-artifact existence check for `Docs/_phases/_samples/PHASE_D_assembled_*_2026-04-12.txt`
+
+#### Executive assessment
+
+The substantive runtime remediation is good. The silent Layer 5 fallback is gone, the loader now parses `pairs.yaml` once per cache lifetime instead of once per character, and the test suite meaningfully improved with all-four canonical phrase coverage plus explicit regression tests for error propagation and single-parse behavior. Live prompts for all four characters still carry the pair metadata block before voice guidance.
+
+The phase is still not fully converged as a canonical artifact. The remediation never filled Step 1, Step 2, or Step 4 in `PHASE_D.md`, and the required `PHASE_D_assembled_*` sample prompt artifacts still do not exist. The strengthened tests also still stop short of the accepted live `assemble_context()` regression named in the Phase D spec; the current Layer 5 assertions remain helper-level. Because the remaining issues are documentation / artifact completeness plus one residual coverage gap rather than a live runtime defect, the gate recommendation improves to **PASS WITH MINOR FIXES**.
+
+#### Findings
+
+| # | Severity | Finding | Evidence | Recommended fix |
+|---:|---|---|---|---|
+| R2-F1 | Medium | The canonical Phase D record is still not QA-ready: Step 1, Step 2, and Step 4 remain `PENDING`, and the required Phase D sample artifacts still do not exist. | `Docs/_phases/PHASE_D.md:113`, `:126`, and `:252` still show Step 1, Step 2, and Step 4 as `PENDING` despite remediation commit `e7e0175` landing. `Get-ChildItem Docs/_phases/_samples/PHASE_D_assembled_*_2026-04-12.txt` still returns count `0`. That leaves no canonical execution log, remediation table, or sample prompt evidence for QA. | Fill Step 1, Step 2, and Step 4 truthfully from the landed execution/remediation history and generate the four `PHASE_D_assembled_*_2026-04-12.txt` prompt artifacts from the live runtime. |
+| R2-F2 | Low | The accepted live `assemble_context()` regression test for Layer 5 pair metadata is still missing. | `tests/unit/test_pairs_loader.py:126-140` still checks `format_voice_directives(..., None)` directly rather than asserting the wrapped Layer 5 content through live `assemble_context()`. The original broad test gap is improved, but the specific accepted test case `test_layer_5_contains_pair_metadata_block` as a live `assemble_context()` call is still not present. | Add one live `assemble_context()` regression that asserts Layer 5 contains `PAIR:`, `CLASSIFICATION:`, `MECHANISM:`, `CORE METAPHOR:`, `WHAT SHE PROVIDES:`, and `HOW SHE BREAKS HIS SPIRAL:` for all four characters. |
+
+#### Runtime probe summary
+
+- Live happy-path prompt probes remain correct after remediation:
+  - `adelia`: `PAIR:=True`, `CLASSIFICATION:=True`, `CORE METAPHOR:=True`, `layer5_tokens=314`
+  - `bina`: `PAIR:=True`, `CLASSIFICATION:=True`, `CORE METAPHOR:=True`, `layer5_tokens=333`
+  - `reina`: `PAIR:=True`, `CLASSIFICATION:=True`, `CORE METAPHOR:=True`, `layer5_tokens=342`
+  - `alicia`: `PAIR:=True`, `CLASSIFICATION:=True`, `CORE METAPHOR:=True`, `layer5_tokens=117`
+- Live failure-path probe now behaves correctly:
+  - patched `format_pair_metadata()` to raise `FileNotFoundError('pairs.yaml missing')`
+  - `format_voice_directives('bina', ...)` now raises `FileNotFoundError` instead of silently dropping the block
+- Single-parse probe now behaves correctly:
+  - clear cache
+  - load all four characters
+  - `yaml.safe_load` call count = `1`
+- No `PHASE_D_assembled_*_2026-04-12.txt` sample artifacts are present under `Docs/_phases/_samples/`
+
+#### Drift against specification
+
+- Original `F1` is fixed: missing pair metadata no longer fails silently.
+- Original `F4` is fixed in substance: the loader now parses once per cache lifetime for all four characters together.
+- Original `F2` is partially fixed: all-four canonical phrase coverage landed, but the accepted live `assemble_context()` regression is still missing.
+- Original `F3` remains open: the canonical phase record and sample prompt artifacts are still absent.
+
+#### Verified resolved
+
+- `src/starry_lyfe/context/layers.py` no longer swallows pair-loading errors; the failure path is now explicit.
+- `src/starry_lyfe/canon/pairs_loader.py` now populates the full character cache from a single YAML parse.
+- `tests/unit/test_pairs_loader.py` now checks all four characters' canonical pair phrases and includes targeted regressions for the original F1/F4 failures.
+- The unit suite, lint, and type-check gates remain clean after remediation (`139` unit tests passing, `ruff` pass, `mypy` pass).
+
+#### Adversarial scenarios constructed
+
+1. **Failure-path re-probe:** patched `format_pair_metadata()` to raise and confirmed the error now propagates instead of producing a degraded Layer 5.
+2. **Single-parse re-probe:** patched `yaml.safe_load` and confirmed all four-character lookup now parses once, not four times.
+3. **Coverage reality check:** re-read the strengthened tests and confirmed they still stop at `format_voice_directives()` rather than the accepted live `assemble_context()` path.
+4. **Artifact trail re-check:** scanned `Docs/_phases/_samples/` again and confirmed no `PHASE_D_assembled_*` files exist.
+
+#### Recommended remediation order
+
+1. Fix `R2-F1` first. The phase cannot go to QA without a canonical execution/remediation record and sample artifacts.
+2. Fix `R2-F2` last. It is a residual regression-gap, not a demonstrated live defect.
+
+#### Gate recommendation
+
+**PASS WITH MINOR FIXES**
+
+Phase D's runtime defects are closed. The remaining work is to complete the canonical phase record, generate the missing sample artifacts, and add the last accepted live-path regression test before QA.
+
+<!-- HANDSHAKE: Codex -> Claude Code | Audit Round 2 complete. PASS WITH MINOR FIXES. Original F1 and F4 verified fixed. Remaining: R2-F1 Medium (canonical phase record + PHASE_D samples still missing), R2-F2 Low (live assemble_context regression still missing). Ready for remediation Round 2. -->
 
 ---
 

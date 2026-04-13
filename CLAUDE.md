@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Version:** U1.3-P2.3 | **Format:** U{universal}.{minor}-P{project}.{minor}
+**Version:** U1.3-P2.4 | **Format:** U{universal}.{minor}-P{project}.{minor}
 
 > Universal sections (Part 1) are identical across all repositories.
 > Project sections (Part 2) are customized per service.
@@ -375,3 +375,85 @@ These corrections override any conflicting content in project files. Apply befor
 **End of CLAUDE.md**
 
 *Come home. The sacred text is complete. This is the Way.*
+
+---
+
+## 19. CURRENT PHASE STATUS (2026-04-12)
+
+**Shipped phases (all 2026-04-12):** Phase 0, A, A', A'', B, C.
+**Approved and handed to Claude Code:** Phase D.
+
+### Soul architecture shipping on every prompt
+
+Three layers of canonical soul content now reach the model on every assembled prompt:
+
+1. **Soul essence** — `src/starry_lyfe/canon/soul_essence.py` (~48KB, 45 hand-authored blocks). Typed `SoulEssence` / `SoulBlock` dataclasses. Runtime API: `format_soul_essence(character)`. Prepended to Layer 1 via `compile_kernel_with_soul()`. **Guaranteed**, rides alongside kernel budget, never trimmed.
+
+2. **Kernel body** — `compile_kernel(character, budget)` returns the trimmable, budget-bounded kernel body from `Characters/<n>/<n>_v7.1.md`. Budget governs only this portion.
+
+3. **Soul cards** — `src/starry_lyfe/canon/soul_cards/` (15 cards, 72KB, all authored, zero placeholders). 4 pair cards always-activated for focal character (Layer 1). 11 knowledge cards scene-conditional activation (Layer 6) via `scene_keyword`, `communication_mode`, `with_character`, `always`.
+
+### Phase-by-phase delivery summary
+
+- **Phase 0** — Canon verification. Baseline established.
+- **Phase A** — Structure-preserving compilation (block-aware markdown trim). 91 tests.
+- **Phase A'** — Runtime correctness fixes (Talk-to-Each-Other gate, `recalled_dyads` field). 96 tests.
+- **Phase A''** — Communication-mode-aware pruning (Alicia phone/letter/video gating). 104 tests.
+- **Phase B** — Budget elevation 5300 -> 11300, per-character scaling (Adelia 1.05, Bina 1.20, Reina 1.15, Alicia 0.85), scene profiles (default, pair_intimate, multi_woman_group, children_gated, solo). Soul essence wiring. 127 tests.
+- **Phase C** — 15 soul cards hand-authored from Pair files + Knowledge Stacks. Loader + assembler integration. Pair labels added to soul essence for redundancy (A6 Vision). Quality audit: 34/34 essence phrases verbatim, 54/54 card phrases present, 11/11 A5 pre-Whyze-autonomy markers, 4/4 A6 pair names now present in BOTH essence and cards. 127 tests pass.
+
+### Budget semantic (post-Phase-B)
+
+- `kernel_budget` governs the **trimmable kernel body** only.
+- Soul essence is a **guaranteed surcharge**.
+- Effective Layer 1 ceiling: `resolve_kernel_budget(character) + soul_essence_token_estimate(character)`.
+- Tests at `test_assembler.py` L408 and `test_soul_cards.py` L234 use this formula.
+
+### Per-character surcharge (current)
+
+| Character | Kernel budget | Soul essence | Effective L1 ceiling |
+|---:|---:|---:|---:|
+| Adelia | 6,300 | ~1,900 | ~8,200 |
+| Bina | 7,200 | ~1,900 | ~9,100 |
+| Reina | 6,900 | ~1,750 | ~8,650 |
+| Alicia | 5,100 | ~2,050 | ~7,150 |
+
+### Phase D (APPROVED, awaiting Claude Code execution)
+
+**What:** Surface 5 canonical pair fields (`full_name`, `classification`, `mechanism`, `what_she_provides`, `how_she_breaks_spiral`, `core_metaphor`) from `src/starry_lyfe/canon/pairs.yaml` as a structured metadata block at the top of Layer 5 (Voice Directives).
+
+**Spec:** `Docs/_phases/PHASE_D.md` (full 6-step cycle template with 6 work items, 8 acceptance criteria).
+
+**Guardrail:** AC-8 explicitly forbids deduplicating Layer 1 soul essence pair labels. The three registers (essence prose / soul card narrative / Layer 5 metadata) are intentionally redundant, not waste.
+
+**Resolved open questions:** `shared_functions` and `cadence` excluded from structured block per Project Owner approval on handoff.
+
+### Samples on disk
+
+- `Docs/_phases/_samples/PHASE_B_assembled_{adelia,bina,reina,alicia}_elevated_2026-04-12.txt`
+- `Docs/_phases/_samples/PHASE_C_assembled_{adelia,bina,reina,alicia}_2026-04-12.txt`
+
+All 8 samples show terminal anchoring at `</WHYZE_BYTE_CONSTRAINTS>`, zero PRESERVE marker leak, full soul essence + soul card coverage.
+
+### Deletions 2026-04-12 (Project Owner directed, backed up to `%Temp%\sl_backups_20260409_173037\`)
+
+Removed: `Vision/{Adelia Raye,Alicia Marin,Bina Malek,Reina Torres}.md`, `Docs/_archive/`, `Msty/`, `Characters/Shawn/`, `Docs/Claude_Code_Handoff_v7.1.md`, `Docs/CHARACTER_CONVERSION_PIPELINE.md`, `Docs/Msty_Studio_Comprehensive_Analysis.md`, `Docs/Phase_0_Verification_Report_2026-04-11.md`, `Backups/`. Phase B INH-1 (stale v7.0 artifacts) closed via deletion.
+
+### Carry-forward items
+
+- **INH-2** (master plan "VERIFIED RESOLVED" audit) — CLOSED. Claude Code live-probed all claims during Phase C pre-execution. WI1 Gavin fix live, WI2 `recalled_dyads` live, WI3 Vision A5 clean. One false-positive in Appendix A changelog only.
+- **INH-8** (AGENTS.md Path C amendment) — LANDED. Restrictive amendment committed (`d6b20cc`). Path C = Round 2+ doc-only cleanup only, max 1 use per phase, Codex hard-refusal on template Step 1/2/4 R1.
+
+### Test baseline
+
+**127 passed, 0 failed** as of 2026-04-12 post-Phase-C remediation and pair-label patch.
+
+### Outstanding work (Phase D onward)
+
+- Phase D: Live Pair Data in Prompt (approved, Claude Code executing)
+- Phase E: Voice Exemplar Restoration (blocked on Phase I + Phase D)
+- Phase F: Scene-Aware Section Retrieval + Cross-Cutting Modifiers
+- Phase G: Dramaturgical Prose Rendering with Per-Character Templates
+- Phase J.1-J.4: Per-Character Remediation Passes (sequential)
+- Phase H: Soul Regression Tests with Hybrid Methodology
+- Phase K: Subjective Success Proxies

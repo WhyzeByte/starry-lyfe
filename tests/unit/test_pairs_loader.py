@@ -156,3 +156,70 @@ class TestLayer5Integration:
                 f"{char_id}: Layer 5 {layer.estimated_tokens} tokens "
                 f"exceeds {DEFAULT_BUDGETS.voice} budget"
             )
+
+    async def test_live_assemble_context_layer_5_has_pair_metadata(
+        self, monkeypatch: object,
+    ) -> None:
+        """R2-F2: Live assemble_context() path carries pair metadata in Layer 5."""
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock, patch
+
+        from starry_lyfe.context.assembler import assemble_context
+        from starry_lyfe.context.kernel_loader import clear_kernel_cache
+        from starry_lyfe.context.types import CommunicationMode, SceneState
+
+        def make_stub(char_id: str) -> SimpleNamespace:
+            baseline = SimpleNamespace(
+                full_name=char_id.title(),
+                epithet="Test",
+                mbti="ENFP-A",
+                dominant_function="Ne",
+                pair_name="test",
+                heritage="Test",
+                profession="Test",
+                voice_params={"response_length_range": "default", "dominant_function_descriptor": "default"},
+            )
+            return SimpleNamespace(
+                canon_facts=[],
+                character_baseline=baseline,
+                dyad_states_whyze=[],
+                dyad_states_internal=[],
+                episodic_memories=[],
+                open_loops=[],
+                somatic_state=SimpleNamespace(
+                    character_id=char_id, fatigue=0.1, stress_residue=0.1,
+                    injury_residue=0.0, active_protocols=[],
+                ),
+            )
+
+        clear_kernel_cache()
+        clear_pair_cache()
+
+        expected_fields = [
+            "PAIR:", "CLASSIFICATION:", "MECHANISM:",
+            "CORE METAPHOR:", "WHAT SHE PROVIDES:",
+            "HOW SHE BREAKS HIS SPIRAL:",
+        ]
+
+        for char_id in ["adelia", "bina", "reina", "alicia"]:
+            with patch(
+                "starry_lyfe.context.assembler.retrieve_memories",
+                new=AsyncMock(return_value=make_stub(char_id)),
+            ):
+                prompt = await assemble_context(
+                    char_id,
+                    "Phase D Layer 5 probe",
+                    SceneState(
+                        present_characters=[char_id, "whyze"],
+                        alicia_home=True,
+                        scene_description="Pair metadata probe",
+                        communication_mode=CommunicationMode.IN_PERSON,
+                    ),
+                    None,
+                    None,
+                )
+                layer_5 = next(ly for ly in prompt.layers if ly.layer_number == 5)
+                for field in expected_fields:
+                    assert field in layer_5.text, (
+                        f"{char_id}: Layer 5 missing '{field}' in live assembled prompt"
+                    )
