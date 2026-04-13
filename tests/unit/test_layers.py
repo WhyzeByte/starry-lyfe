@@ -15,7 +15,7 @@ from starry_lyfe.context.layers import (
     _select_voice_exemplars,
     derive_active_voice_modes,
 )
-from starry_lyfe.context.types import SceneState, VoiceMode
+from starry_lyfe.context.types import SceneModifiers, SceneState, SceneType, VoiceMode
 
 # ---------------------------------------------------------------------------
 # Synthetic Voice.md content for parser tests
@@ -393,6 +393,100 @@ class TestDeriveActiveVoiceModes:
         modes = derive_active_voice_modes(scene)
         assert modes == [VoiceMode.INTIMATE, VoiceMode.ESCALATION]
         assert VoiceMode.DOMESTIC not in modes
+
+    # --- Phase F: SceneType → VoiceMode mapping tests ---
+
+    def test_intimate_scene_activates_intimate_and_solo_pair(self) -> None:
+        """F10 derive: INTIMATE scene → INTIMATE + SOLO_PAIR."""
+        scene = SceneState(scene_type=SceneType.INTIMATE, present_characters=["bina", "whyze"])
+        modes = derive_active_voice_modes(scene)
+        assert VoiceMode.INTIMATE in modes
+        assert VoiceMode.SOLO_PAIR in modes
+
+    def test_conflict_scene_activates_conflict(self) -> None:
+        """F11 derive: CONFLICT scene → CONFLICT."""
+        scene = SceneState(scene_type=SceneType.CONFLICT, present_characters=["adelia", "whyze"])
+        modes = derive_active_voice_modes(scene)
+        assert VoiceMode.CONFLICT in modes
+
+    def test_repair_scene_activates_repair_and_silent(self) -> None:
+        """F6 derive: REPAIR scene → REPAIR + SILENT."""
+        scene = SceneState(scene_type=SceneType.REPAIR, present_characters=["alicia", "whyze"])
+        modes = derive_active_voice_modes(scene)
+        assert VoiceMode.REPAIR in modes
+        assert VoiceMode.SILENT in modes
+
+    def test_modifier_accumulates_escalation(self) -> None:
+        """F7 derive: pair_escalation_active → +ESCALATION on top of scene modes."""
+        scene = SceneState(
+            scene_type=SceneType.INTIMATE,
+            present_characters=["reina", "whyze"],
+            modifiers=SceneModifiers(pair_escalation_active=True),
+        )
+        modes = derive_active_voice_modes(scene)
+        assert VoiceMode.ESCALATION in modes
+        assert VoiceMode.INTIMATE in modes
+
+    def test_modifier_warm_refusal(self) -> None:
+        """F8 derive: warm_refusal_required → +WARM_REFUSAL."""
+        scene = SceneState(
+            present_characters=["alicia", "whyze"],
+            modifiers=SceneModifiers(warm_refusal_required=True),
+        )
+        modes = derive_active_voice_modes(scene)
+        assert VoiceMode.WARM_REFUSAL in modes
+
+    def test_modifier_group_temperature(self) -> None:
+        """F9 derive: group_temperature_shift → +GROUP_TEMPERATURE."""
+        scene = SceneState(
+            present_characters=["alicia", "bina", "whyze"],
+            modifiers=SceneModifiers(group_temperature_shift=True),
+        )
+        modes = derive_active_voice_modes(scene)
+        assert VoiceMode.GROUP_TEMPERATURE in modes
+
+    def test_legacy_default_unchanged(self) -> None:
+        """Legacy compat: SceneState() default → [DOMESTIC] only."""
+        modes = derive_active_voice_modes(SceneState())
+        assert modes == [VoiceMode.DOMESTIC]
+
+    def test_f12_all_11_modes_reachable(self) -> None:
+        """F12: Every VoiceMode is reachable via at least one (scene_type, modifiers) combo."""
+        reachable: set[VoiceMode] = set()
+
+        # Walk scene types
+        for st in SceneType:
+            scene = SceneState(scene_type=st, present_characters=["bina", "whyze"])
+            modes = derive_active_voice_modes(scene)
+            reachable.update(modes)
+
+        # Walk modifier-driven modes
+        modifier_combos = [
+            SceneModifiers(pair_escalation_active=True),
+            SceneModifiers(warm_refusal_required=True),
+            SceneModifiers(silent_register_active=True),
+            SceneModifiers(group_temperature_shift=True),
+            SceneModifiers(post_intensity_crash_active=True),
+        ]
+        for mods in modifier_combos:
+            scene = SceneState(present_characters=["alicia", "whyze"], modifiers=mods)
+            modes = derive_active_voice_modes(scene)
+            reachable.update(modes)
+
+        # Legacy path for PUBLIC (via public_scene flag)
+        scene = SceneState(public_scene=True)
+        reachable.update(derive_active_voice_modes(scene))
+
+        # Legacy path for GROUP (via 3+ characters)
+        scene = SceneState(present_characters=["adelia", "bina", "reina", "whyze"])
+        reachable.update(derive_active_voice_modes(scene))
+
+        all_modes = set(VoiceMode)
+        missing = all_modes - reachable
+        assert not missing, (
+            f"Dormant modes still unreachable: {[m.value for m in missing]}. "
+            f"Only {len(reachable)}/11 reachable."
+        )
 
 
 # ---------------------------------------------------------------------------

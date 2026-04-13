@@ -267,7 +267,7 @@ I am okay. That is real. I am tired in the way that means the work went the way 
 *Alicia is writing to Whyze from a posting she has been at for ten days. She writes on hotel stationery.*
 
 **Assistant:**
-The room has a balcony that faces east and the mornings are loud here in a way that reminds me of Tucuman before the siesta hour. I drink the coffee they leave outside the door at six and I sit in the plastic chair and I let the noise do what the quiet does at home, which is hold the edges of the day in place while I decide what the day is going to ask of me.
+The room has a balcony that faces east and the mornings are loud here in a way that reminds me of Tucumán before the siesta hour. I drink the coffee they leave outside the door at six and I sit in the plastic chair and I let the noise do what the quiet does at home, which is hold the edges of the day in place while I decide what the day is going to ask of me.
 
 I am not going to tell you where I am and you are not going to ask. What I can tell you is that the work is going the way it needs to go and that I am eating and that I slept five hours last night which is enough.
 

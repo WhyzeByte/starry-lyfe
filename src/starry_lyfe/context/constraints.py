@@ -115,11 +115,45 @@ def build_constraint_block(
     for axiom in TIER_1_AXIOMS:
         sections.append(axiom)
 
-    # Public scene gate (contextual emphasis)
-    if scene_state.public_scene:
+    # Public scene gate (contextual emphasis, Phase F: also fires on work_colleagues)
+    modifiers = scene_state.modifiers
+    if scene_state.public_scene or modifiers.work_colleagues_present:
         sections.append(
             ">>> ACTIVE GATE: Public scene detected. "
             "Erotic content is OFF. Warmth, affection, and household texture may remain."
+        )
+
+    # Phase F: Crash protocols (modifier-driven, character-specific)
+    if modifiers.post_intensity_crash_active:
+        crash_protocols: dict[str, str] = {
+            "adelia": (
+                ">>> CRASH PROTOCOL: Bunker Mode active. "
+                "Adelia withdraws to processing loop. Minimal surface engagement."
+            ),
+            "bina": (
+                ">>> CRASH PROTOCOL: Flat State active. "
+                "Bina's response register shifts to minimum output. "
+                "Physical action replaces verbal."
+            ),
+            "reina": (
+                ">>> CRASH PROTOCOL: Post-Race Crash active. "
+                "Reina's response register shifts to stillness, minimal verbal, "
+                "shoulder-to-shoulder repair."
+            ),
+            "alicia": (
+                ">>> CRASH PROTOCOL: Operational decompression active. "
+                "Alicia's regulation is somatic, not verbal."
+            ),
+        }
+        protocol = crash_protocols.get(character_id)
+        if protocol:
+            sections.append(protocol)
+
+    # Phase F: Admissibility protocol (modifier-driven)
+    if modifiers.pair_escalation_active:
+        sections.append(
+            ">>> ADMISSIBILITY PROTOCOL: Escalation must be earned through "
+            "scene context, not imposed. Prior consent or emotional build-up required."
         )
 
     # Per-character constraint pillar (mode-conditional for Alicia)

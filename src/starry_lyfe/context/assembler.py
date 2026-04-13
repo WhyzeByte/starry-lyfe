@@ -16,6 +16,7 @@ from starry_lyfe.db.retrieval import retrieve_memories
 
 from .budgets import DEFAULT_BUDGETS, estimate_tokens, trim_text_to_budget
 from .constraints import build_constraint_block
+from .kernel_loader import scene_type_to_promoted_sections
 from .layers import (
     format_canon_facts,
     format_kernel,
@@ -113,9 +114,11 @@ async def assemble_context(
     reserved_kernel_tokens = estimate_tokens(pair_text) if pair_text else 0
     reserved_scene_tokens = estimate_tokens(knowledge_text) if knowledge_text else 0
 
+    promote = scene_type_to_promoted_sections(scene_state.scene_type)
     layer_1 = format_kernel(
         character_id,
         budget=max(1, kernel_budget - reserved_kernel_tokens),
+        promote_sections=promote or None,
     )
     layer_2 = format_canon_facts(memories.canon_facts)
     layer_3 = format_memory_fragments(memories.episodic_memories)
@@ -138,6 +141,7 @@ async def assemble_context(
         scene_state.scene_description,
         budget=max(1, profile.scene - reserved_scene_tokens),
         recalled_dyads=scene_state.recalled_dyads,
+        explicitly_invoked_absent_dyad=scene_state.modifiers.explicitly_invoked_absent_dyad or None,
     )
 
     if pair_text:

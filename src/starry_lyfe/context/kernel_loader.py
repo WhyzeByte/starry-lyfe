@@ -7,22 +7,46 @@ from pathlib import Path
 
 from ..canon.soul_essence import format_soul_essence
 from .budgets import estimate_tokens, trim_text_to_budget
-from .types import VoiceExample, VoiceMode
+from .types import SceneType, VoiceExample, VoiceMode
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
-KERNEL_PATHS: dict[str, str] = {
-    "adelia": "Characters/Adelia/Adelia_Raye_v7.1.md",
-    "bina": "Characters/Bina/Bina_Malek_v7.1.md",
-    "reina": "Characters/Reina/Reina_Torres_v7.1.md",
-    "alicia": "Characters/Alicia/Alicia_Marin_v7.1.md",
+KERNEL_PATHS: dict[str, tuple[str, ...]] = {
+    "adelia": (
+        "Characters/Adelia/Adelia_Raye_v7.1.md",
+        "Characters/Adelia_Raye_v7.1.md",
+    ),
+    "bina": (
+        "Characters/Bina/Bina_Malek_v7.1.md",
+        "Characters/Bina_Malek_v7.1.md",
+    ),
+    "reina": (
+        "Characters/Reina/Reina_Torres_v7.1.md",
+        "Characters/Reina_Torres_v7.1.md",
+    ),
+    "alicia": (
+        "Characters/Alicia/Alicia_Marin_v7.1.md",
+        "Characters/Alicia_Marin_v7.1.md",
+    ),
 }
 
-VOICE_PATHS: dict[str, str] = {
-    "adelia": "Characters/Adelia/Adelia_Raye_Voice.md",
-    "bina": "Characters/Bina/Bina_Malek_Voice.md",
-    "reina": "Characters/Reina/Reina_Torres_Voice.md",
-    "alicia": "Characters/Alicia/Alicia_Marin_Voice.md",
+VOICE_PATHS: dict[str, tuple[str, ...]] = {
+    "adelia": (
+        "Characters/Adelia/Adelia_Raye_Voice.md",
+        "Characters/Adelia_Raye_Voice.md",
+    ),
+    "bina": (
+        "Characters/Bina/Bina_Malek_Voice.md",
+        "Characters/Bina_Malek_Voice.md",
+    ),
+    "reina": (
+        "Characters/Reina/Reina_Torres_Voice.md",
+        "Characters/Reina_Torres_Voice.md",
+    ),
+    "alicia": (
+        "Characters/Alicia/Alicia_Marin_Voice.md",
+        "Characters/Alicia_Marin_Voice.md",
+    ),
 }
 
 # Kernel section budgets tuned for the 2000-token runtime window.
@@ -41,6 +65,41 @@ SECTION_TOKEN_TARGETS: dict[int, int] = {
 PRIMARY_SECTION_ORDER: list[int] = [1, 2, 3, 4, 5, 7, 6]
 EXPANSION_SECTION_ORDER: list[int] = [2, 3, 5, 7, 6, 8, 9, 10, 11]
 FILL_SECTION_ORDER: list[int] = [8, 9, 10, 11]
+
+# Default token budget for fill-tier sections promoted by scene type (Phase F).
+# Sections 8-11 are not in SECTION_TOKEN_TARGETS; use this when promoted.
+_PROMOTED_FILL_DEFAULT_BUDGET: int = 500
+
+_SCENE_TYPE_PROMOTIONS: dict[SceneType, list[int]] = {
+    SceneType.DOMESTIC: [7, 9],
+    SceneType.INTIMATE: [8, 3],
+    SceneType.CONFLICT: [5, 7],
+    SceneType.REPAIR: [8, 9],
+    SceneType.PUBLIC: [10, 5],
+    SceneType.GROUP: [6, 9],
+    SceneType.SOLO_PAIR: [3, 8],
+    SceneType.TRANSITION: [],
+}
+
+
+def scene_type_to_promoted_sections(scene_type: SceneType) -> list[int]:
+    """Return kernel section numbers to promote for the given scene type.
+
+    Pure function. Returns section numbers per the master plan mapping.
+    Sections already in PRIMARY_SECTION_ORDER are included but have no
+    effect (they are already primary).
+    """
+    return list(_SCENE_TYPE_PROMOTIONS.get(scene_type, []))
+
+
+def _resolve_repo_path(rel_paths: tuple[str, ...]) -> Path | None:
+    """Return the first existing project-relative path from the candidates."""
+    for rel_path in rel_paths:
+        full_path = PROJECT_ROOT / rel_path
+        if full_path.exists():
+            return full_path
+    return None
+
 
 _kernel_cache: dict[str, str] = {}
 _voice_raw_cache: dict[str, list[tuple[str, str]] | None] = {}
@@ -91,13 +150,21 @@ def _parse_kernel_sections(text: str) -> list[tuple[int, str]]:
     return sections
 
 
-def compile_kernel(character_id: str, budget: int) -> str:
+def compile_kernel(
+    character_id: str,
+    budget: int,
+    promote_sections: list[int] | None = None,
+) -> str:
     """Section-aware kernel compilation.
 
     The runtime kernel must carry more than pair mechanics alone. This
     compiler gives the live prompt bounded excerpts from core identity,
     pair dynamics, routing, behavior rails, and protocol surface so the
     character still feels like herself inside a tight token window.
+
+    When ``promote_sections`` is provided (Phase F), fill-tier sections
+    in the list are moved into the primary assembly loop so they receive
+    budget allocation alongside core sections.
     """
     raw = _load_raw_kernel(character_id)
     sanitized = _sanitize_kernel_text(raw)
@@ -108,15 +175,34 @@ def compile_kernel(character_id: str, budget: int) -> str:
         if num > 0
     }
 
+    # Build the effective primary and fill orders for this call.
+    # Promoted fill sections are assembled in the primary loop for ordering
+    # priority, but allocated from expansion budget to avoid crowding out
+    # core identity sections that need expansion space.
+    primary_order = list(PRIMARY_SECTION_ORDER)
+    fill_order = list(FILL_SECTION_ORDER)
+    promoted_from_fill: set[int] = set()
+    if promote_sections:
+        for num in promote_sections:
+            if num in fill_order and num not in primary_order:
+                fill_order.remove(num)
+                primary_order.append(num)
+                promoted_from_fill.add(num)
+
     # Allocate the baseline runtime slice for each primary section first.
+    # Promoted fill sections are NOT allocated here -- they get budget from
+    # the expansion phase only, preserving backward-compat budget behavior.
     allocated_budgets: dict[int, int] = {}
     allocated_total = 0
-    for num in PRIMARY_SECTION_ORDER:
+    for num in primary_order:
+        if num in promoted_from_fill:
+            continue
         text = section_map.get(num)
         if not text:
             continue
         full_tokens = estimate_tokens(text)
-        target_tokens = min(SECTION_TOKEN_TARGETS[num], full_tokens)
+        target = SECTION_TOKEN_TARGETS.get(num, _PROMOTED_FILL_DEFAULT_BUDGET)
+        target_tokens = min(target, full_tokens)
         allocated_budgets[num] = target_tokens
         allocated_total += target_tokens
 
@@ -124,7 +210,12 @@ def compile_kernel(character_id: str, budget: int) -> str:
 
     # If the caller asked for a larger kernel window, spend the extra budget
     # by expanding identity and protocol sections before low-priority lore.
-    for num in EXPANSION_SECTION_ORDER:
+    # Promoted fill sections receive their initial allocation here too.
+    expansion_order = list(EXPANSION_SECTION_ORDER)
+    for num in promoted_from_fill:
+        if num not in expansion_order:
+            expansion_order.append(num)
+    for num in expansion_order:
         if remaining <= 0:
             break
         text = section_map.get(num)
@@ -134,22 +225,29 @@ def compile_kernel(character_id: str, budget: int) -> str:
         current_tokens = allocated_budgets.get(num, 0)
         if full_tokens <= current_tokens:
             continue
-        extra_tokens = min(full_tokens - current_tokens, remaining)
+        cap = _PROMOTED_FILL_DEFAULT_BUDGET if num in promoted_from_fill and current_tokens == 0 else full_tokens
+        extra_tokens = min(cap - current_tokens, remaining)
         allocated_budgets[num] = current_tokens + extra_tokens
         remaining -= extra_tokens
 
     assembled: list[str] = []
 
-    for num in PRIMARY_SECTION_ORDER:
+    original_primary = set(PRIMARY_SECTION_ORDER)
+    for num in primary_order:
         text = section_map.get(num)
         if not text:
             continue
         section_budget = allocated_budgets.get(num, 0)
-        trimmed = trim_text_to_budget(text, section_budget, strict=True)
+        if section_budget <= 0:
+            continue
+        # Promoted fill sections use permissive trimming (word-level fallback)
+        # since their content was not sized for strict block budgets.
+        strict = num in original_primary
+        trimmed = trim_text_to_budget(text, section_budget, strict=strict)
         if trimmed and estimate_tokens(trimmed) > 10:
             assembled.append(trimmed)
 
-    for num in FILL_SECTION_ORDER:
+    for num in fill_order:
         text = section_map.get(num)
         if not text:
             continue
@@ -166,7 +264,11 @@ def compile_kernel(character_id: str, budget: int) -> str:
     return result
 
 
-def compile_kernel_with_soul(character_id: str, budget: int) -> str:
+def compile_kernel_with_soul(
+    character_id: str,
+    budget: int,
+    promote_sections: list[int] | None = None,
+) -> str:
     """Return compiled kernel prepended with guaranteed soul essence.
 
     Soul essence is load-bearing canonical prose that must reach every
@@ -178,7 +280,7 @@ def compile_kernel_with_soul(character_id: str, budget: int) -> str:
     the final prompt. Use compile_kernel() directly when you want only
     the budget-bounded kernel body (e.g., for budget regression tests).
     """
-    kernel_body = compile_kernel(character_id, budget)
+    kernel_body = compile_kernel(character_id, budget, promote_sections)
     soul = format_soul_essence(character_id)
     if not soul:
         return kernel_body
@@ -187,18 +289,22 @@ def compile_kernel_with_soul(character_id: str, budget: int) -> str:
 
 def _load_raw_kernel(character_id: str) -> str:
     """Load raw kernel text from filesystem."""
-    rel_path = KERNEL_PATHS.get(character_id)
-    if rel_path is None:
+    rel_paths = KERNEL_PATHS.get(character_id)
+    if rel_paths is None:
         msg = f"No kernel path defined for character '{character_id}'"
         raise ValueError(msg)
-    full_path = PROJECT_ROOT / rel_path
-    if not full_path.exists():
-        msg = f"Kernel file not found: {full_path}"
+    full_path = _resolve_repo_path(rel_paths)
+    if full_path is None:
+        msg = f"Kernel file not found for {character_id}: {rel_paths}"
         raise FileNotFoundError(msg)
     return full_path.read_text(encoding="utf-8")
 
 
-def load_kernel(character_id: str, budget: int = 2000) -> str:
+def load_kernel(
+    character_id: str,
+    budget: int = 2000,
+    promote_sections: list[int] | None = None,
+) -> str:
     """Load a section-compiled character kernel with guaranteed soul essence.
 
     Returns the compiled kernel body (budget-bounded) with the character's
@@ -207,21 +313,26 @@ def load_kernel(character_id: str, budget: int = 2000) -> str:
     trim budget. The budget parameter governs only the trimmable kernel
     body. Cached after first load.
     """
-    cache_key = f"{character_id}:{budget}"
+    promo_key = tuple(sorted(promote_sections)) if promote_sections else ()
+    cache_key = f"{character_id}:{budget}:{promo_key}"
     if cache_key in _kernel_cache:
         return _kernel_cache[cache_key]
-    text = compile_kernel_with_soul(character_id, budget)
+    text = compile_kernel_with_soul(character_id, budget, promote_sections)
     _kernel_cache[cache_key] = text
     return text
 
 
-def load_kernel_body_only(character_id: str, budget: int = 2000) -> str:
+def load_kernel_body_only(
+    character_id: str,
+    budget: int = 2000,
+    promote_sections: list[int] | None = None,
+) -> str:
     """Load only the trimmable kernel body, without soul essence.
 
     Use this when you need to verify budget compliance of the trimmable
     kernel content in isolation (e.g., budget regression tests).
     """
-    return compile_kernel(character_id, budget)
+    return compile_kernel(character_id, budget, promote_sections)
 
 
 _COMM_MODE_TAG_RE = re.compile(r"^<!--\s*communication_mode:\s*(\w+)\s*-->$")
@@ -295,12 +406,12 @@ def load_voice_guidance(
     that mode or "any". Items without a communication_mode tag default to "any".
     """
     if character_id not in _voice_raw_cache:
-        rel_path = VOICE_PATHS.get(character_id)
-        if rel_path is None:
+        rel_paths = VOICE_PATHS.get(character_id)
+        if rel_paths is None:
             _voice_raw_cache[character_id] = None
         else:
-            full_path = PROJECT_ROOT / rel_path
-            if not full_path.exists():
+            full_path = _resolve_repo_path(rel_paths)
+            if full_path is None:
                 _voice_raw_cache[character_id] = None
             else:
                 text = full_path.read_text(encoding="utf-8")
@@ -462,12 +573,12 @@ def load_voice_examples(character_id: str) -> list[VoiceExample] | None:
     None if no Voice.md file exists for the character.
     """
     if character_id not in _voice_examples_cache:
-        rel_path = VOICE_PATHS.get(character_id)
-        if rel_path is None:
+        rel_paths = VOICE_PATHS.get(character_id)
+        if rel_paths is None:
             _voice_examples_cache[character_id] = None
         else:
-            full_path = PROJECT_ROOT / rel_path
-            if not full_path.exists():
+            full_path = _resolve_repo_path(rel_paths)
+            if full_path is None:
                 _voice_examples_cache[character_id] = None
             else:
                 text = full_path.read_text(encoding="utf-8")

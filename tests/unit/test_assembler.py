@@ -27,10 +27,16 @@ from starry_lyfe.context.kernel_loader import (
     VOICE_PATHS,
     clear_kernel_cache,
     load_kernel,
+    load_kernel_body_only,
     load_voice_guidance,
 )
 from starry_lyfe.context.layers import format_scene_blocks, format_voice_directives
-from starry_lyfe.context.types import AssembledPrompt, CommunicationMode, SceneState
+from starry_lyfe.context.types import (
+    AssembledPrompt,
+    CommunicationMode,
+    SceneModifiers,
+    SceneState,
+)
 
 
 class _StubEmbeddingService:
@@ -695,8 +701,11 @@ def test_adelia_voice_layer_prioritizes_handoff_and_cultural_surface() -> None:
     layer = format_voice_directives("adelia", _make_bundle("adelia").character_baseline)
     assert "Adelia Raye" in layer.text
     assert "ENFP-A" in layer.text
-    # Phase E: mode-tagged files use "Voice rhythm exemplars:", untagged use "Voice calibration guidance:"
-    assert "Voice rhythm exemplars:" in layer.text or "Voice calibration guidance:" in layer.text
+    # Phase E: Voice.md is mode-tagged so Layer 5 MUST ship rhythm exemplars.
+    # If this ever falls back to "Voice calibration guidance:", a silent
+    # Phase E selector regression has landed.
+    assert "Voice rhythm exemplars:" in layer.text
+    assert "Voice calibration guidance:" not in layer.text
 
 
 async def test_assemble_context_adelia_retains_identity_and_protocol_surface(
@@ -885,4 +894,448 @@ async def test_assemble_context_layer5_varies_by_scene_state(
     assert domestic_voice != group_voice, (
         "Layer 5 VOICE_DIRECTIVES must differ between solo_pair and group scenes. "
         "If they are identical, scene_state is not reaching format_voice_directives()."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase E Patch: Layer 5 Phase-E-path invariant (P2 from deep code QA)
+# ---------------------------------------------------------------------------
+#
+# Rationale: format_voice_directives() has a silent fallback to the
+# pre-Phase-E "Voice calibration guidance:" path if the mode-aware
+# selector returns nothing. Any future regression that breaks the
+# selector, the Voice.md parser, or the assembler scene_state wiring
+# would degrade Layer 5 content quality without any test failure.
+#
+# This invariant test asserts that EVERY character's Layer 5 ships
+# the post-Phase-E "Voice rhythm exemplars:" header under the default
+# in-person scene state (plus the Alicia-phone case since she is
+# gated off in_person when not home). 4 characters x strict assertion
+# = 4 regression checkpoints for the Phase E selector path.
+
+@pytest.mark.parametrize(
+    ("character_id", "communication_mode", "alicia_home"),
+    [
+        ("adelia", CommunicationMode.IN_PERSON, False),
+        ("bina", CommunicationMode.IN_PERSON, False),
+        ("reina", CommunicationMode.IN_PERSON, False),
+        ("alicia", CommunicationMode.PHONE, False),
+    ],
+)
+async def test_phase_e_layer_5_ships_rhythm_exemplars_invariant(
+    monkeypatch: pytest.MonkeyPatch,
+    character_id: str,
+    communication_mode: CommunicationMode,
+    alicia_home: bool,
+) -> None:
+    """Phase E invariant: every character's live Layer 5 must ship rhythm exemplars.
+
+    If this fails, one of these broke:
+      1. Voice.md parser (kernel_loader._extract_voice_examples)
+      2. Mode-aware selector (layers._select_voice_exemplars)
+      3. Assembler scene_state wiring into format_voice_directives
+      4. Voice.md canonical files (untagged or missing abbreviated text)
+      5. VoiceMode enum membership
+
+    The test is strict: the pre-Phase-E fallback header MUST NOT appear.
+    """
+
+    async def stub_retrieve_memories(*args: Any, **kwargs: Any) -> Any:
+        return _make_bundle(character_id)
+
+    monkeypatch.setattr(assembler_module, "retrieve_memories", stub_retrieve_memories)
+    clear_kernel_cache()
+
+    prompt = await assemble_context(
+        character_id=character_id,
+        scene_context=f"{character_id} and Whyze in a default domestic scene.",
+        scene_state=SceneState(
+            present_characters=[character_id, "whyze"],
+            scene_description="Default domestic two-person scene.",
+            alicia_home=alicia_home,
+            communication_mode=communication_mode,
+        ),
+        session=cast(AsyncSession, None),
+        embedding_service=_StubEmbeddingService(),
+        canon=load_all_canon(),
+    )
+
+    # Extract Layer 5 slice from the assembled prompt body
+    start = prompt.prompt.find("<VOICE_DIRECTIVES>")
+    end = prompt.prompt.find("</VOICE_DIRECTIVES>")
+    assert start != -1 and end != -1, (
+        f"{character_id}: <VOICE_DIRECTIVES> block missing from assembled prompt"
+    )
+    layer_5 = prompt.prompt[start:end]
+
+    # Strict Phase E contract: rhythm exemplars present, fallback absent
+    assert "Voice rhythm exemplars:" in layer_5, (
+        f"{character_id} ({communication_mode}): Layer 5 missing "
+        f"'Voice rhythm exemplars:' header. Phase E selector path is broken "
+        f"and Layer 5 has silently fallen back to pre-Phase-E guidance."
+    )
+    assert "Voice calibration guidance:" not in layer_5, (
+        f"{character_id} ({communication_mode}): Layer 5 contains pre-Phase-E "
+        f"fallback header 'Voice calibration guidance:'. The Phase E selector "
+        f"path has silently degraded. This is exactly the regression this "
+        f"invariant test exists to catch."
+    )
+
+    # Phase D co-invariant: pair metadata block must still be present at top
+    # of Layer 5 (regression protection for the four-register architecture)
+    assert "PAIR:" in layer_5, (
+        f"{character_id}: Phase D pair metadata block missing from Layer 5"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase F: Kernel section promotion + scene_type_to_promoted_sections tests
+# ---------------------------------------------------------------------------
+
+
+def test_scene_type_to_promoted_sections_intimate() -> None:
+    """INTIMATE scene type promotes sections [8, 3]."""
+    from starry_lyfe.context.kernel_loader import scene_type_to_promoted_sections
+    from starry_lyfe.context.types import SceneType
+
+    result = scene_type_to_promoted_sections(SceneType.INTIMATE)
+    assert result == [8, 3]
+
+
+def test_scene_type_to_promoted_sections_transition() -> None:
+    """TRANSITION scene type promotes nothing."""
+    from starry_lyfe.context.kernel_loader import scene_type_to_promoted_sections
+    from starry_lyfe.context.types import SceneType
+
+    result = scene_type_to_promoted_sections(SceneType.TRANSITION)
+    assert result == []
+
+
+def test_f1_intimate_bina_promotes_section_8() -> None:
+    """F1: INTIMATE scene with Bina includes section 8 Intimacy Architecture.
+
+    At a budget that fits primary sections but not all fill, promotion
+    must surface section 8 content that would otherwise be absent.
+    """
+    clear_kernel_cache()
+    # Budget large enough for all primary + promoted section 8
+    body_promoted = load_kernel_body_only("bina", budget=8000, promote_sections=[8, 3])
+    clear_kernel_cache()
+    body_default = load_kernel_body_only("bina", budget=8000)
+
+    # Section 8 should appear when promoted
+    assert "Intimacy" in body_promoted, (
+        "Section 8 (Intimacy Architecture) must appear when promoted"
+    )
+    # The promoted version should contain more content from §8 than default
+    # because §8 moves from fill (last priority) to primary (guaranteed budget)
+    intimacy_promoted = body_promoted.count("Intimacy")
+    intimacy_default = body_default.count("Intimacy")
+    assert intimacy_promoted >= intimacy_default, (
+        "Promoting §8 must not reduce Intimacy content"
+    )
+    clear_kernel_cache()
+
+
+def test_f3_conflict_adelia_no_regression() -> None:
+    """F3: CONFLICT scene — promote_sections=[5,7] are already primary, no regression."""
+    clear_kernel_cache()
+    body_default = load_kernel_body_only("adelia", budget=6000)
+    clear_kernel_cache()
+    body_conflict = load_kernel_body_only("adelia", budget=6000, promote_sections=[5, 7])
+
+    # Sections 5 and 7 are already in PRIMARY_SECTION_ORDER, so promotion
+    # should produce identical output to default.
+    assert body_default == body_conflict, (
+        "Promoting already-primary sections must not change kernel output"
+    )
+    clear_kernel_cache()
+
+
+def test_f5_transition_no_promotion_matches_default() -> None:
+    """F5: TRANSITION scene type produces no section promotions."""
+    clear_kernel_cache()
+    body_default = load_kernel_body_only("bina", budget=2000)
+    clear_kernel_cache()
+    body_transition = load_kernel_body_only("bina", budget=2000, promote_sections=[])
+
+    assert body_default == body_transition, (
+        "Empty promote_sections must produce identical output to no promotion"
+    )
+    clear_kernel_cache()
+
+
+def test_all_scene_types_have_promotion_mapping() -> None:
+    """Every SceneType value has a defined promotion mapping."""
+    from starry_lyfe.context.kernel_loader import scene_type_to_promoted_sections
+    from starry_lyfe.context.types import SceneType
+
+    for st in SceneType:
+        result = scene_type_to_promoted_sections(st)
+        assert isinstance(result, list), f"No mapping for SceneType.{st.name}"
+
+
+# ---------------------------------------------------------------------------
+# Phase F: Layer 7 modifier effects tests
+# ---------------------------------------------------------------------------
+
+
+def test_f2_work_colleagues_triggers_public_gate() -> None:
+    """F2: work_colleagues_present modifier triggers the public-scene gate."""
+    scene = SceneState(
+        present_characters=["alicia", "whyze"],
+        modifiers=SceneModifiers(work_colleagues_present=True),
+    )
+    block = build_constraint_block("alicia", scene)
+    assert "ACTIVE GATE" in block
+
+
+def test_crash_protocol_bina_flat_state() -> None:
+    """Crash protocol renders Flat State for Bina."""
+    scene = SceneState(
+        present_characters=["bina", "whyze"],
+        modifiers=SceneModifiers(post_intensity_crash_active=True),
+    )
+    block = build_constraint_block("bina", scene)
+    assert "CRASH PROTOCOL" in block
+    assert "Flat State" in block
+
+
+def test_crash_protocol_reina_post_race() -> None:
+    """Crash protocol renders Post-Race Crash for Reina."""
+    scene = SceneState(
+        present_characters=["reina", "whyze"],
+        modifiers=SceneModifiers(post_intensity_crash_active=True),
+    )
+    block = build_constraint_block("reina", scene)
+    assert "CRASH PROTOCOL" in block
+    assert "Post-Race Crash" in block
+
+
+def test_admissibility_protocol_renders() -> None:
+    """Pair escalation modifier renders the admissibility protocol."""
+    scene = SceneState(
+        present_characters=["reina", "whyze"],
+        modifiers=SceneModifiers(pair_escalation_active=True),
+    )
+    block = build_constraint_block("reina", scene)
+    assert "ADMISSIBILITY PROTOCOL" in block
+
+
+def test_default_modifiers_add_no_extra_blocks() -> None:
+    """Default SceneModifiers produce no crash, admissibility, or extra gate blocks."""
+    scene = SceneState(present_characters=["adelia", "whyze"])
+    block = build_constraint_block("adelia", scene)
+    assert "CRASH PROTOCOL" not in block
+    assert "ADMISSIBILITY PROTOCOL" not in block
+    # No public gate without public_scene or work_colleagues
+    assert "ACTIVE GATE" not in block
+
+
+# ---------------------------------------------------------------------------
+# Phase F: Layer 6 absent dyad test (F4)
+# ---------------------------------------------------------------------------
+
+
+def test_f4_explicitly_invoked_absent_dyad_renders() -> None:
+    """F4: explicitly_invoked_absent_dyad renders an absent character's dyad."""
+    from types import SimpleNamespace
+
+    # Bina is focal, Reina is NOT in present_characters
+    dyads_internal = [
+        SimpleNamespace(
+            member_a="bina",
+            member_b="reina",
+            interlock="anchor_dynamic",
+            trust=0.72,
+            intimacy=0.55,
+            conflict=0.20,
+        )
+    ]
+    layer = format_scene_blocks(
+        character_id="bina",
+        dyads_whyze=[],
+        dyads_internal=dyads_internal,
+        open_loops=[],
+        present_characters=["bina", "whyze"],
+        scene_description="Shop bay, quiet evening.",
+        explicitly_invoked_absent_dyad=frozenset({"bina-reina"}),
+    )
+    # Reina's dyad should appear even though she's not present
+    assert "bina-reina" in layer.text, (
+        "Absent dyad bina-reina must render when explicitly invoked"
+    )
+
+
+def test_absent_dyad_does_not_render_by_default() -> None:
+    """Absent character's dyad is hidden when not invoked."""
+    from types import SimpleNamespace
+
+    dyads_internal = [
+        SimpleNamespace(
+            member_a="bina",
+            member_b="reina",
+            interlock="anchor_dynamic",
+            trust=0.72,
+            intimacy=0.55,
+            conflict=0.20,
+        )
+    ]
+    layer = format_scene_blocks(
+        character_id="bina",
+        dyads_whyze=[],
+        dyads_internal=dyads_internal,
+        open_loops=[],
+        present_characters=["bina", "whyze"],
+        scene_description="Shop bay, quiet evening.",
+    )
+    # Reina's dyad should NOT appear (she's not present, not invoked)
+    assert "bina-reina" not in layer.text
+
+
+# ---------------------------------------------------------------------------
+# Phase F: Live voice selector tests F6-F11 (dormant mode closure)
+# ---------------------------------------------------------------------------
+
+
+def test_f6_repair_alicia_selects_repair_tagged_exemplar() -> None:
+    """F6: REPAIR scene for Alicia selects repair-tagged exemplars."""
+    from starry_lyfe.context.types import SceneType
+
+    clear_kernel_cache()
+    scene = SceneState(
+        scene_type=SceneType.REPAIR,
+        present_characters=["alicia", "whyze"],
+    )
+    layer = format_voice_directives("alicia", _make_bundle("alicia").character_baseline, scene_state=scene)
+    # Alicia Examples 3 and 7 are tagged repair
+    assert "repair" in layer.text.lower() or "Sun Override" in layer.text or "Couch Above" in layer.text, (
+        "REPAIR scene must select repair-tagged exemplars for Alicia"
+    )
+    clear_kernel_cache()
+
+
+def test_f7_escalation_reina_selects_escalation_exemplar() -> None:
+    """F7: pair_escalation_active for Reina selects escalation-tagged exemplars."""
+    from starry_lyfe.context.types import SceneType
+
+    clear_kernel_cache()
+    scene = SceneState(
+        scene_type=SceneType.INTIMATE,
+        present_characters=["reina", "whyze"],
+        modifiers=SceneModifiers(pair_escalation_active=True),
+    )
+    layer = format_voice_directives("reina", _make_bundle("reina").character_baseline, scene_state=scene)
+    # Reina Examples 9 and 10 are tagged escalation
+    assert "escalation" in layer.text.lower() or "Changing Room" in layer.text or "Trailhead" in layer.text, (
+        "ESCALATION modifier must select escalation-tagged exemplars for Reina"
+    )
+    clear_kernel_cache()
+
+
+def test_f8_warm_refusal_alicia_mode_path_fires() -> None:
+    """F8: warm_refusal_required activates WARM_REFUSAL mode on live Layer 5 path.
+
+    Verifies the live selector chooses a warm-refusal-tagged Alicia exemplar,
+    not just that the mode-tagged path is active.
+    """
+    clear_kernel_cache()
+    scene = SceneState(
+        present_characters=["alicia", "whyze"],
+        modifiers=SceneModifiers(warm_refusal_required=True),
+    )
+    layer = format_voice_directives("alicia", _make_bundle("alicia").character_baseline, scene_state=scene)
+    assert "warm_refusal" in layer.text.lower(), (
+        "WARM_REFUSAL modifier must select Alicia's warm-refusal-tagged exemplar(s)"
+    )
+    clear_kernel_cache()
+
+
+def test_f9_group_temperature_alicia_mode_path_fires() -> None:
+    """F9: group_temperature_shift activates GROUP_TEMPERATURE mode on live Layer 5 path.
+
+    Verifies the live selector chooses Alicia's group-temperature exemplar.
+    """
+    clear_kernel_cache()
+    scene = SceneState(
+        present_characters=["alicia", "bina", "whyze"],
+        modifiers=SceneModifiers(group_temperature_shift=True),
+    )
+    layer = format_voice_directives("alicia", _make_bundle("alicia").character_baseline, scene_state=scene)
+    assert "group_temperature" in layer.text.lower(), (
+        "GROUP_TEMPERATURE modifier must select Alicia's group-temperature-tagged exemplar"
+    )
+    clear_kernel_cache()
+
+
+def test_f10_intimate_bina_selects_intimate_exemplar() -> None:
+    """F10: INTIMATE scene for Bina selects intimate-tagged exemplars."""
+    from starry_lyfe.context.types import SceneType
+
+    clear_kernel_cache()
+    scene = SceneState(
+        scene_type=SceneType.INTIMATE,
+        present_characters=["bina", "whyze"],
+    )
+    layer = format_voice_directives("bina", _make_bundle("bina").character_baseline, scene_state=scene)
+    # Bina Examples 6, 8, 9, 10 are tagged intimate
+    assert "intimate" in layer.text.lower() or "Chosen Casual" in layer.text or "Chair" in layer.text, (
+        "INTIMATE scene must select intimate-tagged exemplars for Bina"
+    )
+    clear_kernel_cache()
+
+
+def test_f11_conflict_adelia_selects_conflict_exemplar() -> None:
+    """F11: CONFLICT scene for Adelia selects conflict-tagged exemplar."""
+    from starry_lyfe.context.types import SceneType
+
+    clear_kernel_cache()
+    scene = SceneState(
+        scene_type=SceneType.CONFLICT,
+        present_characters=["adelia", "whyze"],
+    )
+    layer = format_voice_directives("adelia", _make_bundle("adelia").character_baseline, scene_state=scene)
+    # Adelia Example 2 is tagged conflict
+    assert "conflict" in layer.text.lower() or "Challenges Through" in layer.text or "Better Question" in layer.text, (
+        "CONFLICT scene must select conflict-tagged exemplar for Adelia"
+    )
+    clear_kernel_cache()
+
+
+def test_f12_all_11_modes_reachable_on_live_phase_f_surface() -> None:
+    """F12: all VoiceModes stay reachable through checked-in Phase F scene state."""
+    from starry_lyfe.context.layers import derive_active_voice_modes
+    from starry_lyfe.context.types import SceneType, VoiceMode
+
+    reachable: set[VoiceMode] = set()
+
+    scene_cases = [
+        SceneState(scene_type=SceneType.DOMESTIC, present_characters=["whyze"]),
+        SceneState(scene_type=SceneType.INTIMATE, present_characters=["bina", "whyze"]),
+        SceneState(scene_type=SceneType.CONFLICT, present_characters=["adelia", "whyze"]),
+        SceneState(scene_type=SceneType.REPAIR, present_characters=["alicia", "whyze"]),
+        SceneState(scene_type=SceneType.PUBLIC, present_characters=["alicia", "whyze"], public_scene=True),
+        SceneState(scene_type=SceneType.GROUP, present_characters=["adelia", "bina", "whyze"]),
+        SceneState(scene_type=SceneType.SOLO_PAIR, present_characters=["reina", "whyze"]),
+        SceneState(scene_type=SceneType.TRANSITION, present_characters=["whyze"]),
+        SceneState(
+            present_characters=["reina", "whyze"],
+            modifiers=SceneModifiers(pair_escalation_active=True),
+        ),
+        SceneState(
+            present_characters=["alicia", "whyze"],
+            modifiers=SceneModifiers(warm_refusal_required=True),
+        ),
+        SceneState(
+            present_characters=["alicia", "bina", "whyze"],
+            modifiers=SceneModifiers(group_temperature_shift=True),
+        ),
+    ]
+
+    for scene in scene_cases:
+        reachable.update(derive_active_voice_modes(scene))
+
+    missing = set(VoiceMode) - reachable
+    assert not missing, (
+        f"Phase F dormant-mode closure regressed; missing {[mode.value for mode in sorted(missing)]}"
     )

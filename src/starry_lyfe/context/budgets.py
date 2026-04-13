@@ -439,7 +439,7 @@ def trim_text_to_budget(
                     f"Cannot fit any content within {budget_tokens}-token budget: "
                     f"all blocks dropped (heading alone exceeds budget)"
                 )
-            if estimate_tokens(result) <= budget_tokens:
+            if result.strip() and estimate_tokens(result) <= budget_tokens:
                 return result
         except Exception:
             if strict:

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Version:** U1.3-P2.6 | **Format:** U{universal}.{minor}-P{project}.{minor}
+**Version:** U1.3-P2.9 | **Format:** U{universal}.{minor}-P{project}.{minor}
 
 > Universal sections (Part 1) are identical across all repositories.
 > Project sections (Part 2) are customized per service.
@@ -380,8 +380,43 @@ These corrections override any conflicting content in project files. Apply befor
 
 ## 19. CURRENT PHASE STATUS (2026-04-12)
 
-**Shipped phases (all 2026-04-12):** Phase 0, A, A', A'', B, C, D.
-**Next phase awaiting spec:** Phase E (Voice Exemplar Restoration).
+**Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13).
+**APPROVED, awaiting Claude Code execution:** Phase F (Scene-Aware Section Retrieval + Cross-Cutting Modifiers + Dormant VoiceMode Activation).
+
+### Project-wide Quality Directive (Project Owner, 2026-04-13)
+
+This directive is permanent and applies to all phases from Phase F forward. It takes precedence over speed and budget considerations.
+
+**Priority order (highest to lowest):**
+1. Vision attainment (Vision sections 5, 6, 7; PTF section 2.1; A5 Chosen Family; A6 Relationship Architecture)
+2. Character fidelity — each of Adelia, Bina, Reina, Alicia must remain uniquely herself with her own desires, goals, cognitive signature, heritage, and voice register
+3. Canonical correctness — load-bearing phrases verbatim, diacritics preserved, soul architecture non-negotiable
+4. Test correctness and no regressions
+5. Ship velocity
+6. Token budget optimization
+
+**Binding rules for all agents:**
+- Speed is never a reason to cut quality. Take the extra commits, rounds, or audit cycles.
+- Budget is never a reason to cut soul content. Raise budgets instead, or escalate to Project Owner.
+- No flattening of character differences. No voice register that could apply to any of them.
+- No paraphrasing of canonical hand-authored prose. Read source markdown, not code.
+- No scope minimization that sacrifices canonical coverage.
+- Regression protection (Phase A/B/C/D/E soul architecture preservation) is a first-class acceptance criterion for every future phase.
+- When Vision language conflicts with code aesthetics, Vision wins.
+
+Codex audit FAIL conditions for all future phases:
+- Any character voice register swappable with another character's without detection
+- Any canonical prose altered, paraphrased, or trimmed to fit budget
+- Any Phase A-E invariant test broken or weakened
+- Any "as an AI" break or prompt-content leakage
+- Any soul architecture register (essence, cards, pair metadata, voice exemplars) dedup'd or consolidated
+
+Claude AI QA guidance for all future phases:
+- Spot-check voice distinctness across all 4 characters in assembled prompt samples
+- Verify canonical markers (Marrickville, Urmia, Gracia, Famailla, Las Fallas, etc.) with diacritics preserved
+- Compare new phase samples to prior phase samples and flag any regression
+- If drift detected, QA verdict is FAIL regardless of test suite status
+
 
 ### Soul architecture shipping on every prompt
 
@@ -419,6 +454,7 @@ Three layers of canonical soul content now reach the model on every assembled pr
 | Alicia | 5,100 | ~2,050 | ~7,150 |
 
 ### Phase D (SHIPPED 2026-04-12)
+### Phase E (SHIPPED 2026-04-13)
 
 **What:** Surface 5 canonical pair fields (`full_name`, `classification`, `mechanism`, `what_she_provides`, `how_she_breaks_spiral`, `core_metaphor`) from `src/starry_lyfe/canon/pairs.yaml` as a structured metadata block at the top of Layer 5 (Voice Directives).
 
@@ -446,11 +482,12 @@ Removed: `Vision/{Adelia Raye,Alicia Marin,Bina Malek,Reina Torres}.md`, `Docs/_
 
 ### Test baseline
 
-**140 passed, 0 failed** as of 2026-04-12 post-Phase-D QA (127 pre-D + 13 new Phase D tests including live `assemble_context()` regression).
+**184 passed, 0 failed** as of 2026-04-12 post-Phase-D QA (127 pre-D + 13 new Phase D tests including live `assemble_context()` regression).
 
 ### Outstanding work (Phase D onward)
 
 - Phase D: Live Pair Data in Prompt — SHIPPED 2026-04-12
+- Phase E: Voice Exemplar Restoration — SHIPPED 2026-04-13 (includes Patch E hardening: strict Layer 5 invariant + diacritic fix)
 - Phase E: Voice Exemplar Restoration (blocked on Phase I + Phase D)
 - Phase F: Scene-Aware Section Retrieval + Cross-Cutting Modifiers
 - Phase G: Dramaturgical Prose Rendering with Per-Character Templates

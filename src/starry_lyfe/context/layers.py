@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import Sequence
 from typing import Any
@@ -16,7 +17,9 @@ from starry_lyfe.db.retrieval import DecayedSomaticState
 
 from .budgets import DEFAULT_BUDGETS, estimate_tokens, trim_text_to_budget, trim_to_budget
 from .kernel_loader import load_kernel, load_voice_examples, load_voice_guidance
-from .types import LayerContent, SceneState, VoiceExample, VoiceMode
+from .types import LayerContent, SceneState, SceneType, VoiceExample, VoiceMode
+
+logger = logging.getLogger(__name__)
 
 _VOICE_GUIDANCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
 
@@ -39,27 +42,81 @@ def _compact_voice_guidance_item(item: str) -> str:
     return compact.strip()
 
 
-def derive_active_voice_modes(scene: SceneState) -> list[VoiceMode]:
-    """Map a SceneState to a list of active VoiceModes for exemplar selection.
+_SCENE_TYPE_VOICE_MODES: dict[SceneType, list[VoiceMode]] = {
+    SceneType.DOMESTIC: [VoiceMode.DOMESTIC],
+    SceneType.INTIMATE: [VoiceMode.INTIMATE, VoiceMode.SOLO_PAIR],
+    SceneType.CONFLICT: [VoiceMode.CONFLICT],
+    SceneType.REPAIR: [VoiceMode.REPAIR, VoiceMode.SILENT],
+    SceneType.PUBLIC: [VoiceMode.PUBLIC],
+    SceneType.GROUP: [VoiceMode.GROUP],
+    SceneType.SOLO_PAIR: [VoiceMode.SOLO_PAIR, VoiceMode.DOMESTIC],
+    SceneType.TRANSITION: [VoiceMode.DOMESTIC],
+}
 
-    When ``scene.voice_modes`` is explicitly set, those modes are used
-    directly (future Phase F integration). Otherwise, modes are derived
-    from the existing scene state fields.
-    """
-    if scene.voice_modes is not None:
-        return scene.voice_modes
 
-    modes: list[VoiceMode] = [VoiceMode.DOMESTIC]
-
-    if scene.public_scene:
+def _add_domestic_context_modes(scene: SceneState, modes: list[VoiceMode]) -> None:
+    """Accumulate legacy scene-context cues for domestic scenes."""
+    if scene.public_scene and VoiceMode.PUBLIC not in modes:
         modes.append(VoiceMode.PUBLIC)
 
     char_count = len(scene.present_characters)
-    if char_count > 2:
+    if char_count > 2 and VoiceMode.GROUP not in modes:
         modes.append(VoiceMode.GROUP)
-    elif char_count == 2:
+    elif char_count == 2 and VoiceMode.SOLO_PAIR not in modes:
         modes.append(VoiceMode.SOLO_PAIR)
 
+
+def _has_active_modifiers(scene: SceneState) -> bool:
+    """Return True if any modifier boolean is set or absent dyads are invoked."""
+    m = scene.modifiers
+    return (
+        m.work_colleagues_present
+        or m.post_intensity_crash_active
+        or m.pair_escalation_active
+        or m.warm_refusal_required
+        or m.silent_register_active
+        or m.group_temperature_shift
+        or bool(m.explicitly_invoked_absent_dyad)
+    )
+
+
+def derive_active_voice_modes(scene: SceneState) -> list[VoiceMode]:
+    """Map a SceneState to a list of active VoiceModes for exemplar selection.
+
+    Priority: (1) explicit ``scene.voice_modes`` override, (2) SceneType
+    mapping + modifier accumulation (Phase F), (3) legacy fallback from
+    ``present_characters``/``public_scene`` when scene_type is DOMESTIC
+    with no modifiers active (backward compat).
+    """
+    # Priority 1: explicit override
+    if scene.voice_modes is not None:
+        return scene.voice_modes
+
+    # Priority 2: Phase F SceneType + modifier mapping
+    # Fires when scene_type is non-DOMESTIC OR any modifier is active.
+    if scene.scene_type != SceneType.DOMESTIC or _has_active_modifiers(scene):
+        modes = list(_SCENE_TYPE_VOICE_MODES.get(scene.scene_type, [VoiceMode.DOMESTIC]))
+        if scene.scene_type == SceneType.DOMESTIC:
+            _add_domestic_context_modes(scene, modes)
+
+        # Modifier accumulation (additive, not replacing)
+        m = scene.modifiers
+        if m.pair_escalation_active and VoiceMode.ESCALATION not in modes:
+            modes.append(VoiceMode.ESCALATION)
+        if m.warm_refusal_required and VoiceMode.WARM_REFUSAL not in modes:
+            modes.append(VoiceMode.WARM_REFUSAL)
+        if m.silent_register_active and VoiceMode.SILENT not in modes:
+            modes.append(VoiceMode.SILENT)
+        if m.group_temperature_shift and VoiceMode.GROUP_TEMPERATURE not in modes:
+            modes.append(VoiceMode.GROUP_TEMPERATURE)
+        if m.post_intensity_crash_active and VoiceMode.REPAIR not in modes:
+            modes.append(VoiceMode.REPAIR)
+
+        return modes
+
+    # Priority 3: legacy fallback (DOMESTIC + no modifiers = pre-Phase-F behavior)
+    modes = [VoiceMode.DOMESTIC]
+    _add_domestic_context_modes(scene, modes)
     return modes
 
 
@@ -68,6 +125,7 @@ def _select_voice_exemplars(
     active_modes: list[VoiceMode],
     communication_mode: str | None = None,
     max_exemplars: int = 2,
+    character_id: str = "",
 ) -> list[VoiceExample]:
     """Select voice exemplars by mode overlap, respecting communication mode.
 
@@ -88,7 +146,18 @@ def _select_voice_exemplars(
         candidates = list(examples)
 
     if not candidates:
-        return examples[:max_exemplars]
+        selected = examples[:max_exemplars]
+        logger.debug(
+            "voice_exemplar_selection: fallback (no comm-mode candidates)",
+            extra={
+                "character_id": character_id,
+                "active_modes": [m.value for m in active_modes],
+                "candidates_count": 0,
+                "mode_matched_count": 0,
+                "selected_titles": [ex.title for ex in selected],
+            },
+        )
+        return selected
 
     # Step 2: mode overlap filter
     active_set = set(active_modes)
@@ -99,16 +168,42 @@ def _select_voice_exemplars(
 
     if not mode_matched:
         # Fallback: no mode overlap, return first candidates by file order
-        return sorted(candidates, key=lambda ex: ex.index)[:max_exemplars]
+        selected = sorted(candidates, key=lambda ex: ex.index)[:max_exemplars]
+        logger.debug(
+            "voice_exemplar_selection: fallback (no mode overlap)",
+            extra={
+                "character_id": character_id,
+                "active_modes": [m.value for m in active_modes],
+                "candidates_count": len(candidates),
+                "mode_matched_count": 0,
+                "selected_titles": [ex.title for ex in selected],
+            },
+        )
+        return selected
 
     # Step 3: score and rank
-    def score_key(ex: VoiceExample) -> tuple[int, int]:
-        overlap = len(set(ex.modes) & active_set)
-        return (-overlap, ex.index)
+    priority_set = active_set - {VoiceMode.DOMESTIC}
+
+    def score_key(ex: VoiceExample) -> tuple[int, int, int]:
+        example_modes = set(ex.modes)
+        priority_overlap = len(example_modes & priority_set)
+        total_overlap = len(example_modes & active_set)
+        return (-priority_overlap, -total_overlap, ex.index)
 
     mode_matched.sort(key=score_key)
 
-    return mode_matched[:max_exemplars]
+    selected = mode_matched[:max_exemplars]
+    logger.debug(
+        "voice_exemplar_selection",
+        extra={
+            "character_id": character_id,
+            "active_modes": [m.value for m in active_modes],
+            "candidates_count": len(candidates),
+            "mode_matched_count": len(mode_matched),
+            "selected_titles": [ex.title for ex in selected],
+        },
+    )
+    return selected
 
 
 def _format_voice_exemplar(example: VoiceExample) -> str:
@@ -128,9 +223,10 @@ def _format_voice_exemplar(example: VoiceExample) -> str:
 def format_kernel(
     character_id: str,
     budget: int = DEFAULT_BUDGETS.kernel,
+    promote_sections: list[int] | None = None,
 ) -> LayerContent:
     """Layer 1: Section-aware kernel compilation preserving load-bearing sections."""
-    text = load_kernel(character_id, budget=budget)
+    text = load_kernel(character_id, budget=budget, promote_sections=promote_sections)
     return LayerContent(
         name="persona_kernel",
         text=text,
@@ -290,6 +386,7 @@ def format_voice_directives(
                 voice_examples,
                 active_modes=active_modes,
                 communication_mode=communication_mode,
+                character_id=character_id,
             )
             if selected:
                 formatted = [_format_voice_exemplar(ex) for ex in selected]
@@ -349,6 +446,7 @@ def format_scene_blocks(
     scene_description: str = "",
     budget: int = DEFAULT_BUDGETS.scene,
     recalled_dyads: set[str] | None = None,
+    explicitly_invoked_absent_dyad: frozenset[str] | None = None,
 ) -> LayerContent:
     """Layer 6: Format relationship state, open loops, and current scene activity."""
     sections: list[str] = []
@@ -366,11 +464,18 @@ def format_scene_blocks(
         )
 
     recalled = recalled_dyads or set()
+    invoked = explicitly_invoked_absent_dyad or frozenset()
     for iwd in dyads_internal:
         other = iwd.member_b if iwd.member_a == character_id else iwd.member_a
         dyad_key = f"{iwd.member_a}-{iwd.member_b}"
         dyad_key_rev = f"{iwd.member_b}-{iwd.member_a}"
-        if other in present_characters or dyad_key in recalled or dyad_key_rev in recalled:
+        if (
+            other in present_characters
+            or dyad_key in recalled
+            or dyad_key_rev in recalled
+            or dyad_key in invoked
+            or dyad_key_rev in invoked
+        ):
             sections.append(
                 f"Relationship {iwd.member_a}-{iwd.member_b} ({iwd.interlock or 'n/a'}): "
                 f"trust={iwd.trust:.2f}, intimacy={iwd.intimacy:.2f}, "

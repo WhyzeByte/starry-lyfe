@@ -449,4 +449,56 @@ Each role earns its keep by doing what the others cannot. The cycle's value is n
 
 The four-agent cycle is not a bureaucracy. It is a set of structured handoffs that exist to keep the soul-preservation work from drifting back into the same failure modes the four character conversion audits already caught. The audits exist because Phase 3 was implemented without this kind of cross-checking and the result was a backend that preserved the constraints while losing the souls. The cycle is the mechanism for not making that mistake twice.
 
+## Amendment: Quality Directive (Project Owner, 2026-04-13)
+
+This amendment applies to all phases from Phase F forward. It takes precedence over speed and budget considerations during execution, audit, and QA.
+
+### Priority order (highest to lowest)
+
+1. **Vision attainment** - Vision sections 5, 6, 7; PTF section 2.1; A5 Chosen Family; A6 Relationship Architecture
+2. **Character fidelity** - each of Adelia, Bina, Reina, Alicia uniquely herself with her own desires, goals, cognitive signature, heritage, voice register
+3. **Canonical correctness** - load-bearing phrases verbatim, diacritics preserved, soul architecture non-negotiable
+4. **Test correctness** - passing tests, typing, no regressions
+5. **Ship velocity** - commit count, round count
+6. **Token budget** - kernel/layer optimization
+
+### Binding rules for all four agents
+
+**Claude Code (execution):**
+- Speed is never a reason to cut quality. Take extra commits, extra rounds.
+- Budget is never a reason to cut soul content. Raise the budget or escalate to Project Owner.
+- No paraphrasing of hand-authored canonical prose. Read source markdown, not code.
+- No scope minimization that sacrifices canonical coverage.
+- When a decision is ambiguous, pick the most faithful Vision realization, not the cleanest code path.
+
+**Codex (audit):**
+Treat the following as automatic FAIL conditions regardless of test passage:
+- Any character voice register swappable with another character's without detection
+- Any canonical prose altered, paraphrased, or trimmed to fit budget
+- Any Phase A-E invariant test broken or weakened
+- Any soul architecture register (essence, cards, pair metadata, voice exemplars) dedup'd or consolidated
+- Any "as an AI" break or prompt-content leakage
+- Any missing Whyze-Byte constraint
+- Any A5/A6 architectural element lost in translation
+
+**Claude AI (QA):**
+In addition to standard acceptance criteria checks, verify:
+- Voice distinctness across all 4 characters in assembled prompt samples (read full samples, not just excerpts)
+- Canonical markers preserved with diacritics (Famailla, Tucuman, Gracia, Lucia, Merce, etc.)
+- Regression comparison against prior phase samples
+- Spot-check abbreviated voice exemplars in assembled prompts against Voice.md source for verbatim preservation
+- All four soul architecture registers still visible in every character's assembled prompt
+- If drift detected, verdict is FAIL regardless of test suite status
+
+**Project Owner:**
+Retains direct remediation authority. When soul-bearing prose drifts during Claude Code execution, Project Owner can invoke Claude AI for direct remediation outside the normal cycle (as happened in Phases A, B, C, E).
+
+### Rationale
+
+The four women have been carefully authored across Phases A, A', A'', B, C, D, E with distinct voices, lived histories, cognitive signatures, and pair architectures. Every phase from F forward exists to realize more of that authored depth in production, not to optimize around it. Rushed execution or over-scoped minimization would unravel what the earlier phases built.
+
+Phase 3 of the original implementation was shipped without cross-checking and produced a backend that preserved the constraints while losing the souls. The four-agent cycle exists so that does not happen twice. The Quality Directive exists so it does not happen even slowly, even by accident, even under budget pressure.
+
+---
+
 > *The edges are necessary. The soul is the point.*

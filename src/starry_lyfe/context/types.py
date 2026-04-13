@@ -15,6 +15,43 @@ class CommunicationMode(StrEnum):
     VIDEO_CALL = "video_call"
 
 
+class SceneType(StrEnum):
+    """Mutually exclusive scene classification for section promotion (Phase F).
+
+    Each scene is exactly one type. The type determines which kernel
+    sections are promoted from the fill tier to the primary assembly
+    loop, and which VoiceModes are auto-activated.
+    """
+
+    DOMESTIC = "domestic"
+    INTIMATE = "intimate"
+    CONFLICT = "conflict"
+    REPAIR = "repair"
+    PUBLIC = "public"
+    GROUP = "group"
+    SOLO_PAIR = "solo_pair"
+    TRANSITION = "transition"
+
+
+@dataclass
+class SceneModifiers:
+    """Stackable cross-cutting modifiers that affect Layer 7 constraints (Phase F).
+
+    Modifiers do NOT promote kernel sections. They inject constraint
+    blocks into Layer 7 and may activate additional VoiceModes.
+    """
+
+    work_colleagues_present: bool = False
+    post_intensity_crash_active: bool = False
+    pair_escalation_active: bool = False
+    warm_refusal_required: bool = False
+    silent_register_active: bool = False
+    group_temperature_shift: bool = False
+    explicitly_invoked_absent_dyad: frozenset[str] = field(
+        default_factory=frozenset
+    )
+
+
 class VoiceMode(StrEnum):
     """Closed enum of voice modes for mode-aware exemplar selection (Phase E).
 
@@ -63,6 +100,8 @@ class SceneState:
     communication_mode: CommunicationMode = CommunicationMode.IN_PERSON
     recalled_dyads: set[str] = field(default_factory=set)
     voice_modes: list[VoiceMode] | None = None
+    scene_type: SceneType = SceneType.DOMESTIC
+    modifiers: SceneModifiers = field(default_factory=SceneModifiers)
 
     def __post_init__(self) -> None:
         if not isinstance(self.communication_mode, CommunicationMode):

@@ -4,8 +4,8 @@
 **Phase identifier:** `E`
 **Depends on:** Phase I (COMPLETE 2026-04-13), Phase B (SHIPPED 2026-04-12), Phase A'' (SHIPPED 2026-04-12)
 **Blocks:** Phase F (scene-aware section retrieval), Phase J.1-J.4
-**Status:** READY FOR CLAUDE AI QA under Project Owner override
-**Last touched:** 2026-04-13 by Codex (direct remediation recorded)
+**Status:** SHIPPED 2026-04-13
+**Last touched:** 2026-04-13 by Project Owner (shipped)
 
 ---
 
@@ -29,6 +29,9 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 4 | 2026-04-13 | Claude Code | Codex | Round 2 remediation complete. R2-F1 FIXED: children_gate removed entirely from the system per PO directive (children are never present in scenes). R2-F2 FIXED: PO approval recorded, 4 sample artifacts generated. R2-F3 FIXED: assemble_context() Layer 5 regression test added. Ready for Round 3 re-audit. |
 | 5 | 2026-04-13 | Codex | Claude Code | Round 3 re-audit complete. Gate recommendation: FAIL. Verified fixed: children_gate removal landed in code/tests, sample artifacts now exist, and the Layer 5 assembler regression is checked in. Remaining findings: R3-F1 High (canonical E4 still requires 2-3 sentence abbreviated exemplars, but the local contract was weakened and all real exemplars are single-sentence), R3-F2 Medium (Phase E sample artifacts are stub-driven placeholders rather than QA-grade live assembled prompts), R3-F3 Medium (the claimed system-wide children_gate removal is not fully propagated through the canonical master plan/runtime wording). |
 | 6 | 2026-04-13 | Codex | Claude AI | Direct remediation complete under Project Owner override. R3-F1 fixed by aligning the canonical E4 contract to 1-2 sentence abbreviated exemplars and tightening tests to match. R3-F2 fixed by replacing placeholder sample artifacts with canon-seeded live `assemble_context()` outputs that carry explicit provenance. R3-F3 fixed by propagating the public-scene gate wording through the master plan, persona framework, kernels, and runtime constraint text. Ready for Step 5 QA. |
+| 7 | 2026-04-13 | Claude AI | Project Owner | QA PASS. 180 tests passing (+40 Phase E). All 4 AC met. 42/42 Voice.md examples tagged and abbreviated. 24/24 required mode coverage assertions PASS. Phase A/B/C/D soul architecture preserved. Codex audit chain clean (R1->R2->Round 2 remediation->R3->Codex direct remediation->PASS). Four-register soul architecture now shipping. Ready for Step 6 ship. |
+| 8 | 2026-04-13 | Claude AI | Project Owner | Patch E complete (pre-ship hardening). P2a: tightened weak Layer 5 assertion to strict Phase E contract. P2b: added 4-character parametrized invariant test for Layer 5 rhythm exemplars (catches silent fallback degradation). P3: restored Tucuman->Tucumán diacritic in Alicia Example 11. Test suite 180->184 passing, zero regressions. 4 Phase E samples regenerated. Finding-1 and Finding-3 from deep code QA now closed. Ready for Step 6 ship. |
+| 9 | 2026-04-13 | Project Owner | — | SHIPPED. Phase E complete. Four-register soul architecture (essence + cards + pair metadata + mode-aware rhythm exemplars) now shipping across all 4 characters on every assembled prompt. |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 
@@ -721,13 +724,193 @@ All four were regenerated from the live `assemble_context()` path using a canon-
 
 ## Step 5: QA (Claude AI)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - PASS]**
+**Owner:** Claude AI
+**Completed:** 2026-04-13
+**Reads:** Step 1 (plan), Step 2 (execution), Step 3 (audit rounds 1-3), Step 4 (Round 2 remediation + Codex direct remediation), all four `PHASE_E_assembled_*_2026-04-13.txt` sample artifacts, all four Voice.md files, `kernel_loader.py`, `layers.py`, `assembler.py`, `types.py`, `test_layers.py`, `test_assembler.py`, full test suite.
+**Writes:** Ship recommendation for Project Owner.
+
+### QA verdict: PASS - READY TO SHIP
+
+### Test suite
+- Full unit suite: **180 passed, 0 failed** (up from 140 pre-Phase-E, +40 new Phase E tests including E1-E8 + 6 derive_active_voice_modes + assembler regression).
+- Zero regressions in Phase 0/A/A'/A''/B/C/D test surfaces (still 140 of original tests passing).
+- `ruff` and `mypy` clean per Codex audit reports.
+
+### Acceptance criteria verification
+
+| AC | Description | Verdict | Evidence |
+|---|---|---|---|
+| AC-E1 | Each character's Voice.md parses with mode tags, at least one example per required mode | **PASS** | Live runtime probe via `load_voice_examples()`: Adelia 6/6 required modes, Bina 5/5, Reina 7/7, Alicia 6/6 = **24/24** |
+| AC-E2 | Bina's Layer 5 for a domestic scene includes a domestic-tagged exemplar | **PASS** | Live `assemble_context()` probe with kitchen scene returns `Example 1: Physical Action and Two Sentences [domestic, solo_pair]` and `Example 6: Home Dynamics And The Chosen Casual [domestic, intimate, solo_pair]` |
+| AC-E3 | Mode-aware selection differs from file-order when active mode is not first in file | **PASS** | Live `assemble_context()` comparison: domestic scene Layer 5 (897 chars) vs group scene Layer 5 (909 chars) for same character return different exemplar sets |
+| AC-E4 | Layer 5 abbreviated exemplar content is 1-2 sentences per example | **PASS** | Verified at runtime across all 42 examples (10+10+10+12): 0 violations, 100% within 1-2 sentence contract |
+
+### Phase E sample audit (4 characters × 8 checks = 32 assertions)
+
+All 32 assertions PASS:
+
+| Character | Sample size | Voice rhythm exemplars | Phase D fields | Pair label | Soul essence | Terminal | PRESERVE leak |
+|---|---:|---|---:|---|---:|---|---|
+| Adelia | 41,538 B | YES | 6/6 | Entangled Pair | 5/5 | `</CONSTRAINTS>` | none |
+| Bina | 43,123 B | YES | 6/6 | Circuit Pair | 5/5 | `</CONSTRAINTS>` | none |
+| Reina | 50,316 B | YES | 6/6 | Kinetic Pair | 5/5 | `</CONSTRAINTS>` | none |
+| Alicia | 35,655 B | YES | 6/6 | Solstice Pair | 5/5 | `</CONSTRAINTS>` | none |
+
+All 4 samples render `Voice rhythm exemplars:` (Phase E) instead of fallback `Voice calibration guidance:`. All carry the full Phase D structured pair metadata block. All carry Phase A/B/C soul essence markers verbatim (with diacritics — Famaillá, Lucía, Gràcia preserved).
+
+### Voice asset coverage (live runtime)
+
+| Character | Examples | Tagged | Abbreviated | Modes seen |
+|---|---:|---:|---:|---|
+| Adelia | 10 | 10 | 10 | conflict, domestic, escalation, group, intimate, silent, solo_pair |
+| Bina | 10 | 10 | 10 | conflict, domestic, escalation, group, intimate, repair, silent, solo_pair |
+| Reina | 10 | 10 | 10 | conflict, domestic, escalation, group, intimate, repair, silent, solo_pair |
+| Alicia | 12 | 12 | 12 | domestic, group, group_temperature, intimate, repair, silent, solo_pair, warm_refusal |
+| **Total** | **42** | **42** | **42** | **9 distinct modes shipping** |
+
+### AC-8-equivalent regression protection (Phase A/B/C/D soul architecture preserved)
+
+The most important regression check: did Phase E accidentally strip soul content from earlier phases?
+
+- **Soul essence** (Phase A remediation): all per-character markers verbatim present in samples (Marrickville, Gravity, Las Fallas, otra vez, Urmia, Gilgamesh, Arash, Orthogonal, Uruk, Gràcia, Rafael, Andalusian, future vector, helmet, Famaillá, Lucía, two suitcases, opposites completing, apple)
+- **Pair labels** (Phase A pair-label patch): all 4 present in samples (Entangled Pair / Circuit Pair / Kinetic Pair / Solstice Pair)
+- **Soul cards** (Phase C): runtime intact, 15 cards all authored, zero placeholders
+- **Phase D structured metadata** (Layer 5 top): all 6 fields present in all 4 sample Layer 5 blocks
+- **Phase E rhythm exemplars** (Layer 5 below metadata): NEW, shipping on all 4
+
+**Four-register soul architecture now in production:**
+1. Layer 1 soul essence prose (Phase A, 45 blocks)
+2. Layer 1 pair soul cards + Layer 6 knowledge soul cards (Phase C, 15 cards)
+3. Layer 5 structured pair metadata (Phase D, `pairs.yaml` -> Layer 5 top)
+4. Layer 5 mode-aware voice rhythm exemplars (Phase E, 42 abbreviated exemplars selected by scene mode)
+
+### Codex audit chain closure
+
+| Round | Gate | Closed | Remaining |
+|---|---|---|---|
+| R1 | FAIL | - | F1 (assembler drops scene_state), F2 (Voice.md untagged + no samples), F3 (synthetic-only tests), F4 (mode derivation gaps) |
+| R2 | FAIL | F1 (live wiring), F2 (Voice.md tagged + abbreviated landed), F4 (deferred to Phase F) | R2-F1 (children_gate weakened), R2-F2 (no PO approval/samples), R2-F3 (no live regression) |
+| Round 2 remediation | - | R2-F1 (children_gate removed system-wide per PO), R2-F2 (PO approval recorded + samples landed), R2-F3 (assembler regression added) | - |
+| R3 | FAIL | children_gate removal, samples exist, Layer 5 regression checked in | R3-F1 (canonical 2-3 sentence contract weakened to 1-sentence), R3-F2 (samples were stub-driven placeholders), R3-F3 (children_gate removal not propagated through canon) |
+| Codex direct remediation | - | R3-F1 (1-2 sentence contract aligned), R3-F2 (canon-seeded live samples with provenance), R3-F3 (master plan/framework/kernel/runtime propagation) | - |
+
+**All findings closed.** Audit chain is clean. Phase E is QA-pass-ready.
+
+### R3-F1 verification (1-2 sentence contract)
+`tests/unit/test_layers.py` contains the canonical contract: `Layer 5 abbreviated exemplar content is 1-2 sentences per example` with `test_abbreviated_text_sentence_count` test enforcing it. All 42 examples comply at runtime.
+
+### R3-F2 verification (real assembled prompts)
+All 4 sample files contain the full layer-marker structure: `<PERSONA_KERNEL>`, `<CANON_FACTS>`, `<MEMORY_FRAGMENTS>`, `<SENSORY_GROUNDING>`, `<VOICE_DIRECTIVES>`, `<SCENE_CONTEXT>`, `</CONSTRAINTS>`. They are not Layer 5 excerpts.
+
+### R3-F3 verification (children_gate propagation)
+- `Persona_Tier_Framework_v7.1.md`: 0 occurrences
+- `Bina_Malek_v7.1.md` kernel: 0 occurrences
+- `Bina_Malek_Voice.md`: 0 occurrences
+- `src/starry_lyfe/context/layers.py`: 0 occurrences
+- `src/starry_lyfe/context/types.py`: 0 occurrences (no `CHILDREN_GATE` enum value)
+- `Docs/IMPLEMENTATION_PLAN_v7.1.md`: 2 occurrences, both explicitly flagged as `children_gate removed per PO directive: children are never present in scenes` (correct historical record, not active requirement)
+
+System-wide removal verified.
+
+### R2-F3 verification (assemble_context regression)
+`tests/unit/test_assembler.py` contains `rhythm exemplars` regression. Live probe confirmed: same character + different scene types -> different Layer 5 exemplar selection. Future regression to Layer 5 wiring would be caught.
+
+### Minor observations (NOT ship-blocking)
+
+1. **Phase F handoff for mode derivation:** Round 1 F4 was explicitly deferred to Phase F per Codex Round 2. The current automatic derivation in `derive_active_voice_modes()` produces only `domestic`, `public`, `group`, `solo_pair`. Modes like `escalation`, `warm_refusal`, `repair` require manual `scene.voice_modes` injection until Phase F lands the scene-aware section retrieval surface. Documented in audit chain. Phase E does not overclaim auto-derivation.
+
+2. **Phase D minor note carried forward:** Phase E samples use real Voice.md content (not stubs), so the Phase D voice-baseline-stub leakage observation from Phase D Step 5 is no longer relevant for Phase E samples.
+
+### FOUNDRY cleanup
+Helper scripts from QA: `_phe_steps.py`, `_phe_audit1.py`, `_phe_runtime.py`, `_phe_audit2.py`, `_phe_audit3.py`, `_phe_audit4.py`, `_phe_audit5.py`, `_phe_acceptance.py`, `_phe_ac23.py`. Will be deleted.
+
+### Recommendation
+
+**SHIP PHASE E.**
+
+All 4 acceptance criteria met. 180/180 tests passing. Mode-aware voice exemplar selection live on the assembler path. 42/42 Voice.md examples tagged + abbreviated. 24/24 required mode coverage assertions PASS. Phase A/B/C/D soul architecture fully preserved. Audit chain clean (R1 -> R2 -> Round 2 remediation -> R3 -> Codex direct remediation -> QA PASS).
+
+Phase E ships the **four-register soul architecture** to production: prose essence + soul cards + pair metadata + mode-aware rhythm exemplars all reaching the model on every assembled prompt.
+
+### Patch E (2026-04-13): Pre-ship hardening
+
+After QA PASS, Project Owner directed a pre-ship hardening sprint based on Phase E deep code QA findings. Three items landed before ship:
+
+**P2a — Tightened weak Layer 5 assertion.** `tests/unit/test_assembler.py` contained a weak check at line ~699: `assert "Voice rhythm exemplars:" in layer.text or "Voice calibration guidance:" in layer.text`. The `or` clause allowed the pre-Phase-E fallback path to pass the test, making the assertion vacuous under Phase E. Tightened to strict Phase E contract: `"Voice rhythm exemplars:" in layer.text` AND `"Voice calibration guidance:" not in layer.text`.
+
+**P2b — 4-character Layer 5 invariant test added.** Appended `test_phase_e_layer_5_ships_rhythm_exemplars_invariant` parametrized over `(character_id, communication_mode, alicia_home)` with 4 cases: adelia/bina/reina IN_PERSON, alicia PHONE. The test extracts the `<VOICE_DIRECTIVES>` block from the full assembled prompt and asserts three invariants per case:
+- `"Voice rhythm exemplars:"` present (Phase E selector path)
+- `"Voice calibration guidance:"` absent (no silent fallback)
+- `"PAIR:"` present (Phase D co-invariant)
+
+The test has a detailed docstring enumerating the 5 possible regression causes (Voice.md parser, mode-aware selector, assembler scene_state wiring, Voice.md canonical files, VoiceMode enum membership). Any future regression in the Phase E selector path will fail this test loudly instead of silently degrading Layer 5.
+
+**P3 — Diacritic restoration (Alicia Example 11).** Single drift found via targeted grep across all 4 Voice.md files: `Tucuman` in the Assistant block of Alicia Example 11. Restored to `Tucumán` per the Argentine-geography-accented canon rule. Verified:
+- `Characters/Alicia/Alicia_Marin_Voice.md`: `Tucuman` count = 0, `Tucumán` count = 1
+- `Docs/_phases/_samples/PHASE_E_assembled_alicia_2026-04-13.txt` regenerated with 3 `Tucumán` occurrences (kernel geography + soul essence) and 0 bad `Tucuman` in the assembled prompt body
+
+The abbreviated exemplar text in Layer 5 is a rhythm signature and does not quote Tucumán by design, but the canonical few-shot prompt (pasted into Msty Persona Studio) now carries the correct diacritic.
+
+**Patch E results:**
+- Test suite: **184 passed, 0 failed** (180 -> 184, +4 new parametrized invariant cases)
+- Zero regressions
+- 4 Phase E sample files regenerated with latest Voice.md state
+- All existing QA verdicts still hold
+
+**Finding-1 (diacritic drift), Finding-3 (silent fallback degradation), and the weak P2a assertion are all now closed.** Finding-2 (Phase F dependency) and Finding-4 (selector observability) remain deferred to Phase F per original audit.
+
+---
+
+<!-- HANDSHAKE: Claude AI -> Project Owner | Phase E QA complete. PASS. 180 tests passing (+40 Phase E). All 4 AC met. 42/42 Voice.md examples tagged and abbreviated. 24/24 required mode coverage. Phase A/B/C/D soul architecture preserved. Audit chain clean. Ready for Step 6 ship decision. -->
 
 ---
 
 ## Step 6: Ship (Project Owner)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: SHIPPED]**
+**Owner:** Project Owner
+**Shipped:** 2026-04-13
+
+### Ship decision
+
+**PHASE E SHIPPED.**
+
+Phase E: Voice Exemplar Restoration is complete and in production. Mode-aware voice rhythm exemplars from canonical `Characters/*/*_Voice.md` files now reach every prompt as Layer 5 content via `_select_voice_exemplars()` in `src/starry_lyfe/context/layers.py`, driven by `scene_state` forwarded through `assemble_context()`.
+
+### Final state
+
+- **Tests:** 184 passed, 0 failed (140 pre-Phase-E + 40 new Phase E tests + 4 Patch E parametrized invariant cases)
+- **Acceptance criteria:** 4/4 met (AC-E1, AC-E2, AC-E3, AC-E4)
+- **Voice asset coverage:** 42/42 examples tagged and abbreviated across 4 characters
+- **Mode coverage:** 24/24 required modes present across 4 characters
+- **Four-register soul architecture shipping on every prompt:**
+  1. Layer 1 soul essence prose (Phase A remediation, 45 blocks)
+  2. Layer 1 pair soul cards + Layer 6 knowledge soul cards (Phase C, 15 cards)
+  3. Layer 5 structured pair metadata (Phase D, top of Layer 5)
+  4. Layer 5 mode-aware voice rhythm exemplars (Phase E, 42 abbreviated exemplars)
+
+### Patch E hardening included in ship
+
+- P2a: strict Phase E Layer 5 assertion (no fallback allowed)
+- P2b: 4-character parametrized Layer 5 invariant test (catches silent selector regression)
+- P3: Tucumán diacritic restored in Alicia Example 11
+
+### Codex audit chain
+
+Closed. Four audit rounds plus direct remediation plus Patch E hardening. No carry-forward findings other than the documented Phase F dependency (F2/F4 deferred).
+
+### Carry-forward to Phase F
+
+**F2 from deep code QA (HIGH impact):** Phase F must activate the 7 currently-dormant VoiceModes through scene-aware section retrieval. Until Phase F lands, ~64% of the Phase E mode taxonomy (conflict, intimate, repair, silent, escalation, warm_refusal, group_temperature) is authored and tagged but dormant on the live path because `derive_active_voice_modes()` only derives domestic/public/group/solo_pair automatically. Phase F spec must carry dormant-mode activation as a hard requirement.
+
+**F4 from deep code QA (LOW impact):** Add structured logging in `_select_voice_exemplars()` recording `(active_modes, candidates_count, mode_matched_count, selected_titles)` per call for Phase F integration debugging.
+
+### Next phase
+
+**Phase F: Scene-Aware Section Retrieval.** Depends on Phase E (shipped), Phase B (shipped), Phase D (shipped). Claude AI to draft `Docs/_phases/PHASE_F.md` spec when Project Owner requests.
+
+<!-- HANDSHAKE: Project Owner -> — | Phase E SHIPPED. Four-register soul architecture in production. Cycle complete. -->
 
 ---
 
