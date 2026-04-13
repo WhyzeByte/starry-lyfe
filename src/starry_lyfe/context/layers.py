@@ -161,13 +161,10 @@ def format_voice_directives(
 
     from starry_lyfe.canon.pairs_loader import format_pair_metadata
 
-    try:
-        pair_block = format_pair_metadata(character_id)
-        pair_tokens = estimate_tokens(pair_block)
-        sections.append(pair_block)
-        remaining = max(0, remaining - pair_tokens - 3)
-    except (ValueError, FileNotFoundError):
-        pass
+    pair_block = format_pair_metadata(character_id)
+    pair_tokens = estimate_tokens(pair_block)
+    sections.append(pair_block)
+    remaining = max(0, remaining - pair_tokens - 3)
 
     if baseline is not None:
         voice = baseline.voice_params

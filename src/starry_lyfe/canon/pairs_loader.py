@@ -39,40 +39,49 @@ _CHARACTER_TO_PAIR: dict[str, str] = {
 }
 
 _pair_cache: dict[str, PairMetadata] = {}
+_yaml_loaded: bool = False
 
 
-def get_pair_metadata(character_id: str) -> PairMetadata:
-    """Load pair metadata for a character from pairs.yaml (cached)."""
-    if character_id in _pair_cache:
-        return _pair_cache[character_id]
-
-    pair_key = _CHARACTER_TO_PAIR.get(character_id)
-    if pair_key is None:
-        msg = f"No pair mapping for character '{character_id}'"
-        raise ValueError(msg)
+def _ensure_loaded() -> None:
+    """Parse pairs.yaml once and populate the full character cache."""
+    global _yaml_loaded  # noqa: PLW0603
+    if _yaml_loaded:
+        return
 
     if not PAIRS_YAML.exists():
         msg = f"pairs.yaml not found at {PAIRS_YAML}"
         raise FileNotFoundError(msg)
 
     data = yaml.safe_load(PAIRS_YAML.read_text(encoding="utf-8"))
-    pair_data = data.get("pairs", {}).get(pair_key)
-    if pair_data is None:
-        msg = f"Pair '{pair_key}' not found in pairs.yaml"
+    pairs = data.get("pairs", {})
+
+    for char_id, pair_key in _CHARACTER_TO_PAIR.items():
+        pair_data = pairs.get(pair_key)
+        if pair_data is None:
+            continue
+        _pair_cache[char_id] = PairMetadata(
+            full_name=pair_data["full_name"],
+            classification=pair_data["classification"],
+            mechanism=pair_data["mechanism"],
+            what_she_provides=pair_data["what_she_provides"],
+            how_she_breaks_spiral=pair_data["how_she_breaks_spiral"],
+            core_metaphor=pair_data["core_metaphor"],
+            shared_functions=pair_data["shared_functions"],
+            cadence=pair_data["cadence"],
+        )
+
+    _yaml_loaded = True
+
+
+def get_pair_metadata(character_id: str) -> PairMetadata:
+    """Load pair metadata for a character from pairs.yaml (cached, single parse)."""
+    _ensure_loaded()
+
+    if character_id not in _pair_cache:
+        msg = f"No pair metadata for character '{character_id}'"
         raise ValueError(msg)
 
-    metadata = PairMetadata(
-        full_name=pair_data["full_name"],
-        classification=pair_data["classification"],
-        mechanism=pair_data["mechanism"],
-        what_she_provides=pair_data["what_she_provides"],
-        how_she_breaks_spiral=pair_data["how_she_breaks_spiral"],
-        core_metaphor=pair_data["core_metaphor"],
-        shared_functions=pair_data["shared_functions"],
-        cadence=pair_data["cadence"],
-    )
-    _pair_cache[character_id] = metadata
-    return metadata
+    return _pair_cache[character_id]
 
 
 def format_pair_metadata(character_id: str) -> str:
@@ -93,4 +102,6 @@ def format_pair_metadata(character_id: str) -> str:
 
 def clear_pair_cache() -> None:
     """Clear the pair metadata cache (useful for testing)."""
+    global _yaml_loaded  # noqa: PLW0603
     _pair_cache.clear()
+    _yaml_loaded = False

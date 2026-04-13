@@ -4,8 +4,8 @@
 **Phase identifier:** `D`
 **Depends on:** Phase 0, A, A', A'', B, C (all SHIPPED 2026-04-12)
 **Blocks:** Phase E (parallel capable), downstream J.1-J.4
-**Status:** APPROVED — READY FOR CLAUDE CODE EXECUTION
-**Last touched:** 2026-04-12 by Project Owner (approval)
+**Status:** IN PROGRESS — Round 1 audit complete, awaiting remediation
+**Last touched:** 2026-04-12 by Codex (Round 1 audit recorded)
 
 ---
 
@@ -21,6 +21,7 @@ This is the **single canonical record** for this phase. All four agents (Claude 
 |---:|---|---|---|---|
 | 1 | 2026-04-12 | Claude AI | Project Owner | Phase D created after Phase C shipped and quality audit completed. Small scope, high value, Claude-Code-appropriate. |
 | 2 | 2026-04-12 | Project Owner | Claude Code | APPROVED. Proceed with execution. Answer open questions Q1/Q2 per recommendations (exclude shared_functions and cadence from structured block). |
+| 3 | 2026-04-12 | Codex | Claude Code | Round 1 audit recorded from the landed Phase D code surface because Step 1 and Step 2 were never canonically filled. Gate recommendation: FAIL. Findings: F1 High (Layer 5 silently drops pair metadata when the loader fails instead of raising a clear error), F2 Medium (the new Phase D tests do not cover the accepted spec or the live `assemble_context()` path), F3 Medium (the canonical Phase D record is still execution-incomplete and there are no `PHASE_D_assembled_*` sample artifacts), F4 Low (the loader does not parse `pairs.yaml` once at module init as specified; it reparses on each character cache miss). |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 
@@ -132,10 +133,117 @@ _Claude Code: fill this section during execution. Record each commit hash as it 
 
 ## Step 3: Audit (Codex)
 
-**[STATUS: PENDING]**
+**[STATUS: COMPLETE - handed to Claude Code for remediation Round 1]**
 **Owner:** Codex
 **Reads:** Step 1, Step 2, landed code
 **Writes:** This section with gate recommendation (PASS / FAIL / FAIL with remediation items)
+
+### Audit content
+
+#### Scope
+
+Reviewed:
+
+- `Docs/IMPLEMENTATION_PLAN_v7.1.md` Phase D
+- `Docs/_phases/PHASE_D.md` header, Handshake Log, Step 1, Step 2, and accepted Phase D specification
+- landed Phase D commit `fa1eb90`
+- `src/starry_lyfe/canon/pairs_loader.py`
+- `src/starry_lyfe/context/layers.py`
+- `src/starry_lyfe/canon/pairs.yaml`
+- `tests/unit/test_pairs_loader.py`
+- `tests/unit/test_assembler.py` for existing Layer 5 / live assembly coverage
+- `Docs/_phases/_samples/` for `PHASE_D_assembled_*` artifacts
+
+Because Step 1 and Step 2 were never canonically populated, this audit used the landed commit surface and live runtime probes as the execution record.
+
+#### Verification context
+
+Independent checks run during audit:
+
+- `.venv\Scripts\python -m pytest tests/unit/test_pairs_loader.py tests/unit/test_assembler.py -q` -> **PASS** (`61 passed`)
+- `.venv\Scripts\python -m pytest tests/unit -q` -> **PASS** (`136 passed`)
+- `.venv\Scripts\python -m ruff check src/ tests/` -> **PASS**
+- `.venv\Scripts\python -m mypy src/` -> **PASS**
+- `.venv\Scripts\python -m pytest -q` -> **ENVIRONMENTAL FAIL** (`136 passed, 14 errors`) because PostgreSQL is unreachable during integration setup at `tests/integration/conftest.py:92`
+
+Runtime probes performed:
+
+- live `assemble_context(...)` probe across Adelia, Bina, Reina, and Alicia using the canonical unit-test stub retrieval path to confirm Layer 5 now carries `PAIR:` before voice guidance
+- failure-path probe that patched `starry_lyfe.canon.pairs_loader.format_pair_metadata` to raise `FileNotFoundError`
+- loader-cache probe that patched `yaml.safe_load` and counted parse calls while loading all four characters
+- sample-artifact existence check for `Docs/_phases/_samples/PHASE_D_assembled_*_2026-04-12.txt`
+
+#### Executive assessment
+
+The happy path is real. Phase D does surface structured pair metadata in Layer 5 for all four characters, and in live prompts the `PAIR:` block appears before `Voice calibration guidance:`. Default-budget Layer 5 token counts are healthy (`adelia 314`, `bina 333`, `reina 342`, `alicia 117`), so the added metadata is not currently stressing the voice budget.
+
+The implementation is still not shippable. The failure path violates the accepted spec: if pair metadata loading fails, `format_voice_directives()` silently drops the pair block and returns a degraded Layer 5 instead of surfacing a clear runtime error. The test suite also overstates coverage: the accepted spec called for all-four canonical phrase checks and live `assemble_context()` assertions, but the new tests mostly stop at helper-level behavior and a single-character content check. The canonical Phase D record is also still untouched past approval, and there are no Phase D sample prompt artifacts for QA to read.
+
+Gate recommendation: **FAIL**.
+
+#### Findings
+
+| # | Severity | Finding | Evidence | Recommended fix |
+|---:|---|---|---|---|
+| F1 | High | Layer 5 silently drops pair metadata when pair loading fails instead of raising a clear error. | The accepted Phase D spec requires missing pair data to fail clearly, not silently. `src/starry_lyfe/context/layers.py:167-169` prepends the pair block and then swallows both `ValueError` and `FileNotFoundError` with `pass`. In a live failure-path probe, patching `starry_lyfe.canon.pairs_loader.format_pair_metadata` to raise `FileNotFoundError('missing pairs.yaml')` still returned a normal Layer 5 with `pair_present False` and no exception. That means the core Phase D value can disappear at runtime without any signal. | Remove the silent fallback. Let `FileNotFoundError` / pair-resolution errors surface clearly on the live prompt path, or convert them into an explicit hard failure with a Phase D-specific message. Add a regression test that forces loader failure and asserts the error is raised. |
+| F2 | Medium | The new Phase D tests do not cover the accepted spec or the live `assemble_context()` path. | `tests/unit/test_pairs_loader.py:41` checks all eight fields only for Bina, not all four pairs. `tests/unit/test_pairs_loader.py:75` checks canonical phrases only for Bina, even though the accepted spec names all four characters. `tests/unit/test_pairs_loader.py:86` and `:97` call `format_voice_directives(..., None)` directly instead of the accepted live `assemble_context()` path, so assembler wiring and wrapped Layer 5 behavior are still unguarded. | Add a live `assemble_context()` test for all four characters that asserts the `PAIR:` block and the five metadata fields appear in Layer 5, and strengthen the canonical phrase coverage so Adelia, Reina, and Alicia are checked explicitly. |
+| F3 | Medium | The canonical Phase D record is still execution-incomplete, and there are no Phase D sample prompt artifacts. | `Docs/_phases/PHASE_D.md:112`, `:125`, and `:135` still show Step 1, Step 2, and Step 3 as `PENDING` even though `fa1eb90` landed. The Handshake Log stops at Project Owner approval, and `Get-ChildItem Docs/_phases/_samples/PHASE_D_assembled_*_2026-04-12.txt` returned count `0`. That leaves no canonical execution log or prompt samples for QA. | Fill Step 1 and Step 2 truthfully from the landed work, keep this Round 1 audit in Step 3, and generate four `PHASE_D_assembled_*_2026-04-12.txt` samples from the live runtime. |
+| F4 | Low | The loader does not parse `pairs.yaml` once at module init as specified; it reparses on each character cache miss. | The accepted Phase D work item says the loader should parse the YAML once and cache the parsed result. `src/starry_lyfe/canon/pairs_loader.py` instead keeps a per-character cache only and calls `yaml.safe_load(PAIRS_YAML.read_text(...))` inside `get_pair_metadata()`. In a probe that cleared the cache and loaded all four characters, `yaml.safe_load` was invoked `4` times. | Cache the parsed YAML document or a full character-to-metadata map once, then serve all characters from that cache. Add a test that proves repeated multi-character lookup does not reparse the file. |
+
+#### Runtime probe summary
+
+- Live happy-path probe confirmed Phase D's intended prompt behavior:
+  - `adelia`: `pair=True`, `guidance=True`, `pair_before_guidance=True`, `layer5_tokens=314`
+  - `bina`: `pair=True`, `guidance=True`, `pair_before_guidance=True`, `layer5_tokens=333`
+  - `reina`: `pair=True`, `guidance=True`, `pair_before_guidance=True`, `layer5_tokens=342`
+  - `alicia`: `pair=True`, `guidance=True`, `pair_before_guidance=True`, `layer5_tokens=117`
+- Live failure-path probe exposed the silent-drop bug directly:
+  - patched `format_pair_metadata()` to raise `FileNotFoundError('missing pairs.yaml')`
+  - `format_voice_directives('bina', ...)` still returned successfully
+  - probe output: `pair_present False`, `layer_tokens 280`
+- Loader-cache probe showed spec drift:
+  - clear cache
+  - load all four characters
+  - `yaml.safe_load` call count = `4`
+- No `PHASE_D_assembled_*_2026-04-12.txt` sample artifacts are present under `Docs/_phases/_samples/`
+
+#### Drift against specification
+
+- The happy path for Work Items 2-4 is implemented: typed metadata exists, the formatted block exists, and live Layer 5 prepends it before voice guidance.
+- Work Item 1 is only partially met. The loader exists, but it does not parse once at module init and the live formatting path hides missing-file errors instead of surfacing them.
+- Work Item 6 is only partially met. The named coverage for all four canonical phrase checks and live `assemble_context()` assertions is missing.
+- Acceptance criterion `AC-6` is unmet because no Phase D sample files exist.
+- The canonical Step 1 / Step 2 execution record is missing, so the phase file is not QA-ready.
+
+#### Verified resolved
+
+- `src/starry_lyfe/canon/pairs_loader.py` exists and returns a frozen typed dataclass with all eight canonical fields.
+- `format_pair_metadata(character_id)` returns the expected six-line structured block and excludes `shared_functions` / `cadence`.
+- In live prompts, Layer 5 now carries the `PAIR:` block before voice guidance for all four characters.
+- Default-budget Layer 5 output remains within the current `DEFAULT_BUDGETS.voice` budget for all four characters on the happy path.
+- The unit suite, lint, and type-check gates remain clean after Phase D (`136` unit tests passing, `ruff` pass, `mypy` pass).
+
+#### Adversarial scenarios constructed
+
+1. **Missing-loader failure-path probe:** patched `format_pair_metadata()` to raise `FileNotFoundError` and confirmed the live formatter silently dropped the pair block instead of surfacing an error.
+2. **Coverage reality check:** compared the accepted spec's all-four canonical phrase assertions and live `assemble_context()` requirement to the shipped tests; the suite stops at helper-level checks plus a single-character content assertion.
+3. **Cache-discipline probe:** patched `yaml.safe_load` and loaded all four characters after clearing cache; the loader reparsed the file four times instead of once.
+4. **Artifact trail check:** scanned `Docs/_phases/_samples/` for `PHASE_D_assembled_*` files and found none.
+
+#### Recommended remediation order
+
+1. Fix `F1` first. Silent degradation of the Phase D metadata block is the main runtime defect.
+2. Fix `F2` next. Tighten the tests around the live prompt path and all-four canonical phrases so the defect surface is actually defended.
+3. Fix `F3` after the code/test corrections. The canonical record and prompt samples need to exist before QA.
+4. Fix `F4` last. It is implementation drift and a small performance hit, not a demonstrated user-visible break on the current happy path.
+
+#### Gate recommendation
+
+**FAIL**
+
+Phase D should not proceed to QA yet. The happy path is working, but the failure path is wrong, the tests do not fully cover the accepted contract, and the canonical phase record plus sample artifacts are still missing.
+
+<!-- HANDSHAKE: Codex -> Claude Code | Audit Round 1 complete. FAIL gate. F1 High: Layer 5 silently drops pair metadata when the loader fails instead of raising a clear error. F2 Medium: Phase D tests do not cover the accepted spec or the live assemble_context path. F3 Medium: the canonical Phase D record and PHASE_D sample artifacts are still missing. F4 Low: pairs_loader reparses pairs.yaml on each character cache miss instead of loading once. Ready for remediation Round 1. -->
 
 ---
 

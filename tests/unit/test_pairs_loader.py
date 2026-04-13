@@ -72,12 +72,60 @@ class TestFormatPairMetadata:
             assert "SHARED FUNCTIONS:" not in block.upper().replace("_", " ")
             assert "CADENCE:" not in block.upper()
 
-    def test_bina_circuit_content(self) -> None:
+    def test_all_four_canonical_phrases(self) -> None:
         clear_pair_cache()
-        block = format_pair_metadata("bina")
-        assert "The Circuit Pair" in block
-        assert "Orthogonal Opposition" in block
-        assert "The Architect and the Sentinel" in block
+        expected = {
+            "adelia": ("The Entangled Pair", "Intuitive Symbiosis", "The Compass and the Gravity"),
+            "bina": ("The Circuit Pair", "Orthogonal Opposition", "The Architect and the Sentinel"),
+            "reina": ("The Kinetic Pair", "Asymmetrical Leverage", "The Mastermind and the Operator"),
+            "alicia": ("The Solstice Pair", "Complete Jungian Duality", "The Duality"),
+        }
+        for char_id, (pair_name, classification, metaphor) in expected.items():
+            block = format_pair_metadata(char_id)
+            assert pair_name in block, f"{char_id}: missing {pair_name}"
+            assert classification in block, f"{char_id}: missing {classification}"
+            assert metaphor in block, f"{char_id}: missing {metaphor}"
+
+
+class TestErrorHandling:
+    """F1 regression: pair loading failures must propagate, not silently disappear."""
+
+    def test_missing_character_raises_value_error(self) -> None:
+        clear_pair_cache()
+        import pytest
+
+        with pytest.raises(ValueError, match="No pair metadata"):
+            get_pair_metadata("nonexistent")
+
+    def test_layer_5_propagates_pair_error(self) -> None:
+        """F1: Layer 5 must not silently swallow pair loading errors."""
+        from unittest.mock import patch
+
+        from starry_lyfe.context.layers import format_voice_directives
+
+        with patch(
+            "starry_lyfe.canon.pairs_loader.format_pair_metadata",
+            side_effect=FileNotFoundError("pairs.yaml missing"),
+        ):
+            import pytest
+
+            with pytest.raises(FileNotFoundError):
+                format_voice_directives("bina", None)
+
+
+class TestSingleParse:
+    """F4: YAML parsed once, not per character."""
+
+    def test_four_characters_single_yaml_parse(self) -> None:
+        from unittest.mock import patch
+
+        clear_pair_cache()
+        with patch("starry_lyfe.canon.pairs_loader.yaml.safe_load", wraps=__import__("yaml").safe_load) as mock_load:
+            for char_id in ["adelia", "bina", "reina", "alicia"]:
+                get_pair_metadata(char_id)
+            assert mock_load.call_count == 1, (
+                f"YAML parsed {mock_load.call_count} times instead of 1"
+            )
 
 
 class TestLayer5Integration:
