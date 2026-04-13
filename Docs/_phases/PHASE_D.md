@@ -4,8 +4,8 @@
 **Phase identifier:** `D`
 **Depends on:** Phase 0, A, A', A'', B, C (all SHIPPED 2026-04-12)
 **Blocks:** Phase E (parallel capable), downstream J.1-J.4
-**Status:** IN PROGRESS — Round 2 audit complete, awaiting remediation Round 2
-**Last touched:** 2026-04-12 by Codex (Round 2 re-audit recorded)
+**Status:** IN PROGRESS — Round 3 audit complete, awaiting remediation Round 3
+**Last touched:** 2026-04-12 by Codex (Round 3 re-audit recorded)
 
 ---
 
@@ -23,6 +23,7 @@ This is the **single canonical record** for this phase. All four agents (Claude 
 | 2 | 2026-04-12 | Project Owner | Claude Code | APPROVED. Proceed with execution. Answer open questions Q1/Q2 per recommendations (exclude shared_functions and cadence from structured block). |
 | 3 | 2026-04-12 | Codex | Claude Code | Round 1 audit recorded from the landed Phase D code surface because Step 1 and Step 2 were never canonically filled. Gate recommendation: FAIL. Findings: F1 High (Layer 5 silently drops pair metadata when the loader fails instead of raising a clear error), F2 Medium (the new Phase D tests do not cover the accepted spec or the live `assemble_context()` path), F3 Medium (the canonical Phase D record is still execution-incomplete and there are no `PHASE_D_assembled_*` sample artifacts), F4 Low (the loader does not parse `pairs.yaml` once at module init as specified; it reparses on each character cache miss). |
 | 4 | 2026-04-12 | Codex | Claude Code | Round 2 re-audit after remediation commit `e7e0175`. Gate recommendation: PASS WITH MINOR FIXES. Verified fixed: F1 silent Layer 5 fallback is gone, and F4 single-parse caching is live. Remaining findings: R2-F1 Medium (the canonical Phase D record is still not QA-ready: Step 1, Step 2, and Step 4 remain `PENDING`, and there are still no `PHASE_D_assembled_*` sample artifacts), R2-F2 Low (the accepted live `assemble_context()` regression test for Layer 5 pair metadata is still missing). |
+| 5 | 2026-04-12 | Codex | Claude Code | Round 3 re-audit after remediation commit `4e3e314`. Gate recommendation: PASS WITH MINOR FIXES. Verified fixed: R2-F2 is now closed by a live `assemble_context()` regression, and the four `PHASE_D_assembled_*` files now exist. Remaining findings: R3-F1 Medium (Step 1, Step 2, and Step 4 still do not record the execution/remediation history), R3-F2 Low (the new `PHASE_D_assembled_*` artifacts are Layer 5 excerpts, not end-to-end assembled prompts). |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 
@@ -357,6 +358,104 @@ The phase is still not fully converged as a canonical artifact. The remediation 
 Phase D's runtime defects are closed. The remaining work is to complete the canonical phase record, generate the missing sample artifacts, and add the last accepted live-path regression test before QA.
 
 <!-- HANDSHAKE: Codex -> Claude Code | Audit Round 2 complete. PASS WITH MINOR FIXES. Original F1 and F4 verified fixed. Remaining: R2-F1 Medium (canonical phase record + PHASE_D samples still missing), R2-F2 Low (live assemble_context regression still missing). Ready for remediation Round 2. -->
+
+---
+
+## Step 3'': Audit (Codex) — Round 3
+
+**[STATUS: COMPLETE - handed to Claude Code for remediation Round 3]**
+**Owner:** Codex
+**Reads:** Remediation commit `4e3e314`, current code/tests, current sample artifacts, and the current phase file
+**Writes:** This section with re-audit findings and updated gate recommendation
+
+### Round 3 audit content
+
+#### Scope
+
+Reviewed:
+
+- remediation commit `4e3e314`
+- current `tests/unit/test_pairs_loader.py`
+- current `Docs/_phases/PHASE_D.md`
+- current `Docs/_phases/_samples/PHASE_D_assembled_{adelia,bina,reina,alicia}_2026-04-12.txt`
+- current live `assemble_context()` Layer 5 behavior for Adelia, Bina, Reina, and Alicia
+
+Because Step 4 is still not canonically filled, this re-audit used the landed remediation commit plus current repository state as the remediation record.
+
+#### Verification context
+
+Independent checks run during re-audit:
+
+- `.venv\Scripts\python -m pytest tests/unit/test_pairs_loader.py tests/unit/test_assembler.py -q` -> **PASS** (`65 passed`)
+- `.venv\Scripts\python -m pytest tests/unit -q` -> **PASS** (`140 passed`)
+- `.venv\Scripts\python -m ruff check src/ tests/` -> **PASS**
+- `.venv\Scripts\python -m mypy src/` -> **PASS**
+- `.venv\Scripts\python -m pytest -q` -> **ENVIRONMENTAL FAIL** (`140 passed, 14 errors`) because PostgreSQL remains unreachable during integration setup at `tests/integration/conftest.py:92`
+
+Runtime probes performed:
+
+- live `assemble_context(...)` probe across Adelia, Bina, Reina, and Alicia using the canonical unit-test stub retrieval path to confirm Layer 5 carries all six pair metadata fields after the latest remediation
+- sample-artifact existence and content check for all four `Docs/_phases/_samples/PHASE_D_assembled_*_2026-04-12.txt` files
+- current phase-record consistency check across the header, Handshake Log, and Step 1 / Step 2 / Step 4 sections
+
+#### Executive assessment
+
+The latest remediation materially closes the remaining runtime and coverage gap. The new live `assemble_context()` regression in `tests/unit/test_pairs_loader.py` now exercises the accepted path directly and passes for all four characters, the unit suite is green at `140 passed`, and the four Phase D sample files now exist on disk.
+
+The phase is still not QA-ready as a canonical artifact. Step 1, Step 2, and Step 4 remain `PENDING`, so the source-of-truth file still lacks the Claude Code execution and remediation record for the latest work. The new `PHASE_D_assembled_*` files also are not actually assembled prompts: they are Layer 5 excerpts beginning directly with `PAIR:`. That is enough to keep the gate at **PASS WITH MINOR FIXES** rather than clean PASS.
+
+#### Findings
+
+| # | Severity | Finding | Evidence | Recommended fix |
+|---:|---|---|---|---|
+| R3-F1 | Medium | The canonical Phase D record is still incomplete after remediation commit `4e3e314`. | `Docs/_phases/PHASE_D.md:113`, `:126`, and `:252` still show Step 1, Step 2, and Step 4 as `PENDING`. There is still no Claude Code remediation table recording the latest fix or the disposition of `R2-F1` / `R2-F2`. | Fill Step 1, Step 2, and Step 4 truthfully and record the Round 2 remediation disposition for `R2-F1` / `R2-F2`. |
+| R3-F2 | Low | The new `PHASE_D_assembled_*` artifacts are Layer 5 excerpts, not end-to-end assembled prompts. | The new sample files now exist, but they begin directly with the Layer 5 pair block at `Docs/_phases/_samples/PHASE_D_assembled_adelia_2026-04-12.txt:1` and `Docs/_phases/_samples/PHASE_D_assembled_bina_2026-04-12.txt:1`, with no surrounding assembled-prompt structure. AGENTS.md Step 2 and the file naming convention call for assembled-prompt outputs that QA can read end-to-end. | Regenerate the four sample files from the full live assembled prompt, or explicitly rename/document them as Layer 5 excerpts instead of assembled prompts. |
+
+#### Runtime probe summary
+
+- Live `assemble_context()` probe now confirms all six pair metadata fields in Layer 5 for all four characters:
+  - `adelia`: `layer5_tokens=302`, all six fields present
+  - `bina`: `layer5_tokens=325`, all six fields present
+  - `reina`: `layer5_tokens=332`, all six fields present
+  - `alicia`: `layer5_tokens=345`, all six fields present
+- The new sample-artifact check confirms presence of all four files:
+  - `PHASE_D_assembled_adelia_2026-04-12.txt`
+  - `PHASE_D_assembled_bina_2026-04-12.txt`
+  - `PHASE_D_assembled_reina_2026-04-12.txt`
+  - `PHASE_D_assembled_alicia_2026-04-12.txt`
+- The content check shows those files are Layer 5-only excerpts rather than end-to-end assembled prompts.
+
+#### Drift against specification
+
+- Original `F1` remains fixed: Layer 5 no longer swallows pair-loading failures.
+- Original `F4` remains fixed: `pairs.yaml` is parsed once per cache lifetime.
+- Original `R2-F2` is now fixed: the accepted live `assemble_context()` regression landed and passes.
+- Original `R2-F1` is only partially fixed: the sample files now exist, but the canonical phase record remains incomplete and the artifacts are not true assembled-prompt outputs.
+
+#### Verified resolved
+
+- `tests/unit/test_pairs_loader.py` now includes a live `assemble_context()` regression that asserts all six pair metadata fields in Layer 5 for all four characters.
+- The targeted suite, full unit suite, lint, and type-check gates are clean after the latest remediation (`65 passed`, `140 passed`, `ruff` pass, `mypy` pass).
+- The four Phase D sample files are now present on disk.
+
+#### Adversarial scenarios constructed
+
+1. **Live-path coverage check:** re-ran the accepted `assemble_context()` path across all four characters and confirmed the new regression really exercises the wrapped Layer 5 output.
+2. **Artifact truthfulness check:** opened the new `PHASE_D_assembled_*` files and confirmed they are Layer 5 excerpts rather than assembled prompts.
+3. **Canonical-record consistency check:** compared the landed remediation commit to Step 1, Step 2, and Step 4 in `PHASE_D.md`; the source-of-truth file still lacks the Claude Code execution/remediation record for the latest work.
+
+#### Recommended remediation order
+
+1. Fix `R3-F1` first. The phase record is the canonical artifact and is still out of sync with the landed remediation.
+2. Fix `R3-F2` next. QA should receive true assembled prompts or clearly labeled excerpts, not mislabeled files.
+
+#### Gate recommendation
+
+**PASS WITH MINOR FIXES**
+
+Phase D's runtime and test-surface issues are now closed. The remaining work is canonical recordkeeping: bring `PHASE_D.md` up to date with the actual remediation and make the sample artifacts truthful for QA consumption.
+
+<!-- HANDSHAKE: Codex -> Claude Code | Audit Round 3 complete. PASS WITH MINOR FIXES. R2-F2 verified fixed by the new live assemble_context regression. Remaining: R3-F1 Medium (Step 1/2/4 still do not record the latest execution/remediation history), R3-F2 Low (PHASE_D_assembled_* artifacts are Layer 5 excerpts, not end-to-end assembled prompts). Ready for remediation Round 3. -->
 
 ---
 
