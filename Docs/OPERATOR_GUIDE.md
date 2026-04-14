@@ -320,6 +320,33 @@ Parser entry points:
 - `Voice rhythm exemplars:` when the mode-aware path fires
 - `Voice calibration guidance:` when it falls back to the older teaching-note path
 
+### 6.5 VoiceMode Glossary: What The Tags Actually Do
+
+The mode tags are Layer 5 selector metadata, not standalone prompt blocks. They work like this:
+
+- `SceneState` activates one or more `VoiceMode` values through `scene_type`, modifiers, or an explicit `voice_modes` override.
+- `_select_voice_exemplars()` then prefers examples whose tags overlap the active set.
+- Non-`DOMESTIC` overlaps outrank generic domestic ties, so a specific tag like `warm_refusal` or `group_temperature` beats a generic domestic example when both are available.
+
+| VoiceMode | What It Means In Practice | Typical Activation Path |
+|-----------|---------------------------|-------------------------|
+| `domestic` | Ordinary household/private baseline. No special pressure, no formal public witness, no explicit conflict requirement. This is the everyday home register. | Default `SceneType.DOMESTIC`; also rides along with `SceneType.SOLO_PAIR` and many two-person fallback scenes |
+| `conflict` | Disagreement, veto, friction, challenge, or pushback. The character is resisting, correcting, or forcing a sharper frame. | `SceneType.CONFLICT` or explicit `voice_modes` override |
+| `intimate` | Adult romantic, sensual, or high-closeness register. Not automatically explicit sexual content; it is the physical/romantic proximity band. | `SceneType.INTIMATE` or explicit override |
+| `public` | Outside-household or witnessed register where discretion matters. The voice stays compatible with public-scene constraints and reduced intimacy surface. | `SceneType.PUBLIC` or legacy `public_scene=True` fallback |
+| `group` | Multi-woman room dynamics. The focal woman is contributing inside a group field rather than operating in a one-on-one register. | `SceneType.GROUP` or domestic fallback when more than two characters are present |
+| `repair` | Reconciliation, decompression, aftercare, or post-intensity re-regulation. The scene is about settling, mending, or holding the aftermath. | `SceneType.REPAIR` or `post_intensity_crash_active=True` |
+| `silent` | Minimal-verbal register. Meaning is carried by stillness, touch, placement, or one short line rather than extended speech. | `SceneType.REPAIR`, `silent_register_active=True`, or explicit override |
+| `solo_pair` | Focused one-on-one pair register. The scene is centered on the focal woman and Whyze rather than the group. | `SceneType.SOLO_PAIR`, `SceneType.INTIMATE`, or domestic fallback when exactly two characters are present |
+| `escalation` | Deliberate increase in intimate pressure or forward movement. The character is actively advancing the charge of the scene rather than just inhabiting intimacy. | `pair_escalation_active=True` or explicit override |
+| `warm_refusal` | Firm boundary held without coldness. The character says no, but the no preserves care, attachment, or professionalism instead of becoming a rupture. | `warm_refusal_required=True` or explicit override |
+| `group_temperature` | Group-scene temperature change rather than conversational hub behavior. The character changes the feel of the room without taking over the room. | `group_temperature_shift=True` or explicit override |
+
+Two current-state nuances:
+
+- These modes are not guaranteed to exist in every character's corpus. Coverage depends on what that character's `Voice.md` actually tags.
+- As of 2026-04-13, the checked-in Voice.md corpus contains no explicit `public`-tagged exemplars, even though `PUBLIC` is a valid runtime `VoiceMode`. When `PUBLIC` activates without a dedicated public exemplar, the selector now applies a public-safety ranking so Layer 5 prefers non-private examples over intimate, escalation, or solo-pair fallbacks unless a more specific active mode such as `warm_refusal` is explicitly in play.
+
 ---
 
 ## 7. `SceneState`: The Runtime Control Surface

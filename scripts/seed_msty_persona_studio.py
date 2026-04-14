@@ -21,11 +21,23 @@ from typing import TypedDict
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-VOICE_PATHS: dict[str, str] = {
-    "adelia": "Characters/Adelia/Adelia_Raye_Voice.md",
-    "bina": "Characters/Bina/Bina_Malek_Voice.md",
-    "reina": "Characters/Reina/Reina_Torres_Voice.md",
-    "alicia": "Characters/Alicia/Alicia_Marin_Voice.md",
+VOICE_PATHS: dict[str, tuple[str, ...]] = {
+    "adelia": (
+        "Characters/Adelia_Raye_Voice.md",
+        "Characters/Adelia/Adelia_Raye_Voice.md",
+    ),
+    "bina": (
+        "Characters/Bina_Malek_Voice.md",
+        "Characters/Bina/Bina_Malek_Voice.md",
+    ),
+    "reina": (
+        "Characters/Reina_Torres_Voice.md",
+        "Characters/Reina/Reina_Torres_Voice.md",
+    ),
+    "alicia": (
+        "Characters/Alicia_Marin_Voice.md",
+        "Characters/Alicia/Alicia_Marin_Voice.md",
+    ),
 }
 
 _EXAMPLE_HEADING_RE = re.compile(r"^## Example \d+:\s*(.+)$")
@@ -47,6 +59,15 @@ class PersonaConfig(TypedDict):
 
     character_id: str
     few_shots: list[FewShotEntry]
+
+
+def _resolve_repo_path(rel_paths: tuple[str, ...]) -> Path | None:
+    """Return the first existing project-relative path from the candidates."""
+    for rel_path in rel_paths:
+        full_path = PROJECT_ROOT / rel_path
+        if full_path.exists():
+            return full_path
+    return None
 
 
 def _extract_few_shots(raw_text: str) -> list[FewShotEntry]:
@@ -134,18 +155,25 @@ def build_persona_configs() -> list[PersonaConfig]:
     configs: list[PersonaConfig] = []
     warnings: list[str] = []
 
-    for character_id, rel_path in VOICE_PATHS.items():
-        full_path = PROJECT_ROOT / rel_path
-        if not full_path.exists():
-            warnings.append(f"WARNING: Voice file not found: {full_path}")
+    for character_id, rel_paths in VOICE_PATHS.items():
+        full_path = _resolve_repo_path(rel_paths)
+        if full_path is None:
+            warnings.append(
+                f"WARNING: Voice file not found for {character_id}: {list(rel_paths)}"
+            )
             continue
 
         raw_text = full_path.read_text(encoding="utf-8")
         few_shots = _extract_few_shots(raw_text)
 
+        try:
+            resolved_rel_path = str(full_path.relative_to(PROJECT_ROOT))
+        except ValueError:
+            resolved_rel_path = str(full_path)
+
         if not few_shots:
             warnings.append(
-                f"WARNING: No abbreviated exemplars found in {rel_path}. "
+                f"WARNING: No abbreviated exemplars found in {resolved_rel_path}. "
                 f"Phase E Voice.md authoring may not be complete for {character_id}."
             )
 

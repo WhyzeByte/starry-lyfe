@@ -482,14 +482,39 @@ Removed: `Vision/{Adelia Raye,Alicia Marin,Bina Malek,Reina Torres}.md`, `Docs/_
 
 ### Test baseline
 
-**541 passed, 0 failed** as of 2026-04-13 post-lettered-phase remediation (540 pre-remediation + 1 new required_concepts runtime delivery test).
+**556 passed, 0 failed** as of 2026-04-13 post-Phase-2 audit remediation (541 pre-audit + 15 new tests covering C1-C4 fixes and new prose/whyze_byte modules). ruff clean. mypy `--strict` clean.
 
-### Outstanding work (Phase D onward)
+### Phase 2 end audit (2026-04-13)
 
+Full audit report: `Docs/_audits/PHASE_2_AUDIT_2026-04-13.md`. Drift audit of 4 Phase F samples passed all 8 dimensions (voice distinctness, diacritic preservation, canonical markers, pair metadata, terminal anchoring, soul essence, Layer 7 modifiers).
+
+**4 Critical findings fixed in commit `583a68e`:**
+- **C1** — `format_soul_essence()` raises `ValueError` on missing character (was silently returning empty string, threatening Vision V6-V9 character fidelity).
+- **C2** — `load_kernel()` cache key now includes `profile_name` threaded through from `assemble_context()`, preventing silent profile-collision caching.
+- **C3** — `load_all_canon(validate=True)` by default. Validator refactored to accept a `Canon` parameter for recursion safety. Invalid canon now fails loud at startup.
+- **C4** — `assert_complete_character_coverage()` helper (in `canon/schemas/enums.py`) wired at module load in 6 locations: `budgets.py`, `kernel_loader.py`, `pairs_loader.py`, `prose.py`, `constraints.py`, `soul_essence.py`. `canonical_women` in constraints.py now derived from `CharacterID` enum.
+
+**Deferred findings (not blocking):** H1-H5 (silent fallback cleanup), M1-M4 (doc/type polish), L1-L2 (dead branches). See audit report.
+
+### Operator guide
+
+`Docs/OPERATOR_GUIDE.md` (shipped 2026-04-13) — 676-line sequential walkthrough of the runtime pipeline: character markdown → 7-layer assembled prompt. Audience: operators and onboarding engineers. Cites file:line for every stage. Includes reference table of 40+ key symbols.
+
+### Outstanding work
+
+**Shipped lettered phases:**
 - Phase D: Live Pair Data in Prompt — SHIPPED 2026-04-12
-- Phase E: Voice Exemplar Restoration — SHIPPED 2026-04-13 (includes Patch E hardening: strict Layer 5 invariant + diacritic fix)
-- Phase F: Scene-Aware Section Retrieval + Cross-Cutting Modifiers — SHIPPED 2026-04-13 (220 tests; 11/11 VoiceModes live)
-- Phase G: Dramaturgical Prose Rendering with Per-Character Templates — SHIPPED 2026-04-13 (237 tests; per-character prose renderers for Layers 2, 4, 6)
-- Phase J.1-J.4: Per-Character Remediation Passes (sequential)
-- Phase H: Soul Regression Tests with Hybrid Methodology
-- Phase K: Subjective Success Proxies
+- Phase E: Voice Exemplar Restoration — SHIPPED 2026-04-13 (includes Patch E hardening)
+- Phase F: Scene-Aware Section Retrieval + Cross-Cutting Modifiers — SHIPPED 2026-04-13 (11/11 VoiceModes live)
+- Phase G: Dramaturgical Prose Rendering — SHIPPED 2026-04-13
+- Phase J.1-J.4: Per-Character Remediation Passes — SHIPPED 2026-04-13
+- Phase H: Soul Regression Tests — SHIPPED 2026-04-13
+- Phase K: Subjective Success Proxies — SHIPPED 2026-04-13
+
+**Shipped architectural phases:**
+- Phase 4: Whyze-Byte Validation Pipeline — SHIPPED 2026-04-13 (`src/starry_lyfe/validation/whyze_byte.py`)
+
+**Planned:**
+- Phase 5: Scene Director — consumes Phase F scene type infrastructure
+- Phase 6: Dreams Engine
+- Phase 7: HTTP service on port 8001

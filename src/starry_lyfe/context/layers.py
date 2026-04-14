@@ -29,6 +29,17 @@ from .types import LayerContent, SceneState, SceneType, VoiceExample, VoiceMode
 logger = logging.getLogger(__name__)
 
 _VOICE_GUIDANCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+_PUBLIC_CONTEXT_MODES: set[VoiceMode] = {
+    VoiceMode.PUBLIC,
+    VoiceMode.DOMESTIC,
+    VoiceMode.GROUP,
+    VoiceMode.SOLO_PAIR,
+}
+_PUBLIC_PRIVATE_MODES: set[VoiceMode] = {
+    VoiceMode.INTIMATE,
+    VoiceMode.ESCALATION,
+    VoiceMode.SOLO_PAIR,
+}
 
 
 def _compact_voice_guidance_item(item: str) -> str:
@@ -173,9 +184,32 @@ def _select_voice_exemplars(
         if set(ex.modes) & active_set
     ]
 
+    def public_penalty(ex: VoiceExample, *, has_explicit_public: bool) -> int:
+        """Penalize private-register fallbacks when PUBLIC is active.
+
+        If a scene activates PUBLIC but the corpus has no explicit public-tagged
+        exemplar for the current candidate set, prefer examples that do not drag
+        Layer 5 toward private one-on-one or intimate registers by accident.
+
+        Examples that match a more specific active mode such as WARM_REFUSAL,
+        REPAIR, or GROUP_TEMPERATURE keep priority even if they also carry a
+        contextual private tag like SOLO_PAIR.
+        """
+        if VoiceMode.PUBLIC not in active_set or has_explicit_public:
+            return 0
+        example_modes = set(ex.modes)
+        specific_active = active_set - _PUBLIC_CONTEXT_MODES
+        if example_modes & specific_active:
+            return 0
+        return 1 if example_modes & _PUBLIC_PRIVATE_MODES else 0
+
     if not mode_matched:
         # Fallback: no mode overlap, return first candidates by file order
-        selected = sorted(candidates, key=lambda ex: ex.index)[:max_exemplars]
+        has_explicit_public = any(VoiceMode.PUBLIC in ex.modes for ex in candidates)
+        selected = sorted(
+            candidates,
+            key=lambda ex: (public_penalty(ex, has_explicit_public=has_explicit_public), ex.index),
+        )[:max_exemplars]
         logger.debug(
             "voice_exemplar_selection: fallback (no mode overlap)",
             extra={
@@ -183,6 +217,9 @@ def _select_voice_exemplars(
                 "active_modes": [m.value for m in active_modes],
                 "candidates_count": len(candidates),
                 "mode_matched_count": 0,
+                "public_safe_fallback": (
+                    VoiceMode.PUBLIC in active_set and not has_explicit_public
+                ),
                 "selected_titles": [ex.title for ex in selected],
             },
         )
@@ -190,12 +227,18 @@ def _select_voice_exemplars(
 
     # Step 3: score and rank
     priority_set = active_set - {VoiceMode.DOMESTIC}
+    has_explicit_public = any(VoiceMode.PUBLIC in ex.modes for ex in mode_matched)
 
-    def score_key(ex: VoiceExample) -> tuple[int, int, int]:
+    def score_key(ex: VoiceExample) -> tuple[int, int, int, int]:
         example_modes = set(ex.modes)
         priority_overlap = len(example_modes & priority_set)
         total_overlap = len(example_modes & active_set)
-        return (-priority_overlap, -total_overlap, ex.index)
+        return (
+            public_penalty(ex, has_explicit_public=has_explicit_public),
+            -priority_overlap,
+            -total_overlap,
+            ex.index,
+        )
 
     mode_matched.sort(key=score_key)
 
@@ -207,6 +250,9 @@ def _select_voice_exemplars(
             "active_modes": [m.value for m in active_modes],
             "candidates_count": len(candidates),
             "mode_matched_count": len(mode_matched),
+            "public_safe_ranking": (
+                VoiceMode.PUBLIC in active_set and not has_explicit_public
+            ),
             "selected_titles": [ex.title for ex in selected],
         },
     )

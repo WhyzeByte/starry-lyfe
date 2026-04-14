@@ -120,6 +120,72 @@ Not much.
 ---
 """
 
+SYNTHETIC_VOICE_MD_PUBLIC_GAP = """\
+## Example 1: Intimate Private
+
+<!-- mode: intimate, solo_pair -->
+
+**What it teaches the model:** Private intimate register.
+
+**User:**
+Stay.
+
+**Assistant:**
+Stay right here.
+
+**Abbreviated:** Private intimate response.
+
+---
+
+## Example 2: Domestic Pair
+
+<!-- mode: domestic, solo_pair -->
+
+**What it teaches the model:** Private domestic pair register.
+
+**User:**
+Coffee?
+
+**Assistant:**
+Already made.
+
+**Abbreviated:** Private domestic response.
+
+---
+
+## Example 3: Group Observation
+
+<!-- mode: group -->
+
+**What it teaches the model:** Group-room observation.
+
+**User:**
+What changed?
+
+**Assistant:**
+The room did.
+
+**Abbreviated:** Group-scene observation.
+
+---
+
+## Example 4: Domestic Public-Safe
+
+<!-- mode: domestic -->
+
+**What it teaches the model:** Neutral domestic register.
+
+**User:**
+You good?
+
+**Assistant:**
+Working on it.
+
+**Abbreviated:** Neutral domestic response.
+
+---
+"""
+
 
 # ---------------------------------------------------------------------------
 # E1: Mode tag parsing
@@ -325,6 +391,57 @@ class TestSelectionFallback:
         )
         # Should return the first 2 by file order as fallback
         assert selected[0].index <= selected[-1].index
+
+    def test_public_mode_fallback_prefers_non_private_examples(self) -> None:
+        examples = _extract_voice_examples(SYNTHETIC_VOICE_MD_PUBLIC_GAP)
+        selected = _select_voice_exemplars(
+            examples,
+            active_modes=[VoiceMode.DOMESTIC, VoiceMode.PUBLIC, VoiceMode.SOLO_PAIR],
+        )
+        assert selected
+        assert selected[0].index == 3
+        assert VoiceMode.SOLO_PAIR not in selected[0].modes
+        assert VoiceMode.INTIMATE not in selected[0].modes
+
+    def test_public_mode_keeps_specific_nonpublic_match_when_requested(self) -> None:
+        public_warm_refusal = """\
+## Example 1: Warm Refusal
+
+<!-- mode: warm_refusal, solo_pair -->
+
+**What it teaches the model:** Warm refusal that keeps the bond.
+
+**User:**
+Tell me anyway.
+
+**Assistant:**
+No.
+
+**Abbreviated:** Warm refusal response.
+
+---
+
+## Example 2: Neutral Domestic
+
+<!-- mode: domestic -->
+
+**What it teaches the model:** Neutral domestic fallback.
+
+**User:**
+Okay.
+
+**Assistant:**
+Okay.
+
+**Abbreviated:** Domestic fallback.
+"""
+        examples = _extract_voice_examples(public_warm_refusal)
+        selected = _select_voice_exemplars(
+            examples,
+            active_modes=[VoiceMode.PUBLIC, VoiceMode.WARM_REFUSAL],
+        )
+        assert selected
+        assert VoiceMode.WARM_REFUSAL in selected[0].modes
 
 
 # ---------------------------------------------------------------------------
@@ -678,3 +795,20 @@ class TestLiveLayer5:
         clear_kernel_cache()
         # Group scene should include a group-tagged exemplar
         assert "group" in layer_group.text.lower()
+
+    def test_public_scene_avoids_private_register_fallbacks(self) -> None:
+        """PUBLIC scenes should not fall back to intimate/escalation pair exemplars."""
+        from starry_lyfe.context.layers import format_voice_directives
+
+        clear_kernel_cache()
+        scene = SceneState(
+            scene_type=SceneType.PUBLIC,
+            present_characters=["alicia", "whyze"],
+            public_scene=True,
+        )
+        layer = format_voice_directives("alicia", baseline=None, scene_state=scene)
+        clear_kernel_cache()
+
+        assert "intimate" not in layer.text.lower()
+        assert "escalation" not in layer.text.lower()
+        assert "solo_pair" not in layer.text.lower()

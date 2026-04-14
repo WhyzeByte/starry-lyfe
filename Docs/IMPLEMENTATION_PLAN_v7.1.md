@@ -27,15 +27,17 @@ The closing nine-word statement of the Soul Preservation Plan is preserved verba
 
 ## Current Project State (Baseline)
 
-As of 2026-04-10, the backend is partially implemented:
+As of 2026-04-13, the backend is substantially implemented:
 
-- **Phase 1 (Canon YAML) — COMPLETE.** Six canon files (`characters.yaml`, `pairs.yaml`, `dyads.yaml`, `protocols.yaml`, `interlocks.yaml`, `voice_parameters.yaml`) with Pydantic schemas in `src/starry_lyfe/canon/`. See `Docs/ARCHITECTURE.md` for the module registry.
+- **Phase 1 (Canon YAML) — COMPLETE.** Six canon files (`characters.yaml`, `pairs.yaml`, `dyads.yaml`, `protocols.yaml`, `interlocks.yaml`, `voice_parameters.yaml`) with Pydantic schemas in `src/starry_lyfe/canon/`. Cross-reference validator now runs automatically at `load_all_canon(validate=True)` — C3 remediation from the 2026-04-13 Phase 2 audit.
 - **Phase 2 (Memory Service) — COMPLETE.** Seven memory tiers in PostgreSQL schema `starry_lyfe`, pgvector HNSW for episodic memories, exponential decay for Tier 7, Alicia-orbital dyad persistence logic.
-- **Phase 3 (Context Assembly) — IN PROGRESS.** `kernel_loader.py`, `layers.py`, `assembler.py`, `budgets.py`, `constraints.py` exist and function. Test suite at 86 passing as of the ALICIA audit (2026-04-10). The execution phases A through G in this document operate on this existing code, not on a greenfield build.
-- **Phase 4 (Whyze-Byte Validation Pipeline) — PLANNED.** Architecture defined in §7. Not yet implemented.
-- **Phase 5 (Scene Director) — PLANNED.** Architecture defined in §8. Phase F adds scene type infrastructure that the Scene Director will consume.
+- **Phase 3 (Context Assembly) — COMPLETE.** All execution phases shipped: Phase 0 (canon verification), A (structure-preserving compilation), A' (runtime correctness), A'' (communication-mode pruning), B (budget elevation), I (authority split), C (soul cards), D (live pair data), E (voice exemplar restoration), F (scene-aware section retrieval + dormant VoiceMode closure), G (dramaturgical prose rendering), J.1-J.4 (per-character remediation), H (soul regression tests), K (subjective success proxies). Runtime surface: `kernel_loader.py`, `layers.py`, `assembler.py`, `budgets.py`, `constraints.py`, `prose.py`. Test suite at 556 passing as of commit `583a68e` (2026-04-13). See `Docs/OPERATOR_GUIDE.md` for the runtime pipeline walkthrough.
+- **Phase 4 (Whyze-Byte Validation Pipeline) — COMPLETE.** Implementation at `src/starry_lyfe/validation/whyze_byte.py` with test suite at `tests/unit/test_whyze_byte.py`. Shipped 2026-04-13.
+- **Phase 5 (Scene Director) — PLANNED.** Architecture defined in §8. Phase F scene type infrastructure (`SceneType` enum, `SceneModifiers` dataclass, `scene_type_to_promoted_sections()`) is ready for the Scene Director to consume. This is the next phase.
 - **Phase 6 (Dreams Engine) — PLANNED.** Architecture defined in §9.
 - **Phase 7 (HTTP service on port 8001) — PLANNED.** Service surface defined in §2.
+
+**Phase 2 end audit (2026-04-13):** `Docs/_audits/PHASE_2_AUDIT_2026-04-13.md`. Drift audit of 4 Phase F assembled prompt samples passed all 8 dimensions (voice distinctness, diacritic preservation, canonical markers, pair metadata, terminal anchoring, soul essence, Layer 7 modifiers). Four Critical findings (C1 soul essence silent fallback, C2 kernel cache key collision, C3 no startup canon validation, C4 scattered character lists) all fixed in commit `583a68e`. Five High / four Medium / two Low findings deferred as accumulated polish risk, not active breakage.
 
 **Two pipeline-level fixes have already landed in code between audits.** The REINA conversion audit (2026-04-10) and the ALICIA conversion audit (also 2026-04-10) both verify in their "Verified Resolved" sections that:
 - The Talk-to-Each-Other mandate trigger now correctly fires only for multi-woman scenes (`constraints.py:104`)
