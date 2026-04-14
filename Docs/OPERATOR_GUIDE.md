@@ -421,6 +421,37 @@ When:
 
 That preserves older callers that still rely on `present_characters` and `public_scene` rather than explicit `scene_type`.
 
+### 7.6 Phase 5: Scene Director Produces `SceneState` Automatically
+
+Until Phase 5 every caller manually constructed a `SceneState` from raw inputs. The **Scene Director** at `src/starry_lyfe/scene/` is the production front door that turns caller inputs into a `SceneState` ready for `assemble_context()`.
+
+```python
+from starry_lyfe.scene import classify_scene, SceneDirectorInput
+
+scene_state = classify_scene(
+    SceneDirectorInput(
+        user_message="adelia and bina are in the kitchen making dinner",
+        present_characters=["adelia", "bina"],
+        alicia_home=True,
+    )
+)
+# scene_state is now a fully-populated SceneState ready for assemble_context().
+```
+
+The classifier is rule-based — keyword tables for `CommunicationMode`, `SceneType`, and each of the seven `SceneModifiers` flags. Hints (`SceneDirectorHints`) always win over inference for callers that already know the answer (HTTP UI, tests).
+
+For Crew Conversations, `select_next_speaker(speaker_input)` scores present women per the Talk-to-Each-Other Mandate (Vision §6, §7), Rule of One, and dyad-state fitness (memory tier 4). Dyad state is injected via a `DyadStateProvider` Protocol — the production wiring uses `build_dyad_state_provider(rows)` to wrap a list returned by `_retrieve_internal_dyads()`.
+
+See [`Docs/_phases/PHASE_5.md`](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_5.md) for the full design (rules, weights, deferred items, known limitations).
+
+| Symbol | File:line |
+|--------|-----------|
+| `classify_scene()` | `src/starry_lyfe/scene/classifier.py:120` |
+| `select_next_speaker()` | `src/starry_lyfe/scene/next_speaker.py:115` |
+| `AliciaAwayContradictionError` | `src/starry_lyfe/scene/errors.py:6` |
+| `DyadStateProvider` Protocol | `src/starry_lyfe/scene/next_speaker.py:56` |
+| `build_dyad_state_provider()` | `src/starry_lyfe/scene/next_speaker.py:271` |
+
 ---
 
 ## 8. Budgeting

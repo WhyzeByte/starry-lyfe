@@ -43,6 +43,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Docs/_audits/PHASE_2_AUDIT_2026-04-13.md — full self-audit record
 - Docs/_phases/REMEDIATION_2026-04-13.md — approved remediation spec
 
+### Added (Phase 5: Scene Director)
+
+- `src/starry_lyfe/scene/` package — pre-assembly Scene Director implementing `Docs/IMPLEMENTATION_PLAN_v7.1.md` §8
+- `classify_scene(director_input)` — rule-based classifier produces `SceneState` from user message, present characters, residence flag, optional hints; `hints.*` always override inference
+- `select_next_speaker(speaker_input)` — Talk-to-Each-Other Mandate scoring function with 6 rules: residence zero-out, Rule of One, 2-turn Whyze-chain penalty/reward, w2w continuation reward, dyad-state fitness (injected `DyadStateProvider`), recency suppression
+- `AliciaAwayContradictionError` front-door gate (complements assembler's defense-in-depth `AliciaAwayError`)
+- `NoValidSpeakerError` raised when every candidate is zeroed out by hard gates
+- `DyadStateProvider` Protocol + `DictDyadStateProvider` dict-backed impl + `build_dyad_state_provider(rows)` adapter for `db/retrieval.py` output
+- 86 new tests (64 unit in `tests/unit/scene/`, 6 integration, plus absorbed coverage improvements); test baseline 651 → 737
+- `Docs/_phases/PHASE_5.md` — full phase spec, ACs, closing block
+
 ### Added (Phase F-Fidelity: Positive Fidelity Test Harness)
 
 - `src/starry_lyfe/validation/fidelity.py` — `FidelityRubric`, `FidelityScore`, scoring methods (`canonical_marker_presence`, `anti_pattern_absence`, `structural_presence`, `score_rubric`)

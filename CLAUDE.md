@@ -380,8 +380,8 @@ These corrections override any conflicting content in project files. Apply befor
 
 ## 19. CURRENT PHASE STATUS (2026-04-14)
 
-**Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13), F (2026-04-13), G (2026-04-13), J.1–J.4 (2026-04-13), H (2026-04-13), K (2026-04-13), Phase 4 (Whyze-Byte Validation Pipeline, 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, 2026-04-14). Lettered-phase remediation complete (2026-04-13). Phase doc housekeeping (PHASE_I closure + PHASE_J retrospective + 5 closing blocks finalized) complete (2026-04-14).
-**Next phase:** Phase 5 (Scene Director).
+**Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13), F (2026-04-13), G (2026-04-13), J.1–J.4 (2026-04-13), H (2026-04-13), K (2026-04-13), Phase 4 (Whyze-Byte Validation Pipeline, 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, 2026-04-14), Phase 5 (Scene Director, 2026-04-14). Lettered-phase remediation complete (2026-04-13). Phase doc housekeeping (PHASE_I closure + PHASE_J retrospective + 5 closing blocks finalized) complete (2026-04-14).
+**Next phase:** Phase 6 (Dreams Engine).
 
 ### Project-wide Quality Directive (Project Owner, 2026-04-13)
 
@@ -482,7 +482,7 @@ Removed: `Vision/{Adelia Raye,Alicia Marin,Bina Malek,Reina Torres}.md`, `Docs/_
 
 ### Test baseline
 
-**651 passed, 0 failed** as of 2026-04-14 post-Phase-F-Fidelity ship (614 unit + 37 parametrized fidelity cases across 4 characters × 12 scenes × 7 rubric dimensions). ruff clean. mypy `--strict` clean.
+**737 passed, 0 failed** as of 2026-04-14 post-Phase-5 ship (614 unit + 64 scene unit + 6 scene integration + 37 fidelity + 16 absorbed coverage improvements). ruff clean. mypy `--strict` clean.
 
 ### Phase 2 end audit (2026-04-13)
 
@@ -518,8 +518,8 @@ See `Docs/_audits/PHASE_2_AUDIT_2026-04-13.md` and `Docs/_phases/REMEDIATION_202
 **Shipped architectural phases:**
 - Phase 4: Whyze-Byte Validation Pipeline — SHIPPED 2026-04-13 (`src/starry_lyfe/validation/whyze_byte.py`)
 - Phase F-Fidelity: Positive Fidelity Test Harness — SHIPPED 2026-04-14 (`src/starry_lyfe/validation/fidelity.py`, `tests/fidelity/`). Closes Vision V6 (Cognitive Hand-Off Integrity) with positive rubrics per character. 7 rubric dimensions × 4 characters = 28 rubrics; 12 scene YAMLs; 37 parametrized fidelity test cases. Spec: `Docs/_phases/PHASE_F_FIDELITY.md`.
+- Phase 5: Scene Director — SHIPPED 2026-04-14 (`src/starry_lyfe/scene/`). Pre-assembly module: rule-based `classify_scene()` builds `SceneState` from caller inputs; `select_next_speaker()` implements Talk-to-Each-Other Mandate scoring with dyad-state fitness via injected `DyadStateProvider`. 6 module files + 70 tests. Spec: `Docs/_phases/PHASE_5.md`.
 
 **Planned:**
-- Phase 5: Scene Director — consumes Phase F scene type infrastructure
 - Phase 6: Dreams Engine
 - Phase 7: HTTP service on port 8001
