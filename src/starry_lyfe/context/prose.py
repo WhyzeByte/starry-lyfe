@@ -480,3 +480,56 @@ def _add_character_specific_facts(
     elif character_id == "alicia":
         if fm.get("operational_travel"):
             parts.append("Frequently away on consular operations")
+
+
+# ---------------------------------------------------------------------------
+# Phase G retroactive (Phase 6): diary prose
+#
+# Wraps raw LLM diary text in a per-character narrative frame so Dreams
+# output reaches the DB in the same voice register as live dyad prose.
+# Each character has a distinct opener/closer pattern that matches their
+# established register:
+#
+# - Adelia: Ne-cascade associative, chemistry metaphor
+# - Bina:   Si-declarative precision, diagnostic log framing
+# - Reina:  Se-tactical admissibility, evidentiary framing
+# - Alicia: Se-somatic body-first, present-tense grounding
+# ---------------------------------------------------------------------------
+
+
+_DIARY_OPENERS: dict[str, str] = {
+    "adelia": "The evening cooled off and the day had time to settle into shape.",
+    "bina": "The log for today, recorded before sleep. The day has been reconciled.",
+    "reina": "Entry for the record, end of day. The evidence has been filed.",
+    "alicia": "The body is still and the house is quiet. The day is in me.",
+}
+_assert_complete_character_keys(_DIARY_OPENERS, "_DIARY_OPENERS")
+
+
+_DIARY_CLOSERS: dict[str, str] = {
+    "adelia": "Tomorrow's reactions are already catalyzing.",
+    "bina": "End of log. Tomorrow's systems are provisioned.",
+    "reina": "Motion to rest. The court is in recess until tomorrow.",
+    "alicia": "The body sleeps. The body remembers.",
+}
+_assert_complete_character_keys(_DIARY_CLOSERS, "_DIARY_CLOSERS")
+
+
+def render_diary_prose(character_id: str, raw_content: str) -> str:
+    """Wrap raw LLM diary text in a per-character narrative frame (Phase G).
+
+    Used by Dreams diary generator before DB write. The per-character
+    opener and closer anchor the voice register so the diary entry does
+    not read as generic JSON-shaped LLM output on retrieval.
+
+    Args:
+        character_id: one of adelia/bina/reina/alicia.
+        raw_content: the LLM's diary reflection (1-paragraph target).
+
+    Returns:
+        A three-paragraph prose block: opener + content + closer.
+    """
+    opener = _DIARY_OPENERS.get(character_id, _DIARY_OPENERS["bina"])
+    closer = _DIARY_CLOSERS.get(character_id, _DIARY_CLOSERS["bina"])
+    body = raw_content.strip() or "[no reflection today]"
+    return f"{opener}\n\n{body}\n\n{closer}"
