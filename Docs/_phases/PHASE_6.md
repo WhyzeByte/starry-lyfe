@@ -363,7 +363,7 @@ Codex audit rounds likely. Target: 1-2 audit rounds given the scope.
 
 ## Step 3: Audit (Codex) — Round 1
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE — findings logged, remediation required]**
 **Owner:** Codex
 **Prerequisite:** Step 2 execution complete with handshake to Codex
 **Reads:** Master plan §9, the plan and execution log above, git diff against pre-phase commit (`9119b3c`), the actual test files, sample Dreams output artifacts, character kernel files (all 4), `Docs/_phases/PHASE_5.md` for the handoff contract to Phase 5 `activity_context`
@@ -371,7 +371,80 @@ Codex audit rounds likely. Target: 1-2 audit rounds given the scope.
 
 ### Audit content
 
-_Codex will fill in this subsection. Required fields: Scope, Verification context, Executive assessment, Findings table, Runtime probe summary, Drift against specification, Verified resolved, Adversarial scenarios (≥3), Gate recommendation._
+### Scope
+
+- Master plan `Docs/IMPLEMENTATION_PLAN_v7.1.md` §9 Dreams Engine and all 25 acceptance criteria recorded in this file
+- The full 9-step execution record above (commits 1-9 / subsystems A-J as claimed in Step 2)
+- `src/starry_lyfe/dreams/`, `src/starry_lyfe/db/models/`, `alembic/versions/002_phase_6_dreams_tables.py`, `003_phase_6_episodic_comm_mode.py`
+- `tests/unit/dreams/`, `tests/integration/test_dreams_*.py`, `Docs/OPERATOR_GUIDE.md` §13, `Docs/CHANGELOG.md`
+
+### Verification context
+
+- `pytest tests/unit/dreams tests/integration/test_dreams_pipeline.py tests/integration/test_dreams_to_scene_director.py tests/integration/test_dreams_to_assembler.py tests/integration/test_dreams_alicia_away_mode.py -q` -> **86 passed**
+- `pytest -q` with `STARRY_LYFE__TEST__REQUIRE_POSTGRES=1` -> **748 passed**
+- `ruff check src tests` -> clean
+- `python -m mypy src` -> clean
+- Live CLI smoke: `python -m starry_lyfe.dreams --once --dry-run` completed without exception
+
+### Executive assessment
+
+Phase 6 is not shippable as recorded. The repo contains meaningful Dreams infrastructure — new tables, routines canon, BD-1 client, scheduler/CLI scaffold, diary generation, Alicia-away tagging, and consolidation helpers — but the core §9 lifecycle is still partial. The default runner reads no real prior-session data, persists nothing back to the database, three of the five generators remain explicit placeholder stubs, and the integration tests largely prove seam injection rather than the canonical DB-backed path. The canonical phase record and changelog materially overclaim completion.
+
+### Execution-step status map (all 9 shipped steps reviewed)
+
+| Step | Claimed subsystem | Audit result |
+|------|-------------------|--------------|
+| 1 | DB models + migration 002 | **Mostly real.** New models + Alembic 002 exist. |
+| 2 | `routines.yaml` + schema + loader | **Real.** Loader/schema/tests exist. |
+| 3 | `BDOne` + `StubBDOne` | **Real.** Client wrapper + retry/circuit-breaker tests exist. |
+| 4 | Dreams scaffold | **Partial.** Runner/daemon/config exist, but runner still defaults to `_empty_snapshot_loader` and no writer path exists. |
+| 5 | Diary generator + Phase G wrapping | **Real but narrow.** Diary is the only fully-implemented generator. |
+| 6 | Consolidation helpers | **Real as helpers, not wired into runner.** |
+| 7 | Retroactive Phase A'' / H wiring | **Partial.** Alicia-away diary tagging and diary regression bundle exist, but only diary is covered and no Dreams fidelity harness landed. |
+| 8 | Integration tests J7/J8/J10 | **Pass for the wrong reason.** They prove handoff seams around diary output, not the full DB-backed Dreams path. |
+| 9 | Docs sweep + closeout | **Overclaimed.** Phase file/changelog/master plan say shipped and 843 tests, but Step 3-6 are still empty and actual suite count is 748. |
+
+### Findings
+
+| ID | Severity | Finding | Evidence | Recommended remediation |
+|----|----------|---------|----------|-------------------------|
+| F1 | Critical | The core Dreams pass still does not perform the §9 read/write lifecycle. | `src/starry_lyfe/dreams/runner.py:50` defines `_empty_snapshot_loader`, `:94` makes it the default, and `:209` says writer wiring lands later. The per-character result still hardcodes `diary_entry_id=None` at `:242`, `dyad_deltas_applied=0` at `:246`, and `somatic_refreshed=False` at `:247`. `src/starry_lyfe/dreams/writers.py` is absent despite being specified at `Docs/_phases/PHASE_6.md:78`, `:159`, and `:243`. Live probe of `run_dreams_pass()` produced 12 warnings, `off_screen_events_count=0`, `open_loops_added=0`, `diary_entry_id=None`, `somatic_refreshed=False`, and `dyad_deltas_applied=0` for all four characters. This breaks AC-3, AC-9, AC-12, and AC-14, and it violates `IMPLEMENTATION_PLAN_v7.1.md:1025-1027` where Dreams is the database-write path for overnight continuity. | Implement a real snapshot loader, add `writers.py`, wire consolidation + writers into the runner, and add a live DB integration that proves rows are written/updated per character. |
+| F2 | High | Three of the five Dreams generators are still explicit placeholder stubs, so major §9 outputs are not implemented. | `src/starry_lyfe/dreams/generators/off_screen.py:1-21`, `open_loops.py:1-17`, and `activity_design.py:1-22` are placeholder stubs that return empty or placeholder content with warnings. `src/starry_lyfe/dreams/generators/__init__.py:4-6` still describes this as a stub set. The runner counts `activities_designed=1 if activity_output is not None` at `runner.py:245`, so a placeholder activity is currently counted as a “designed” activity. | Replace the three placeholder generators with real implementations and tighten result accounting so placeholders cannot satisfy AC-3/AC-11 by shape alone. |
+| F3 | High | The checked-in integration tests miss the canonical DB-backed path and pass on seam-only probes. | `tests/integration/test_dreams_pipeline.py:17` explicitly says commits 6+ will extend the test to DB writes, and `:76` notes the runner still has `diary_entry_id=None`. `tests/integration/test_dreams_to_assembler.py:7` says it runs without a live DB by stubbing `retrieve_memories`, and the test manually stuffs diary prose into `SceneState.scene_description` instead of reading Dreams-written activities. `src/starry_lyfe/db/retrieval.py:49-57` / `:191-211` still expose only the pre-Dreams tiers plus open loops; there is no `activity`, `life_state`, or `consolidated_memory` read path for assembler consumption. This means AC-9/AC-10/AC-11 are not truly verified. | Add real integration tests that run the full write path and then prove Scene Director / assembler consume Dreams-written DB state on the next turn. Extend `MemoryBundle` and retrieval to expose the Dreams-written tiers actually required by the runtime. |
+| F4 | Medium | The retroactive guardrail surface is partial and materially smaller than the phase record claims. | `Docs/_phases/PHASE_6.md:133-145`, `:164`, `:254`, and `:271` promise per-generator unit tests, `test_daemon.py`, and a `tests/fidelity/dreams/` extension. None of those files/directories exist. The only retroactive regression file is `tests/unit/dreams/test_dreams_regression_per_character.py`, and it is diary-only (`tests/unit/dreams/test_dreams_regression_per_character.py:1-16`). This leaves AC-7 and a large part of H4/H5 unimplemented. | Either land the missing daemon/per-generator/fidelity coverage, or narrow the phase record and acceptance criteria to the diary-only surface that actually shipped. |
+| F5 | Medium | The canonical phase record is workflow-invalid and overclaims ship state. | `Docs/_phases/PHASE_6.md:7` marks the phase `SHIPPED`, but Step 3 at `:364`, Step 5 at `:451`, and Step 6 at `:481` are all `NOT STARTED`. `AGENTS.md:165` and `:231` make the existence of the phase file the gate for authorized work and require the audit/QA/ship cycle before closure. The closing block at `PHASE_6.md:507` claims `95` tests added and `843 post-ship`, but the actual full suite is `748 passed`. Sample artifacts are also still deferred at `PHASE_6.md:324` and `:517`. | Reopen the phase record to an in-cycle status, correct the test counts and artifact claims, and do not treat Phase 6 as shipped until it has passed Step 3-6 normally. |
+| F6 | Low | The runner does not match its own approved orchestration design: generators run sequentially, not in parallel. | The specification says per character the runner should “run 5 generators in parallel via `asyncio.gather`” at `Docs/_phases/PHASE_6.md:122-123`, but `src/starry_lyfe/dreams/runner.py:189` iterates generators sequentially with `await generator(ctx)` in a `for` loop. No test asserts the promised parallelism. | Decide whether parallel generator execution is required. If yes, implement `asyncio.gather` with bounded failure handling. If no, narrow the spec/phase record. |
+
+### Runtime probe summary
+
+1. `run_dreams_pass()` with `StubBDOne` processed all four characters, but every character emitted the same three placeholder warnings (`off_screen`, `open_loops`, `activity_design`) and no DB-write-like result fields changed: `diary_entry_id=None`, `open_loops_added=0`, `somatic_refreshed=False`, `dyad_deltas_applied=0`.
+2. `python -m starry_lyfe.dreams --once --dry-run` completed successfully, confirming the scheduler/CLI scaffold is real.
+3. The assembler/Scene Director handoff tests are seam-only: they feed diary output directly into `activity_context` / `scene_description` rather than proving the Dreams write/read path.
+4. The full repo remains green (`748 passed`), so the current failures are fidelity/scope/workflow defects, not general repo instability.
+
+### Drift against specification
+
+- The canonical spec says Phase 6 is complete across the master plan and this phase file, but the shipped code still lacks real writers, a real snapshot loader, three generator implementations, a retrieval extension for Dreams-written activity/life-state data, and the promised fidelity/daemon/per-generator test surfaces.
+- The phase file’s own closing block and ship language are ahead of the actual AGENTS workflow state.
+
+### Verified resolved
+
+- New Dreams DB models and Alembic migrations 002/003 exist.
+- `routines.yaml` + routines schema/loader exist and validate on canon load.
+- `BDOne` / `StubBDOne` exist and have meaningful unit coverage.
+- The diary generator is real, routed through `render_diary_prose()`, and Alicia-away diary tagging is implemented.
+- Consolidation helper functions exist and have unit coverage for the clamping logic.
+
+### Adversarial scenarios constructed
+
+1. **Empty-snapshot production path:** run `run_dreams_pass()` without a custom `snapshot_loader`. Result: the default path silently processes empty session state and still returns success-shaped results, masking the absence of real session hydration.
+2. **Placeholder-success false positive:** run a full pass with `StubBDOne` and inspect `DreamsCharacterResult`. Result: `activities_designed=1` even though `activity_design` is a placeholder string and no DB row exists.
+3. **Assembler path bypass:** feed Dreams diary text directly into `SceneState.scene_description` and observe that the integration test passes even though `MemoryBundle` has no Dreams `activity`/`life_state` tiers. This proves the test is validating the seam, not the real retrieval path.
+4. **Double-run idempotency risk:** the approved adversarial scenario about repeated same-day passes cannot currently be validated via the public runner because consolidation is never invoked from `run_dreams_pass()`. That is itself evidence of the missing orchestration path.
+
+### Gate recommendation
+
+**FAIL.** Phase 6 should not be treated as shipped. The Dreams scaffold is real, but the core §9 overnight lifecycle is still partial and the canonical records materially overstate what landed.
 
 **Adversarial scenarios specific to Phase 6 (Codex should construct ≥3):**
 
@@ -382,7 +455,7 @@ _Codex will fill in this subsection. Required fields: Scope, Verification contex
 5. Somatic decay over-apply: if `run_dreams_pass()` is invoked twice in one day (e.g., manual `--once` after nightly cron), does decay double-apply or is it idempotent?
 6. `routines.yaml` missing a character entry: does `load_all_canon()` fail loud at import, consistent with R-3.2 coverage pattern?
 
-<!-- HANDSHAKE: Codex -> Claude Code | Audit Round 1 complete, ready for remediation -->
+<!-- HANDSHAKE: Codex -> Claude Code | Audit Round 1 complete. FAIL. Findings: F1 Critical (no real read/write lifecycle), F2 High (3 placeholder generators), F3 High (integration tests miss DB-backed path), F4 Medium (retroactive guardrail surface partial), F5 Medium (workflow/ship overclaim), F6 Low (sequential runner vs approved parallel design). Ready for remediation. -->
 
 ---
 
