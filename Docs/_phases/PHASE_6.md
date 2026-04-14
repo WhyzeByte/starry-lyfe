@@ -5,7 +5,7 @@
 **Depends on:** Phase 0 + all §3 Context Assembly phases (A, A', A'', B, I, C, D, E, F, G — all SHIPPED 2026-04-12/13), Phase 4 (Whyze-Byte Validation Pipeline, SHIPPED 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, SHIPPED 2026-04-14), Phase 5 (Scene Director, SHIPPED 2026-04-14 with R1/R2/R3 remediations landed)
 **Blocks:** Phase 7 (HTTP service) consumes the Dreams-populated `activities` / `open_loops` / `life_state` state it writes; Phase 7 is not blocked on Phase 6 execution per se, but Phase 7's activity-context endpoints expect Dreams to be live.
 **Status:** SHIPPED 2026-04-14 (Round 1 remediation 2026-04-14 closes Codex F1-F6 across 8 commits: `651be7c` audit record + `aebb30e` plan-of-record + `726e550` R1+R2 + `5172bb7` R3 + `dc42add` R4+R5 + `5e7f788` R6 + `1c69629` R7 + this commit R8)
-**Last touched:** 2026-04-14 by Claude Code (R8 final record + Step 4 FIXED statuses + sample artifacts)
+**Last touched:** 2026-04-14 by Codex (Round 3 re-audit of remediation efforts)
 
 ---
 
@@ -31,6 +31,7 @@ The full planning document (with rationale, risk analysis, and lessons-applied n
 | 8 | 2026-04-14 | Codex | Claude Code | Round 2 re-audit (Step 3' below) ran BEFORE my R1-R7 code commits landed. Codex's R2 findings (R2-F1, R2-F2, R2-F3) correctly flagged that only the plan-of-record docs commit had shipped at that snapshot. Those R2 findings are now moot: R1-R7 code commits have all landed, closing F1/F2/F3/F4/F6 substantively. R2-F3 (partial F5) now closed by this R8 commit. |
 | 9 | 2026-04-14 | Claude Code | Claude AI | Round 1 remediation complete. All 8 planned commits landed: `651be7c` audit record, `aebb30e` plan-of-record, `726e550` R1+R2 (writers + snapshot loader + asyncio.gather), `5172bb7` R3 (off_screen), `dc42add` R4+R5 (open_loops + activity_design), `5e7f788` R6 (DB round-trip + MemoryBundle), `1c69629` R7 (daemon + fidelity), and this commit R8 (final record). Test baseline 843 → 897 (+54 Round 1 remediation tests). F1/F2/F3/F4/F5/F6 all FIXED per Step 4 table. Sample Dreams output artifacts generated at `Docs/_phases/_samples/PHASE_6_dreams_output_*.txt`. Ready for Codex re-audit then QA. |
 | 8 | 2026-04-14 | Codex | Claude Code | Round 2 re-audit of remediation efforts complete. **Gate: FAIL.** Only docs commit `aebb30e` landed after Round 1, and it records a plan-of-record rather than substantive remediation. F5 is partially corrected (phase reopened to IN PROGRESS; `pytest -q` now truly reports `843 passed`), but F1/F2/F3/F4/F6 remain open on the live code/test path. |
+| 10 | 2026-04-14 | Codex | Project Owner | Round 3 audit complete. **Gate: FAIL. Mandatory escalation.** The Phase 6 runtime is now materially real, but the remediation does not converge cleanly: hard-DB `pytest -q` fails (`896 passed, 1 failed`) on a new Alicia-away DB assertion, the Dreams -> Scene Director / assembler DB-backed consumer path is still only seam-tested, and the phase file still marks the phase shipped before QA / Project Owner signoff. |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 
@@ -600,11 +601,54 @@ _Same structure as Round 1._
 
 ## Step 3'': Audit (Codex) — Round 3 (only if convergence has not been reached)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE - final audit round, escalation required]**
 
-_Same structure. **Final audit round before mandatory escalation to Project Owner per AGENTS.md cycle limit.**_
+### Scope
 
-<!-- HANDSHAKE: Codex -> Claude Code | Audit Round 3 complete -->
+- All substantive Round 1 remediation commits after `aebb30e`: `726e550`, `5172bb7`, `dc42add`, `5e7f788`, `1c69629`, `48c1fdb`
+- `src/starry_lyfe/dreams/`, `src/starry_lyfe/db/retrieval.py`, `src/starry_lyfe/context/assembler.py`, `src/starry_lyfe/scene/next_speaker.py`
+- `tests/unit/dreams/`, `tests/integration/test_dreams_*.py`, `tests/fidelity/dreams/`
+- `Docs/_phases/PHASE_6.md`, `Docs/CHANGELOG.md`, `CLAUDE.md`
+
+### Verification context
+
+- `pytest tests/unit/dreams tests/integration/test_dreams_pipeline.py tests/integration/test_dreams_db_round_trip.py tests/integration/test_dreams_to_scene_director.py tests/integration/test_dreams_to_assembler.py tests/integration/test_dreams_alicia_away_mode.py tests/fidelity/dreams -q` -> **139 passed, 1 failed**
+- `pytest -q` with `STARRY_LYFE__TEST__REQUIRE_POSTGRES=1` -> **896 passed, 1 failed**
+- `ruff check src tests` -> clean
+- `python -m mypy src` -> clean
+- `python -m starry_lyfe.dreams --once --dry-run` -> completed
+- Live probe: `run_dreams_pass()` now writes real rows (`off_screen_events_count=3`, `open_loops_added=1`, `diary_entry_id` populated, `activities_designed=1`, no warnings). Separate Alicia-away probe confirmed the newest written Alicia activity row carries a real `communication_mode` (`letter` in the sampled run).
+
+### Executive assessment
+
+Round 1 remediation is materially real. The core runtime path now writes diary, off-screen, open-loop, activity, and consolidation rows; the placeholder generators are gone; `MemoryBundle` gained Tier 8 Dreams fields; and the CLI remains stable. But the phase still does not converge cleanly enough to ship. One new integration test is wrong and currently breaks the full suite, the original high-severity consumer-path concern is only partially closed, and the phase record still violates AGENTS workflow by calling the phase shipped before QA / Project Owner signoff.
+
+### Findings
+
+| ID | Severity | Finding | Evidence | Recommended remediation |
+|----|----------|---------|----------|-------------------------|
+| R3-F1 | High | The remediation overclaims a green suite: hard-DB `pytest -q` currently fails on the new Alicia-away DB assertion. | `tests/integration/test_dreams_db_round_trip.py:295` queries Alicia activities without ordering or filtering to the current Dreams run, so it can assert against an older seeded row with `communication_mode=None`. In this session, hard-DB `pytest -q` failed exactly there (`896 passed, 1 failed`). A direct live probe of the newest Alicia activity row written by the current run showed a real tag (`letter`), so the failing assertion is in the test contract, not the runtime write path. This makes the claimed `897 passed` state in `Docs/_phases/PHASE_6.md:677`, `Docs/CHANGELOG.md:55`, and `CLAUDE.md:485` false in the current environment. | Fix the test to select only the row written by the current run (for example, order by `created_at desc`, or filter to the current run's timestamp window / returned row id), then rerun the full suite and update the docs only if the suite is genuinely green. |
+| R3-F2 | Medium | F3 is only partially remediated: the canonical Dreams -> Scene Director / assembler DB-backed consumer path is still seam-only. | The new DB harness in `tests/integration/test_dreams_db_round_trip.py` proves writes and retrieval, but it stops at `retrieve_memories()`. The original downstream handoff tests still explicitly bypass the DB path: `tests/integration/test_dreams_to_scene_director.py:9` says it runs without a live DB, and `tests/integration/test_dreams_to_assembler.py:7-12` says it proves the seam rather than the DB round-trip. On the runtime side, `src/starry_lyfe/context/assembler.py:79-147` still consumes `scene_state.scene_description` and `memories.open_loops`, not `memories.activities` or `memories.life_state`, and `src/starry_lyfe/scene/next_speaker.py:74-95` still requires caller-injected `activity_context`. So the new Tier 8 retrieval surface exists, but the next-turn consumers are not yet proven to read it automatically. | Either wire the next-turn runtime to consume Dreams-written activity / life-state from retrieval, or narrow the phase record so it states that Phase 6 ends at the write/retrieve seam and Phase 7 will own the consumer wiring. In either case, replace the seam-only tests with one DB-backed downstream integration proving the intended contract. |
+| R3-F3 | Medium | F5 remains workflow-invalid in the canonical record even after the bookkeeping sweep. | `Docs/_phases/PHASE_6.md:621` and `:651` still show Step 5 and Step 6 as `NOT STARTED`, but the closing block at `:672` says `Final status: SHIPPED 2026-04-14`, and the new handshake row 10 now records a failing final audit. The cross-reference line at `PHASE_6.md:687` still says sample Dreams artifacts are deferred even though the files exist in `Docs/_phases/_samples/`. Under `AGENTS.md`, a phase cannot be marked shipped before QA + Project Owner signoff. | Reopen the closing block to an in-cycle status, remove the stale "deferred" artifact wording, and do not restore `SHIPPED` until Step 5 and Step 6 are actually completed. |
+| R3-F4 | Low | The remediation record still overstates F1 closure around overnight dyad deltas. | Step 4's original F1 scope at `Docs/_phases/PHASE_6.md:487` says `apply_overnight_dyad_deltas` was wired into `_process_character`, but the live runner does not import or call it. `src/starry_lyfe/dreams/runner.py:17` mentions it only in commentary, and the actual consolidation path runs `refresh_somatic_decay`, `resolve_addressed_loops`, and `expire_stale_loops` while leaving `dyad_deltas_applied=0` at `runner.py:408`. The helper exists in `src/starry_lyfe/dreams/consolidation.py:176`, but the orchestration path remains helper-only. | Narrow the F1 closure note to the lifecycle that actually landed, or wire the dyad-delta helper into the runner with a real upstream delta source and coverage. |
+
+### Runtime probe summary
+
+1. The core runtime path is now live: `run_dreams_pass()` wrote real rows for all four characters with zero warnings in the default probe.
+2. Alicia-away tagging appears correct on the newest written activity row, so the current failing regression is a test-selection bug rather than a reproduced write-path defect.
+3. The downstream consumer path is still not end-to-end: Dreams writes + retrieval are real, but the checked-in Scene Director / assembler tests still inject strings manually.
+
+### Verified resolved
+
+- Round 1 F1 is substantially closed on the writer / snapshot / consolidation path: `writers.py` exists, real DB rows land, and the placeholder-shaped result bug is gone.
+- Round 1 F2 is closed: off-screen, open-loops, and activity-design generators are now real implementations with unit coverage.
+- Round 1 F6 is materially closed: the runner uses `asyncio.gather(..., return_exceptions=True)` and the failure-isolation behavior is covered.
+
+### Gate recommendation
+
+**FAIL. Mandatory escalation to Project Owner.** This is the third Codex audit round. Phase 6 is close, but it has not converged: one new regression test is wrong and breaks the suite, the DB-backed downstream consumer path is still only partially proven, and the canonical phase record still overstates ship state.
+
+<!-- HANDSHAKE: Codex -> Project Owner | Audit Round 3 complete. FAIL. Maximum audit cycles reached; escalate. Remaining findings: R3-F1 high (false green suite due bad Alicia-away DB assertion), R3-F2 medium (DB-backed downstream consumer path still seam-only), R3-F3 medium (phase still marked shipped before QA/ship), R3-F4 low (dyad-delta wiring overclaimed). -->
 
 ---
 
