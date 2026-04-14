@@ -40,5 +40,7 @@ class EpisodicMemory(Base):
     importance_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.5)
     embedding: Mapped[Any] = mapped_column(Vector(EMBEDDING_DIMENSION), nullable=False)
     metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, nullable=True)
+    # Phase A'' retroactive column (Alicia-away communication_mode tag) is
+    # added in Phase 6 commit 7 alongside the migration + Dreams tagging logic.
     created_at: Mapped[datetime] = mapped_column(TZDateTime, nullable=False, server_default=func.now())
     decayed_at: Mapped[datetime | None] = mapped_column(TZDateTime, nullable=True)
