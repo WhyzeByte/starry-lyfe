@@ -13,6 +13,9 @@ data is subtracted from the candidate pool before the LLM call.
 
 from __future__ import annotations
 
+import uuid
+
+from ..alicia_mode import pick_alicia_communication_mode, should_tag_alicia_away
 from ..errors import DreamsLLMError
 from ..types import GenerationContext, GenerationOutput
 
@@ -129,6 +132,21 @@ async def generate_diary(ctx: GenerationContext) -> GenerationOutput:
     raw = str(completion.text)
     rendered = render_diary_prose(ctx.character_id, raw)
 
+    # Phase A'' retroactive: tag Alicia-away diary entries with a sampled
+    # communication_mode. Other characters (and Alicia-home) leave the
+    # tag NULL.
+    is_away = bool(getattr(ctx.prior_session.life_state, "is_away", False))
+    communication_mode: str | None = None
+    if should_tag_alicia_away(ctx.character_id, is_away):
+        # run_id is available on DreamsPassResult, not GenerationContext.
+        # We reconstruct a stable seed from the context's identifying
+        # fields so generator-level sampling does not need plumbing yet.
+        seed_id = uuid.uuid5(
+            uuid.NAMESPACE_OID,
+            f"{ctx.character_id}:{ctx.now.isoformat()}",
+        )
+        communication_mode = pick_alicia_communication_mode(seed_id, "diary")
+
     return GenerationOutput(
         kind="diary",
         raw_llm_text=raw,
@@ -137,6 +155,7 @@ async def generate_diary(ctx: GenerationContext) -> GenerationOutput:
             "mood": "reflective",  # TODO(phase_6_continuation): infer from text
             "reflection": raw,
             "things_to_revisit": [],
+            "communication_mode": communication_mode,
         },
         input_tokens=int(completion.input_tokens),
         output_tokens=int(completion.output_tokens),
