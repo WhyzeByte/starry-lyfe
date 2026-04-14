@@ -1,10 +1,25 @@
 # Starry-Lyfe v7.1 Architecture
 
-**Version:** 0.3.0
+**Version:** 0.4.0
+**Date:** 2026-04-13
+**Status:** Concise architecture and module index. Canonical phase-completion status lives in `Docs/IMPLEMENTATION_PLAN_v7.1.md`.
 
 ## Overview
 
-Starry-Lyfe is a character AI backend for four v7.1 persona kernels (Adelia Raye, Bina Malek, Reina Torres, Alicia Marin). Current implementation covers Phase 1 (canon YAML) and Phase 2 (memory service). Planned later phases: context assembly (Phase 3), Whyze-Byte validation (Phase 4), scene director (Phase 5), Dreams engine (Phase 6), HTTP service on port 8001 (Phase 7).
+Starry-Lyfe is a character AI backend for four v7.1 persona kernels (Adelia Raye, Bina Malek, Reina Torres, Alicia Marin).
+
+Current implementation covers:
+
+- Phase 1: canon YAML
+- Phase 2: memory service
+- Phase 3: seven-layer context assembly
+- Phase 4: Whyze-Byte validation
+
+Planned later phases remain:
+
+- Phase 5: Scene Director
+- Phase 6: Dreams engine
+- Phase 7: HTTP service on port 8001
 
 ## Module Registry
 
@@ -40,6 +55,25 @@ Starry-Lyfe is a character AI backend for four v7.1 persona kernels (Adelia Raye
 | `db/embed.py` | EmbeddingService protocol + Ollama implementation | BD-1 |
 | `db/seed.py` | Canon YAML to DB seeding pipeline (Tiers 1-4, 7) | R5, GNK |
 | `db/retrieval.py` | Per-tier retrieval API with read-time decay | R5 |
+
+### `src/starry_lyfe/context/` -- Context Assembly (Phase 3)
+
+| Module | Purpose | Protocol Droid |
+|--------|---------|---------------|
+| `context/assembler.py` | Seven-layer prompt assembly with terminal constraint anchoring | -- |
+| `context/budgets.py` | Per-layer budgets, kernel scaling, scene profiles, token estimation | -- |
+| `context/constraints.py` | Layer 7 character pillars and scene-gated constraint blocks | -- |
+| `context/kernel_loader.py` | Kernel/voice loading, section-aware compilation, cache | GNK |
+| `context/layers.py` | Layer formatters, VoiceMode selection, and scene block formatting | -- |
+| `context/prose.py` | Dramaturgical prose renderers for canon, dyads, protocols, and somatic state | -- |
+| `context/soul_cards.py` | Soul-card activation and formatting | -- |
+| `context/types.py` | Shared dataclasses and enums for assembly, scenes, and voice modes | -- |
+
+### `src/starry_lyfe/validation/` -- Whyze-Byte (Phase 4)
+
+| Module | Purpose | Protocol Droid |
+|--------|---------|---------------|
+| `validation/whyze_byte.py` | Two-tier response validator with AI-ism, framework-leak, repetition, and hand-off checks | -- |
 
 ### Canon YAML Files
 

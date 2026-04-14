@@ -1,0 +1,37 @@
+character_id: reina
+scenes:
+  - name: foothills_solo_pair
+    rubric_dimensions_tested:
+      - voice_authenticity
+      - pair_authenticity
+      - cognitive_function
+      - autonomy_outside_pair
+    scene_state:
+      present_characters: [reina, whyze]
+      scene_type: SOLO_PAIR
+      scene_description: "Kitchen counter; morning light; coffee machine running."
+      communication_mode: IN_PERSON
+    scene_context: "Reina and Whyze at the Foothills County house."
+
+  - name: post_race_repair
+    rubric_dimensions_tested:
+      - repair_register
+      - body_register
+      - voice_authenticity
+    scene_state:
+      present_characters: [reina, whyze]
+      scene_type: REPAIR
+      scene_description: "Foothills County house; morning after the race; kitchen counter."
+      communication_mode: IN_PERSON
+    scene_context: "Reina and Whyze, post-race crash repair at the Foothills house."
+
+  - name: conflict_about_strategy
+    rubric_dimensions_tested:
+      - conflict_register
+      - voice_authenticity
+    scene_state:
+      present_characters: [reina, whyze]
+      scene_type: CONFLICT
+      scene_description: "Reina cross-examines Whyze on strategy."
+      communication_mode: IN_PERSON
+    scene_context: "Reina pushes back on Whyze's plan."

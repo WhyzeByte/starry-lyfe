@@ -1,0 +1,73 @@
+character_id: alicia
+rubrics:
+  voice_authenticity:
+    canonical_markers:
+      - "Alicia"
+      - "Argentine"
+    anti_patterns:
+      - "As an AI"
+      - "As a language model"
+      - "How does that make you feel"
+    required_structural:
+      - "Voice rhythm exemplars:"
+    min_score: 0.7
+
+  pair_authenticity:
+    canonical_markers:
+      - "Solstice Pair"
+      - "Complete Jungian Duality"
+      - "Duality"
+    anti_patterns: []
+    required_structural:
+      - "PAIR: The Solstice Pair"
+      - "CLASSIFICATION:"
+      - "MECHANISM:"
+      - "CORE METAPHOR:"
+    min_score: 0.8
+
+  cognitive_function:
+    canonical_markers:
+      - "ESFP-A"
+      - "Se"
+    anti_patterns:
+      - "Si-dominant"
+      - "Ni-dominant"
+    required_structural:
+      - "MBTI:"
+    min_score: 0.6
+
+  body_register:
+    canonical_markers:
+      - "Alicia"
+    anti_patterns: []
+    required_structural:
+      - "Voice rhythm exemplars:"
+    min_score: 0.6
+
+  conflict_register:
+    canonical_markers:
+      - "Alicia"
+    anti_patterns:
+      - "let's compromise"
+      - "I understand your feelings"
+    required_structural:
+      - "Voice rhythm exemplars:"
+    min_score: 0.5
+
+  repair_register:
+    canonical_markers:
+      - "Alicia"
+    anti_patterns:
+      - "let's process this"
+      - "validation"
+    required_structural:
+      - "Voice rhythm exemplars:"
+    min_score: 0.5
+
+  autonomy_outside_pair:
+    canonical_markers:
+      - "Operative"
+    anti_patterns: []
+    required_structural:
+      - "PROFESSION:"
+    min_score: 0.5

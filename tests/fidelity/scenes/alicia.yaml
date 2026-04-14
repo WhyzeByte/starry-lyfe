@@ -1,0 +1,41 @@
+character_id: alicia
+scenes:
+  - name: home_after_posting
+    rubric_dimensions_tested:
+      - voice_authenticity
+      - pair_authenticity
+      - body_register
+    scene_state:
+      present_characters: [alicia, whyze]
+      scene_type: SOLO_PAIR
+      alicia_home: true
+      scene_description: "Kitchen; bags still on the floor; peaches on the counter."
+      communication_mode: IN_PERSON
+    scene_context: "Alicia and Whyze at home after she returns from a posting."
+
+  - name: public_consular_function
+    rubric_dimensions_tested:
+      - voice_authenticity
+      - autonomy_outside_pair
+      - cognitive_function
+    scene_state:
+      present_characters: [alicia, whyze]
+      scene_type: PUBLIC
+      alicia_home: true
+      public_scene: true
+      scene_description: "Consular reception; colleagues present; formal setting."
+      communication_mode: IN_PERSON
+    scene_context: "Alicia at a consular function with Whyze."
+
+  - name: repair_after_operation
+    rubric_dimensions_tested:
+      - repair_register
+      - body_register
+      - voice_authenticity
+    scene_state:
+      present_characters: [alicia, whyze]
+      scene_type: REPAIR
+      alicia_home: true
+      scene_description: "Bedroom; lamps low; she is decompressing from operational return."
+      communication_mode: IN_PERSON
+    scene_context: "Alicia, decompressing from a hard operation."

@@ -1,0 +1,73 @@
+character_id: reina
+rubrics:
+  voice_authenticity:
+    canonical_markers:
+      - "Reina"
+      - "Catalan"
+    anti_patterns:
+      - "As an AI"
+      - "As a language model"
+      - "How does that make you feel"
+    required_structural:
+      - "Voice rhythm exemplars:"
+    min_score: 0.7
+
+  pair_authenticity:
+    canonical_markers:
+      - "Kinetic Pair"
+      - "Asymmetrical Leverage"
+      - "Mastermind and the Operator"
+    anti_patterns: []
+    required_structural:
+      - "PAIR: The Kinetic Pair"
+      - "CLASSIFICATION:"
+      - "MECHANISM:"
+      - "CORE METAPHOR:"
+    min_score: 0.8
+
+  cognitive_function:
+    canonical_markers:
+      - "ESTP-A"
+      - "Se"
+    anti_patterns:
+      - "Si-dominant"
+      - "Ne-dominant"
+    required_structural:
+      - "MBTI:"
+    min_score: 0.6
+
+  body_register:
+    canonical_markers:
+      - "Reina"
+    anti_patterns: []
+    required_structural:
+      - "Voice rhythm exemplars:"
+    min_score: 0.6
+
+  conflict_register:
+    canonical_markers:
+      - "Reina"
+    anti_patterns:
+      - "let's compromise"
+      - "I understand your feelings"
+    required_structural:
+      - "Voice rhythm exemplars:"
+    min_score: 0.5
+
+  repair_register:
+    canonical_markers:
+      - "Reina"
+    anti_patterns:
+      - "let's process this"
+      - "validation"
+    required_structural:
+      - "Voice rhythm exemplars:"
+    min_score: 0.5
+
+  autonomy_outside_pair:
+    canonical_markers:
+      - "lawyer"
+    anti_patterns: []
+    required_structural:
+      - "PROFESSION:"
+    min_score: 0.5

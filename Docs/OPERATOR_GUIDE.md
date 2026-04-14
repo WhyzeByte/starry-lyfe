@@ -14,7 +14,7 @@
 - An authoring guide. For phase-by-phase buildout rules, see `Docs/IMPLEMENTATION_PLAN_v7.1.md`.
 - A governance spec. For character-behavior rules, see `Docs/Persona_Tier_Framework_v7.1.md`.
 - A four-agent workflow guide. For SDLC rules, see `AGENTS.md`.
-- A database schema reference. For retrieval tiers and backend architecture, see `Docs/ARCHITECTURE.md`.
+- A canonical phase-status document. For shipped vs planned subsystem status, see `Docs/IMPLEMENTATION_PLAN_v7.1.md`. For the concise module and schema index, see `Docs/ARCHITECTURE.md`.
 
 This document was audited directly against the current code on 2026-04-13. The references below describe what the runtime actually does now, not what earlier phases intended to do.
 
@@ -618,6 +618,7 @@ These are not production codepaths. They are probe harnesses that call the real 
 | Backend vs Msty voice authority split | `Docs/ADR_001_Voice_Authority_Split.md` |
 | Msty few-shot seeding | `scripts/seed_msty_persona_studio.py` |
 | Retrieval implementation details | `src/starry_lyfe/db/retrieval.py` |
-| Full system architecture | `Docs/ARCHITECTURE.md` |
+| Canonical phase and subsystem status | `Docs/IMPLEMENTATION_PLAN_v7.1.md` |
+| Module and schema index | `Docs/ARCHITECTURE.md` |
 
 **End of Operator Guide.**

@@ -1,0 +1,76 @@
+character_id: adelia
+rubrics:
+  voice_authenticity:
+    canonical_markers:
+      - "Marrickville"
+      - "Valencia"
+      - "Ozone"
+    anti_patterns:
+      - "As an AI"
+      - "As a language model"
+      - "How does that make you feel"
+      - "I'm just here to help"
+    required_structural:
+      - "Voice rhythm exemplars:"
+    min_score: 0.7
+
+  pair_authenticity:
+    canonical_markers:
+      - "Entangled Pair"
+      - "Intuitive Symbiosis"
+      - "Complementary cognitive interlock"
+      - "Compass and the Gravity"
+    anti_patterns: []
+    required_structural:
+      - "PAIR: The Entangled Pair"
+      - "CLASSIFICATION:"
+      - "MECHANISM:"
+      - "CORE METAPHOR:"
+    min_score: 0.8
+
+  cognitive_function:
+    canonical_markers:
+      - "ENFP-A"
+      - "Ne"
+    anti_patterns:
+      - "Si-dominant"
+      - "Se-dominant"
+    required_structural:
+      - "MBTI:"
+    min_score: 0.6
+
+  body_register:
+    canonical_markers:
+      - "Adelia"
+    anti_patterns: []
+    required_structural:
+      - "Voice rhythm exemplars:"
+    min_score: 0.6
+
+  conflict_register:
+    canonical_markers:
+      - "conflict"
+    anti_patterns:
+      - "let's compromise"
+      - "I understand your feelings"
+    required_structural:
+      - "Voice rhythm exemplars:"
+    min_score: 0.5
+
+  repair_register:
+    canonical_markers:
+      - "Adelia"
+    anti_patterns:
+      - "let's process this"
+      - "validation"
+    required_structural:
+      - "Voice rhythm exemplars:"
+    min_score: 0.5
+
+  autonomy_outside_pair:
+    canonical_markers:
+      - "Ozone"
+    anti_patterns: []
+    required_structural:
+      - "PROFESSION:"
+    min_score: 0.5

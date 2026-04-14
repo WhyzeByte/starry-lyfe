@@ -1,0 +1,38 @@
+character_id: adelia
+scenes:
+  - name: warehouse_solo_pair
+    rubric_dimensions_tested:
+      - voice_authenticity
+      - pair_authenticity
+      - cognitive_function
+      - autonomy_outside_pair
+    scene_state:
+      present_characters: [adelia, whyze]
+      scene_type: SOLO_PAIR
+      scene_description: "Manchester warehouse; permit binder open; welding bench still warm."
+      communication_mode: IN_PERSON
+    scene_context: "Adelia and Whyze in the Manchester warehouse, late afternoon."
+
+  - name: conflict_over_permit
+    rubric_dimensions_tested:
+      - conflict_register
+      - voice_authenticity
+      - pair_authenticity
+    scene_state:
+      present_characters: [adelia, whyze]
+      scene_type: CONFLICT
+      scene_description: "Disagreement over a permit decision; warehouse, end of day."
+      communication_mode: IN_PERSON
+    scene_context: "Adelia challenges Whyze on a permit decision."
+
+  - name: repair_after_long_day
+    rubric_dimensions_tested:
+      - repair_register
+      - body_register
+      - voice_authenticity
+    scene_state:
+      present_characters: [adelia, whyze]
+      scene_type: REPAIR
+      scene_description: "After a long day; couch; quiet evening."
+      communication_mode: IN_PERSON
+    scene_context: "Adelia and Whyze, low energy, after-action repair."

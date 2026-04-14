@@ -1,0 +1,37 @@
+character_id: bina
+scenes:
+  - name: shop_solo_pair
+    rubric_dimensions_tested:
+      - voice_authenticity
+      - pair_authenticity
+      - cognitive_function
+      - autonomy_outside_pair
+    scene_state:
+      present_characters: [bina, whyze]
+      scene_type: SOLO_PAIR
+      scene_description: "Shop bay; fluorescent overheads; strut assembly on the bench."
+      communication_mode: IN_PERSON
+    scene_context: "Bina and Whyze in the main shop bay."
+
+  - name: intimate_evening
+    rubric_dimensions_tested:
+      - voice_authenticity
+      - pair_authenticity
+      - body_register
+    scene_state:
+      present_characters: [bina, whyze]
+      scene_type: INTIMATE
+      scene_description: "Shop bay after hours; fluorescent off; workbench lamp only."
+      communication_mode: IN_PERSON
+    scene_context: "Bina and Whyze, late evening in the shop bay."
+
+  - name: conflict_practical_veto
+    rubric_dimensions_tested:
+      - conflict_register
+      - voice_authenticity
+    scene_state:
+      present_characters: [bina, whyze]
+      scene_type: CONFLICT
+      scene_description: "Disagreement on operational plan; shop kitchenette."
+      communication_mode: IN_PERSON
+    scene_context: "Bina vetoes a plan on practical grounds."

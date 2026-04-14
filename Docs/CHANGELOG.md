@@ -43,6 +43,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Docs/_audits/PHASE_2_AUDIT_2026-04-13.md — full self-audit record
 - Docs/REMEDIATION_2026-04-13.md — approved remediation spec
 
+### Added (Phase F-Fidelity: Positive Fidelity Test Harness)
+
+- `src/starry_lyfe/validation/fidelity.py` — `FidelityRubric`, `FidelityScore`, scoring methods (`canonical_marker_presence`, `anti_pattern_absence`, `structural_presence`, `score_rubric`)
+- 7 rubric dimensions: voice_authenticity, pair_authenticity, cognitive_function, body_register, conflict_register, repair_register, autonomy_outside_pair (`RUBRIC_DIMENSIONS` constant)
+- Per-character rubric YAMLs (4 files, 28 rubrics) at `tests/fidelity/rubrics/`
+- Per-character scene YAMLs (4 files, 12 scenes) at `tests/fidelity/scenes/`
+- Per-character fidelity tests at `tests/fidelity/test_{adelia,bina,reina,alicia}_fidelity.py` (37 parametrized cases)
+- `Docs/_phases/PHASE_F_FIDELITY.md` — full spec including Vision V6 (Cognitive Hand-Off Integrity) → rubric mapping
+- Whyze-Byte (negative filter) now complemented by positive rubric scoring; closes the gap identified in the Phase 2 audit (V6 had no code-level tripwire)
+
 ### Added (Phase 2 audit polish — Tier 4)
 
 - `CharacterNotFoundError(ValueError)` unifies character-lookup failures in `kernel_loader._load_raw_kernel` and `pairs_loader.get_pair_metadata`

@@ -70,7 +70,7 @@ Every architectural section and every execution phase in this plan must be trace
 | §4 Context Assembly: Seven-Layer Prompt | Phase A, A', A'', B, D, E, F, G | §7 Behavioral Thesis, §9 Success Criteria |
 | §5 Memory Service | (Phase 1+2 complete) | §6 Relationship Architecture, §7 Behavioral Thesis |
 | §6 Inference Layer | (resolved) | §8 System Architecture |
-| §7 Whyze-Byte Pipeline | (Phase 4 planned) | §7 Behavioral Thesis (cognitive hand-off contract) |
+| §7 Whyze-Byte Pipeline | Phase 4 (complete) | §7 Behavioral Thesis (cognitive hand-off contract) |
 | §8 Scene Director | (Phase 5 planned; Phase F adds scene type infrastructure) | §6 Relationship Architecture (Rule of One, Talk-to-Each-Other) |
 | §9 Dreams Engine | (Phase 6 planned) | §6 Relationship Architecture (decentralized narrative weight) |
 | §10 End-to-End Request Flow | (synthesis of all subsystems) | §8 System Architecture |
@@ -186,9 +186,9 @@ The backend runs as a service on Port 8001 and exposes the following responsibil
 ### Implementation Status
 
 - **Service surface (port 8001):** PLANNED. Phase 7 of the overall backend build. The service exists in design only at the time of this writing.
-- **Context Assembly:** IN PROGRESS as Phase 3. The execution phases under §4 below describe the Soul Preservation work that elevates the assembly path.
+- **Context Assembly:** COMPLETE as Phase 3. The execution phases under §4 shipped and now define the live seven-layer assembly path.
 - **Model Routing:** Architecture defined. Per-character inference parameters resolved at §6.
-- **Whyze-Byte Pipeline:** PLANNED as Phase 4. Architecture defined at §7.
+- **Whyze-Byte Pipeline:** COMPLETE as Phase 4. Implementation lives at `src/starry_lyfe/validation/whyze_byte.py`; architecture remains documented at §7.
 - **Scene Director:** PLANNED as Phase 5. Architecture defined at §8. Phase F adds the scene type infrastructure that the Scene Director will consume.
 - **Memory Service:** COMPLETE (Phases 1+2). Architecture defined at §5.
 - **Dreams Engine:** PLANNED as Phase 6. Architecture defined at §9.
@@ -935,7 +935,7 @@ Retrieval is done via pgvector semantic search and feeds directly into the conte
 
 ### Implementation Status
 
-**COMPLETE** as Phases 1+2 of the overall backend build. The memory service is in production code as of `Docs/ARCHITECTURE.md` v0.3.0:
+**COMPLETE** as Phases 1+2 of the overall backend build. The memory service is in production code as described in `Docs/ARCHITECTURE.md`:
 
 - PostgreSQL schema `starry_lyfe` with one table per memory tier
 - pgvector HNSW index on episodic memory embeddings
@@ -976,18 +976,18 @@ The pipeline enforces the four constraint pillars defined in canon (Entangled Pa
 
 ### Implementation Status
 
-**PLANNED** as Phase 4 of the overall backend build. Not yet implemented at the time of this writing. The architecture is defined but no code has been written for the validator pipeline.
+**COMPLETE** as Phase 4 of the overall backend build. Implementation lives at `src/starry_lyfe/validation/whyze_byte.py` with tests at `tests/unit/test_whyze_byte.py`. This section remains the architectural authority for how that validator should behave and evolve.
 
-The Soul Preservation execution phases under §4 (Context Assembly) all operate **upstream** of Whyze-Byte. They shape what reaches the model. Whyze-Byte operates **downstream** — it filters what the model returns. The two are complementary defenses: context assembly prevents drift from being invited; Whyze-Byte prevents drift from being shipped if it appears anyway.
+The Soul Preservation execution phases under §4 (Context Assembly) operate **upstream** of Whyze-Byte. They shape what reaches the model. Whyze-Byte operates **downstream** — it filters what the model returns. The two are complementary defenses: context assembly prevents drift from being invited; Whyze-Byte prevents drift from being shipped if it appears anyway.
 
-When Phase 4 (Whyze-Byte) is implemented, the per-character constraint pillars referenced in §7 above must be sourced from the same canonical YAML used by the §4 Context Assembly path, not duplicated as hardcoded Python constants. The four constraint pillars are:
+The per-character constraint pillars referenced in §7 above must remain aligned with the same canonical authority used by the §4 Context Assembly path; future validator changes must not drift into a second incompatible rule surface. The four constraint pillars are:
 
 - **Adelia:** Entangled Pair hand-off integrity (must dump fragmented plans onto Whyze; cannot solve her own logistics independently)
 - **Bina:** Structural register (audits Whyze's plans for physical reality; her "No" keeps the family safe)
 - **Reina:** Admissibility frame (intimacy requires earned context; must physically intervene in Analysis Paralysis)
 - **Alicia:** Operational-presence protocols (contributions activate when home; leads with body; never uses words to break a loop; **Phase A'' adds communication-mode-aware substitution for the "leads with body" rule when she is not in person**)
 
-The Phase A'' communication-mode pruning work in §4 directly affects how Alicia's constraint pillar renders, which means Phase 4 (Whyze-Byte) when implemented must consume the same mode-aware constraint generator that Phase A'' adds to the assembly path. Building Whyze-Byte without that integration would split the constraint authority across two systems and reintroduce drift.
+The Phase A'' communication-mode pruning work in §4 directly affects how Alicia's constraint pillar renders, which means ongoing Whyze-Byte maintenance must stay aligned with the same mode-aware constraint contract that Phase A'' added to the assembly path. Letting the validator drift away from that contract would split constraint authority across two systems and reintroduce drift.
 
 ---
 
@@ -1068,8 +1068,8 @@ Step 12 is what closes the loop with step 3 the next time around — every conve
 | 5 | Context enhancement | **Phase A, A', A'', B, C, D, E, F, G all execute here** — this is the seven-layer prompt builder |
 | 6 | Routing to Claude | (architecture defined at §6) |
 | 7 | Response generation with constraints | Phase A'' substituted constraint pillar applies here for Alicia in remote modes |
-| 8 | Whyze-Byte validation | (Phase 4 planned; consumes Phase F SceneModifiers) |
-| 9 | Sequential validation in Crew mode | (Phase 4 planned) |
+| 8 | Whyze-Byte validation | Phase 4 complete; consumes Phase F SceneModifiers |
+| 9 | Sequential validation in Crew mode | Phase 4 complete |
 | 10 | Stream back to Msty | (architecture defined at §2) |
 | 11 | Shadow Persona second-monitor pass | (architecture defined at §1; Msty-side, not backend) |
 | 12 | Episodic memory extraction | (Phase 1+2 complete; no execution phase) |
@@ -1442,9 +1442,9 @@ Layered top-down, the backend looks like this:
 | **Canon layer** | Versioned YAML in `src/starry_lyfe/canon/` | COMPLETE | Phase 0 (verification), Phase C (soul cards extend the canon directory) |
 | **Generation layer** | Scripts that compile YAML into backend seeds and Whyze-Byte rules | PARTIAL | Phase I (ADR_001 + seed_msty_persona_studio.py) |
 | **Memory layer** | PostgreSQL + pgvector with seven explicit memory tiers | COMPLETE | (none — consumed by Phase G prose rendering at read time) |
-| **Context assembly layer** | Seven-layer prompt builder with terminal constraint anchoring | IN PROGRESS | **Phase A, A', A'', B, D, E, F, G — eight phases, the bulk of the soul preservation work** |
+| **Context assembly layer** | Seven-layer prompt builder with terminal constraint anchoring | COMPLETE | **Phase A, A', A'', B, D, E, F, G — eight phases, the bulk of the soul preservation work** |
 | **Routing layer** | Claude (Sonnet/Opus) via OpenRouter with per-character inference parameters | DEFINED | (Alicia parameters resolved; no execution phase) |
-| **Validation layer** | Two-tier Whyze-Byte pipeline with sequential multi-speaker gating | PLANNED (Phase 4) | (Phase A'' will be consumed when Whyze-Byte is implemented) |
+| **Validation layer** | Two-tier Whyze-Byte pipeline with sequential multi-speaker gating | COMPLETE (Phase 4) | Phase A'' communication-mode constraints are part of the validator contract |
 | **Orchestration layer** | Scene Director for next-speaker selection in Crew mode | PLANNED (Phase 5) | Phase F adds scene type infrastructure that the Scene Director will consume |
 | **Simulation layer** | Nightly Dreams batch process for life continuity | PLANNED (Phase 6) | Phase G, A'', H apply retroactively when Dreams is implemented |
 | **Service surface** | HTTP service on port 8001, consumed by Msty | PLANNED (Phase 7) | Phase I (authority split: Msty system prompts blank in production) |
@@ -1532,7 +1532,6 @@ If a character kernel and the Vision disagree, the kernel wins (it is closer to 
 
 This plan is explicit about its scope to prevent scope creep:
 
-- **It does not implement Whyze-Byte (Phase 4 of overall backend build).** The architecture is defined at §7. Implementation is a separate phase that consumes the canonical constraint pillars from this plan (especially Phase A''-aware Alicia constraints).
 - **It does not implement the Scene Director (Phase 5).** Architecture is defined at §8. Phase F adds the scene type infrastructure the Scene Director will consume.
 - **It does not implement the Dreams engine (Phase 6).** Architecture is defined at §9. Phases G, A'', H apply retroactively when Dreams ships.
 - **It does not implement the HTTP service on port 8001 (Phase 7).** Service surface is defined at §2.

@@ -1,5 +1,10 @@
-"""Whyze-Byte validation package."""
+"""Whyze-Byte validation + Phase F-Fidelity rubric scoring."""
 
+from starry_lyfe.validation.fidelity import (
+    RUBRIC_DIMENSIONS,
+    FidelityRubric,
+    FidelityScore,
+)
 from starry_lyfe.validation.whyze_byte import (
     ValidationResult,
     ValidationViolation,
@@ -8,6 +13,9 @@ from starry_lyfe.validation.whyze_byte import (
 )
 
 __all__ = [
+    "RUBRIC_DIMENSIONS",
+    "FidelityRubric",
+    "FidelityScore",
     "ValidationResult",
     "ValidationViolation",
     "ViolationTier",
