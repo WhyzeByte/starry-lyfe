@@ -4,8 +4,8 @@
 **Phase identifier:** `6` (architectural phase, numeric — following the §1-§10 architectural sequence; compare Phase 4 Whyze-Byte, Phase 5 Scene Director)
 **Depends on:** Phase 0 + all §3 Context Assembly phases (A, A', A'', B, I, C, D, E, F, G — all SHIPPED 2026-04-12/13), Phase 4 (Whyze-Byte Validation Pipeline, SHIPPED 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, SHIPPED 2026-04-14), Phase 5 (Scene Director, SHIPPED 2026-04-14 with R1/R2/R3 remediations landed)
 **Blocks:** Phase 7 (HTTP service) consumes the Dreams-populated `activities` / `open_loops` / `life_state` state it writes; Phase 7 is not blocked on Phase 6 execution per se, but Phase 7's activity-context endpoints expect Dreams to be live.
-**Status:** SHIPPED 2026-04-14 (Round 1 remediation 2026-04-14 closes Codex F1-F6 across 8 commits: `651be7c` audit record + `aebb30e` plan-of-record + `726e550` R1+R2 + `5172bb7` R3 + `dc42add` R4+R5 + `5e7f788` R6 + `1c69629` R7 + this commit R8)
-**Last touched:** 2026-04-14 by Codex (Round 3 re-audit of remediation efforts)
+**Status:** IN PROGRESS — Round 2 remediation complete; pending Claude AI QA (Step 5) + Project Owner ship (Step 6). Per Codex R3-F3 finding, the previous "SHIPPED 2026-04-14" header was a workflow violation and is now reopened. Round 1 (R1-R8) closed Codex F1-F6; Round 2 (this cycle) closes R3-F1 test fix + R3-F2 Layer 6 Dreams consumer + R3-F3 status reopen + R3-F4 dyad-delta claim narrowing.
+**Last touched:** 2026-04-14 by Claude Code (Round 2 remediation — R3-F1/F2/F3/F4)
 
 ---
 
@@ -32,6 +32,7 @@ The full planning document (with rationale, risk analysis, and lessons-applied n
 | 9 | 2026-04-14 | Claude Code | Claude AI | Round 1 remediation complete. All 8 planned commits landed: `651be7c` audit record, `aebb30e` plan-of-record, `726e550` R1+R2 (writers + snapshot loader + asyncio.gather), `5172bb7` R3 (off_screen), `dc42add` R4+R5 (open_loops + activity_design), `5e7f788` R6 (DB round-trip + MemoryBundle), `1c69629` R7 (daemon + fidelity), and this commit R8 (final record). Test baseline 843 → 897 (+54 Round 1 remediation tests). F1/F2/F3/F4/F5/F6 all FIXED per Step 4 table. Sample Dreams output artifacts generated at `Docs/_phases/_samples/PHASE_6_dreams_output_*.txt`. Ready for Codex re-audit then QA. |
 | 8 | 2026-04-14 | Codex | Claude Code | Round 2 re-audit of remediation efforts complete. **Gate: FAIL.** Only docs commit `aebb30e` landed after Round 1, and it records a plan-of-record rather than substantive remediation. F5 is partially corrected (phase reopened to IN PROGRESS; `pytest -q` now truly reports `843 passed`), but F1/F2/F3/F4/F6 remain open on the live code/test path. |
 | 10 | 2026-04-14 | Codex | Project Owner | Round 3 audit complete. **Gate: FAIL. Mandatory escalation.** The Phase 6 runtime is now materially real, but the remediation does not converge cleanly: hard-DB `pytest -q` fails (`896 passed, 1 failed`) on a new Alicia-away DB assertion, the Dreams -> Scene Director / assembler DB-backed consumer path is still only seam-tested, and the phase file still marks the phase shipped before QA / Project Owner signoff. |
+| 11 | 2026-04-14 | Claude Code | Claude AI | Round 2 remediation complete. 3 commits: `0c28d9c` (Codex R3 audit governance record), `37ba61e` (R3-F1 Alicia test selection + R3-F2 Layer 6 Dreams consumer wiring + test), and this commit (R3-F3 status reopen + R3-F4 F1 claim narrowing). Full suite 898 passing (+1 new consumer integration test). Phase header reopened to IN PROGRESS per R3-F3; closing block unlocked pending Step 5 QA + Step 6 PO ship. Ready for Claude AI QA. |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 
@@ -485,7 +486,7 @@ Phase 6 is not shippable as recorded. The repo contains meaningful Dreams infras
 
 | Finding | Severity | Commit | Scope | Status |
 |---------|----------|--------|-------|--------|
-| F1 | Critical | R1 `feat(phase_6_r1a): writers.py + real snapshot loader + consolidation wired into runner` | NEW `src/starry_lyfe/dreams/writers.py` with 5 writer functions (`write_diary_entry`, `write_activity`, `write_new_open_loops`, `write_off_screen_events`, `write_consolidation_log`). Replace `_empty_snapshot_loader` with `default_snapshot_loader` that reads 24h of session data. Wire `refresh_somatic_decay` + `apply_overnight_dyad_deltas` + `expire_stale_loops` + `resolve_addressed_loops` into `_process_character`. Populate `DreamsCharacterResult` fields from real write outcomes (no hardcoded None/0/False). | PENDING |
+| F1 | Critical | R1 `feat(phase_6_r1a): writers.py + real snapshot loader + consolidation wired into runner` | NEW `src/starry_lyfe/dreams/writers.py` with 5 writer functions (`write_diary_entry`, `write_activity`, `write_new_open_loops`, `write_off_screen_events`, `write_consolidation_log`). Replace `_empty_snapshot_loader` with `default_snapshot_loader` that reads 24h of session data. Wire `refresh_somatic_decay` + `expire_stale_loops` + `resolve_addressed_loops` into `_process_character`. (**R3-F4 correction:** `apply_overnight_dyad_deltas` helper ships in `consolidation.py` but is NOT yet invoked from the runner — no upstream delta source in the current pipeline. `dyad_deltas_applied=0` honestly. Follow-up work will either wire the helper to a Dreams-computed delta source or remove the helper if not needed.) Populate `DreamsCharacterResult` fields from real write outcomes (no hardcoded None/0/False). | PENDING |
 | F2 | High | R3, R4, R5 `feat(phase_6_r1c/d/e): real <gen> generator + Phase G helper + tests` | Real LLM-backed implementations for off_screen, open_loops, activity_design. Each follows diary pattern: per-character `_SYSTEM_PROMPTS` dict, anti-contamination in `_build_user_prompt`, Phase G render through new prose helper. 12 new `render_*_prose` helpers in `context/prose.py` (off_screen/open_loop/activity × 4 chars) with `_assert_complete_character_keys` coverage. Per-generator unit test files mirroring `test_diary.py`. | PENDING |
 | F3 | High | R6 `test(phase_6_r1f): DB round-trip integration tests + MemoryBundle extension` | New `tests/integration/test_dreams_db_round_trip.py` using live Postgres: `run_dreams_pass → DB rows → retrieve_memories → assemble_context Layer 6` contract end-to-end. Extend `MemoryBundle` with `activities` + `life_state` fields; extend `db/retrieval.py::retrieve_memories` to populate them. | PENDING |
 | F4 | Medium | R7 `test(phase_6_r1g): daemon test + fidelity harness for Dreams` | NEW `tests/unit/dreams/test_daemon.py` (CLI `--once` parse, `--dry-run` uses stub, scheduler config, `DreamsScheduleError` on bad cron, `max_instances=1` + `misfire_grace_time`). NEW `tests/fidelity/dreams/` directory: 4 scene YAMLs + 4 test files scoring Dreams diary output against existing per-character fidelity rubrics via `tests/fidelity/_runner.py` pattern. | PENDING |
@@ -712,13 +713,13 @@ _(or)_
 
 ---
 
-## Closing Block (locked once shipped)
+## Closing Block (locked once shipped — CURRENTLY UNLOCKED)
 
 **Phase identifier:** 6
-**Final status:** SHIPPED 2026-04-14 (full §9 scope, monolithic per Project Owner direction; pending Codex audit cycle before production promotion — Step 3-6 remain open for audit/remediation/QA/ship signoff if required)
-**Total cycle rounds:** 0 formal audit rounds (execution complete; Codex audit TBD)
-**Total commits:** 9 — `247247e` (A: DB models + migration 002), `0411389` (B: routines.yaml + schema + loader), `ffe58a3` (C: BDOne + StubBDOne), `cc37a0d` (D: Dreams scaffold), `7913c6a` (E partial: diary + Phase G), `b7d4f84` (J6: pipeline integration test + MVP checkpoint), `1108091` (F: consolidation helpers), `71fc801` (H: Phase A'' Alicia tagging + Phase H regression bundle + migration 003), `4b5a6cc` (J7/J8/J10: Dreams → Scene Director / Assembler / Alicia-away integration tests), + this commit (docs sweep).
-**Total tests added:** 149 (748 baseline → 897 post-Round-1 remediation). Breakdown: 95 from original Phase 6 ship (9 routines loader + 14 BDOne + 8 runner + 7 diary + 7 pipeline + 12 consolidation + 8 alicia_mode + 16 per-character regression + 3 scene-director + 3 assembler + 4 alicia-away-mode + 4 diary Alicia-away) + 54 from Round 1 remediation (3 new runner tests for diary_entry_id + parallelism + failure-isolation; 8 off_screen; 11 open_loops; 9 activity_design; 4 DB round-trip; 11 daemon; 8 dreams voice fidelity).
+**Final status:** IN PROGRESS — Round 2 remediation complete; Step 5 (Claude AI QA) + Step 6 (Project Owner ship) pending. The previous `SHIPPED 2026-04-14` claim in this block was a workflow violation per Codex R3-F3 (a phase cannot be marked shipped before Step 5/6 complete). Final status will be updated when PO signs off.
+**Total cycle rounds:** 3 Codex audit rounds + 2 Claude Code remediation rounds (Round 1: R1-R8 closing F1-F6 / Round 2: closing R3-F1/F2/F3/F4)
+**Total commits:** 9 original + 8 Round 1 remediation + 2 Round 2 remediation commits (so far) — see Handshake Log for full chain.
+**Total tests added:** 151 (748 baseline → 898 post-Round-2-remediation). Breakdown: 95 from original Phase 6 ship + 54 from Round 1 remediation + 1 from Round 2 R3-F2 DB-backed consumer test (Alicia-away R3-F1 fix updated existing test rather than adding a new one). Original 95: 9 routines loader + 14 BDOne + 8 runner + 7 diary + 7 pipeline + 12 consolidation + 8 alicia_mode + 16 per-character regression + 3 scene-director + 3 assembler + 4 alicia-away-mode + 4 diary Alicia-away. Round 1 54: 3 runner + 8 off_screen + 11 open_loops + 9 activity_design + 4 DB round-trip + 11 daemon + 8 voice fidelity. Round 2 +1: consumer handoff.
 **Date opened:** 2026-04-14 (when this file was created by Claude AI)
 **Date closed:** 2026-04-14
 
@@ -728,7 +729,7 @@ _(or)_
 
 - Master plan: `Docs/IMPLEMENTATION_PLAN_v7.1.md` §9 (now marked COMPLETE across all 6 status surfaces)
 - AGENTS.md cycle definition: `AGENTS.md`
-- Sample Dreams output artifacts: deferred — `python -m starry_lyfe.dreams --once --dry-run` against a seeded DB will produce `Docs/_phases/_samples/PHASE_6_dreams_output_*.txt` as part of first production smoke test
+- Sample Dreams output artifacts: `Docs/_phases/_samples/PHASE_6_dreams_output_{adelia,bina,reina,alicia}_2026-04-14.txt` — 4 per-character full-pass reproductions (schedule + diary + off_screen + open_loops + activity_design, all Phase G wrapped), generated via the Round 1 R8 dry-run pass with StubBDOne.
 - Planning artifact: `C:\Users\Whyze\.claude\plans\fizzy-napping-whisper.md`
 - Previous phase file: `Docs/_phases/PHASE_5.md` (Scene Director, SHIPPED 2026-04-14 with R1/R2/R3 remediations)
 - Handoff target: Phase 5 `NextSpeakerInput.activity_context` slot (`src/starry_lyfe/scene/next_speaker.py:103`)

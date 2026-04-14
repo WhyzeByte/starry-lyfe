@@ -380,7 +380,7 @@ These corrections override any conflicting content in project files. Apply befor
 
 ## 19. CURRENT PHASE STATUS (2026-04-14)
 
-**Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13), F (2026-04-13), G (2026-04-13), J.1–J.4 (2026-04-13), H (2026-04-13), K (2026-04-13), Phase 4 (Whyze-Byte Validation Pipeline, 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, 2026-04-14), Phase 5 (Scene Director, 2026-04-14; R1 2026-04-14 closes Codex F1/F2/F3; R2 2026-04-14 closes Codex R2-F1/R2-F2), Phase 6 (Dreams Engine, 2026-04-14; R1 2026-04-14 closes Codex F1/F2/F3/F4/F5/F6 across 8 remediation commits). Lettered-phase remediation complete (2026-04-13). Phase doc housekeeping (PHASE_I closure + PHASE_J retrospective + 5 closing blocks finalized) complete (2026-04-14).
+**Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13), F (2026-04-13), G (2026-04-13), J.1–J.4 (2026-04-13), H (2026-04-13), K (2026-04-13), Phase 4 (Whyze-Byte Validation Pipeline, 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, 2026-04-14), Phase 5 (Scene Director, 2026-04-14; R1 2026-04-14 closes Codex F1/F2/F3; R2 2026-04-14 closes Codex R2-F1/R2-F2), Phase 6 (Dreams Engine, 2026-04-14; R1 2026-04-14 closes Codex F1/F2/F3/F4/F5/F6; R2 2026-04-14 closes Codex R3-F1/R3-F2/R3-F3/R3-F4; phase currently IN PROGRESS pending Step 5 QA + Step 6 PO ship per R3-F3). Lettered-phase remediation complete (2026-04-13). Phase doc housekeeping (PHASE_I closure + PHASE_J retrospective + 5 closing blocks finalized) complete (2026-04-14).
 **Next phase:** Phase 7 (HTTP service on port 8001).
 
 ### Project-wide Quality Directive (Project Owner, 2026-04-13)
@@ -482,7 +482,7 @@ Removed: `Vision/{Adelia Raye,Alicia Marin,Bina Malek,Reina Torres}.md`, `Docs/_
 
 ### Test baseline
 
-**897 passed, 0 failed** as of 2026-04-14 post-Phase-6 Round-1-remediation ship (614 unit + 73 scene unit + 8 scene integration + 37 fidelity + 16 absorbed coverage + 149 Phase 6 total: 95 original + 54 Round 1 remediation). Phase 5 R1/R2 + Phase 6 R1 all shipped. ruff clean. mypy `--strict` clean.
+**898 passed, 0 failed** as of 2026-04-14 post-Phase-6 Round-2-remediation (614 unit + 73 scene unit + 8 scene integration + 37 fidelity + 16 absorbed coverage + 150 Phase 6 total: 95 original + 54 Round 1 remediation + 1 Round 2 consumer handoff). Phase 5 R1/R2 + Phase 6 R1/R2 all shipped as code; Phase 6 pending Claude AI QA + PO ship per R3-F3. ruff clean. mypy `--strict` clean.
 
 ### Phase 2 end audit (2026-04-13)
 

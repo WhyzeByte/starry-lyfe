@@ -43,6 +43,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Docs/_audits/PHASE_2_AUDIT_2026-04-13.md — full self-audit record
 - Docs/_phases/REMEDIATION_2026-04-13.md — approved remediation spec
 
+### Fixed (Phase 6 Round 2 remediation — closes Codex R3-F1/R3-F2/R3-F3/R3-F4)
+
+- **R3-F1 High** (`37ba61e`): `test_alicia_away_activity_carries_communication_mode_in_db` now filters to rows where `created_at >= now` (the runner's injected clock) and orders by `created_at desc` so the assertion always targets the current Dreams run's Activity row, not a pre-existing seeded one. Same filter applied to non-Alicia negative assertion. Fixes the hard-DB `pytest -q` false regression.
+- **R3-F2 Medium** (`37ba61e`): `format_scene_blocks` gains `dreams_activities` parameter; when the retrieval-populated list has entries, the most recent Activity's `narrator_script` is prepended to Layer 6 under "Today's Dreams scene opener:". `assemble_context` threads `memories.activities` from the R6-extended `MemoryBundle` into the call. New integration test `test_dreams_activity_surfaces_into_assembler_layer_6` proves the full DB-backed consumer path: run Dreams → rows → retrieve_memories → assembler Layer 6 contains the Dreams-written narrator.
+- **R3-F3 Medium** (this commit): Phase 6 header reopened from `SHIPPED 2026-04-14` to `IN PROGRESS — Round 2 remediation complete; pending Claude AI QA (Step 5) + Project Owner ship (Step 6)`. Closing block unlocked. Stale "samples deferred" cross-reference replaced with the actual file paths at `Docs/_phases/_samples/PHASE_6_dreams_output_*.txt`.
+- **R3-F4 Low** (this commit): Step 4 F1 evidence text narrowed. `apply_overnight_dyad_deltas` helper is defined in `consolidation.py` but is NOT invoked from the runner — no Dreams-computed delta source exists yet. `dyad_deltas_applied=0` is honest. Runner docstring corrected to match.
+
+Test baseline 897 → 898 (+1 new DB-backed consumer integration test).
+
 ### Fixed (Phase 6 Round 1 remediation — closes Codex F1/F2/F3/F4/F5/F6)
 
 - **F1 Critical** (`726e550`): writers.py with 5 writer functions (diary/activity/new_open_loops/off_screen_events/consolidation_log); default_snapshot_loader reads 24h of real session data replacing the empty stub; runner.py `_process_character` invokes writers + consolidation inside a per-character `session.begin()` transaction; `DreamsCharacterResult` fields populated from real DB outcomes (diary_entry_id, activities_designed, somatic_refreshed, etc. — no hardcoded None/0/False).

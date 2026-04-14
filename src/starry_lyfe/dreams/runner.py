@@ -14,9 +14,11 @@ Round 1 remediation (F1 + F6):
   ``session.begin()`` transaction so DreamsCharacterResult fields
   reflect real DB write outcomes.
 - Consolidation helpers are invoked on the same session:
-  ``refresh_somatic_decay``, ``apply_overnight_dyad_deltas`` (currently
-  no-op; a future commit will seed Dreams-computed deltas),
-  ``expire_stale_loops``, ``resolve_addressed_loops``.
+  ``refresh_somatic_decay``, ``expire_stale_loops``,
+  ``resolve_addressed_loops``. (``apply_overnight_dyad_deltas`` is
+  defined in ``consolidation.py`` but not yet invoked from the
+  runner — no Dreams-computed delta source exists yet. See R3-F4 in
+  PHASE_6.md.)
 - Generators run in parallel per character via
   ``asyncio.gather(..., return_exceptions=True)`` with per-generator
   graceful failure semantics.
