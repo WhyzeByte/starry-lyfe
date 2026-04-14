@@ -4,8 +4,8 @@
 **Phase identifier:** `F`
 **Depends on:** Phase 0, A, A', A'', B, C, D (SHIPPED 2026-04-12), E (SHIPPED 2026-04-13)
 **Blocks:** Phase J.1-J.4 (character remediation passes), Phase G (downstream integration)
-**Status:** IN PROGRESS - direct remediation complete, awaiting QA
-**Last touched:** 2026-04-13 by Codex
+**Status:** SHIPPED 2026-04-13
+**Last touched:** 2026-04-14 by Claude Code (housekeeping closure)
 
 ---
 
@@ -799,8 +799,11 @@ All 12 acceptance criteria met. 220 tests pass. 11/11 VoiceModes reachable on th
 ## Closing Block (locked once shipped)
 
 **Phase identifier:** F
-**Final status:** _pending_
-**Total cycle rounds:** _pending_
-**Total commits:** _pending_
-**Test delta:** _pending_
+**Final status:** SHIPPED 2026-04-13
+**Total cycle rounds:** 2 Codex audit rounds + 2 remediation rounds (Round 1 found 4 critical findings, Round 2 found follow-ups; both remediated)
+**Total commits:** 2 (6edebd8 `feat(phase_f): scene-aware section promotion + dormant VoiceMode closure + cross-cutting modifiers` + 583a68e `fix(phase_2): C1-C4 remediation + Phase 2 audit + operator guide + bundled phase work` which folded Phase F Round 2 alongside Phase 2 audit work)
+**Test delta:** 184 → 220 (37 new tests including F1-F12 dormant-mode coverage)
 **Soul architecture impact:** Phase F activates the 7 dormant VoiceModes from Phase E, closing the F2 carry-forward. Four-register soul architecture remains intact; Phase F does NOT add a fifth register, it activates what Phase E authored.
+**Date closed:** 2026-04-13 (closing block backfilled 2026-04-14 as part of lettered-phase doc housekeeping)
+
+**Lessons for the next phase:** Mid-phase remediation can be folded into a downstream commit (583a68e bundled Phase F Round 2 with Phase 2 audit C1-C4 work) — efficient, but the source phase's closing record can lag the actual ship by weeks if not actively closed. Closing-block discipline at ship time would have caught this immediately.

@@ -917,14 +917,14 @@ Closed. Four audit rounds plus direct remediation plus Patch E hardening. No car
 ## Closing Block (locked once shipped)
 
 **Phase identifier:** E
-**Final status:** _pending_
-**Total cycle rounds:** _pending_
-**Total commits:** _pending_
+**Final status:** SHIPPED 2026-04-13
+**Total cycle rounds:** 2 Codex audit rounds (Step 3 + Step 3') with corresponding remediation rounds
+**Total commits:** 2 (fea8c7a `feat(phase_e): mode-aware voice exemplar selection infrastructure` + 36e8a39 `fix(phase_e,phase_i): Round 2 remediation — children_gate removed, samples generated, Layer 5 regression added`)
 **Total tests added:** 33 (34 original minus 3 children_gate removed, plus 1 Layer 5 regression, plus 1 public-scene gate regression)
 **Date opened:** 2026-04-13
-**Date closed:** _pending_
+**Date closed:** 2026-04-13 (closing block backfilled 2026-04-14 as part of lettered-phase doc housekeeping)
 
-**Lessons for the next phase:** _pending_
+**Lessons for the next phase:** Voice exemplar restoration introduced the mode-tagged Voice.md authoring pattern that subsequent phases rely on. The children_gate removal mid-phase (per PO directive) showed that scope can shift during execution — the 6-step cycle handled it cleanly through Round 2 remediation. Phase I rode through its deferred QA/Ship gate on this phase's ship cycle as authorized.
 
 **Cross-references:**
 - Master plan: `Docs/IMPLEMENTATION_PLAN_v7.1.md` Phase E

@@ -4,8 +4,8 @@
 **Phase identifier:** `I`
 **Depends on:** nothing structural; Phase 0 (verification baseline)
 **Blocks:** Phase E (Voice Exemplar Restoration)
-**Status:** COMPLETE (Codex re-audit clean; QA/Ship deferred to Phase E cycle per PO authorization)
-**Last touched:** 2026-04-13 by Codex
+**Status:** COMPLETE (Codex re-audit clean; QA/Ship absorbed by Phase E ship 2026-04-13 per PO authorization Handshake row 5; transitive closure recorded row 8)
+**Last touched:** 2026-04-14 by Claude Code (housekeeping closure)
 
 ---
 
@@ -31,6 +31,7 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 5 | 2026-04-13 | Project Owner | Claude Code | Step 5/6 deferral to Phase E cycle APPROVED. Phase I is documentation-only; QA and Ship fold into Phase E's audit cycle which covers the seed script as a dependency. |
 | 6 | 2026-04-13 | Claude Code | Codex | Round 2 remediation complete. R2-F1 FIXED: PO authorization for Step 5/6 deferral now recorded in Handshake Log row 5. Phase I ready for close. |
 | 7 | 2026-04-13 | Codex | Project Owner | Round 3 re-audit complete. Gate recommendation: PASS. No remaining Codex findings. Phase I remains on the Project Owner-approved Step 5/6 deferral path into the Phase E ship cycle. |
+| 8 | 2026-04-14 | Project Owner | — | Phase E shipped 2026-04-13 (commits fea8c7a feat + 36e8a39 Round-2 remediation). Phase I's deferred QA/Ship gate transitively closed under PO authorization row 5. Phase I is FINAL. |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 
@@ -438,13 +439,13 @@ Phase I is clean from a Codex audit perspective. No further remediation is neede
 
 ## Step 5: QA (Claude AI)
 
-**[STATUS: NOT STARTED]** — Deferred to Phase E audit cycle per PO authorization (Handshake Log row 5)
+**[STATUS: CLOSED via Phase E ship transitive authorization]** — Phase E shipped 2026-04-13; per PO authorization Handshake row 5, Phase I's QA gate folded into Phase E's audit cycle. Transitive closure recorded Handshake row 8.
 
 ---
 
 ## Step 6: Ship (Project Owner)
 
-**[STATUS: NOT STARTED]** — Deferred to Phase E audit cycle
+**[STATUS: CLOSED via Phase E ship transitive authorization]** — Same closure path as Step 5. Ship gate absorbed by Phase E ship 2026-04-13.
 
 ---
 
@@ -456,7 +457,7 @@ Phase I is clean from a Codex audit perspective. No further remediation is neede
 **Total commits:** 2
 **Total tests added:** 0
 **Date opened:** 2026-04-13
-**Date closed:** _pending Phase E ship_
+**Date closed:** 2026-04-13 (transitive via Phase E ship; recorded Handshake row 8 on 2026-04-14)
 
 **Lessons for the next phase:** Phase I was a documentation gate. The seed script's multi-line abbreviated parsing was a real find by Codex — the backend and seed parsers must stay in sync. The closing-block self-close was premature; even documentation phases should complete the cycle or record an explicit exception.
 

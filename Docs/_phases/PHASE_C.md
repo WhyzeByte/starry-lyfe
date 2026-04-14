@@ -4,8 +4,8 @@
 **Phase identifier:** `C` (must match the master plan exactly: `0`, `A`, `A'`, `A''`, `B`, `I`, `C`, `D`, `E`, `F`, `G`, `J.1`, `J.2`, `J.3`, `J.4`, `H`, `K`)
 **Depends on:** Phase A/A'/A''/B (all SHIPPED 2026-04-12)
 **Blocks:** Phase D, E, F, G, H, J.1-J.4, K
-**Status:** READY FOR CLAUDE AI QA under Project Owner override
-**Last touched:** 2026-04-12 by Codex (direct remediation recorded)
+**Status:** SHIPPED 2026-04-12
+**Last touched:** 2026-04-14 by Claude Code (housekeeping closure)
 
 ---
 
@@ -701,15 +701,15 @@ _(or)_
 
 ## Closing Block (locked once shipped)
 
-**Phase identifier:** _C_
-**Final status:** _SHIPPED / SENT BACK / STOPPED FOR REDESIGN_
-**Total cycle rounds:** _audit-remediate rounds completed_
-**Total commits:** _count_
-**Total tests added:** _count_
-**Date opened:** _YYYY-MM-DD (when this file was created by Claude AI)_
-**Date closed:** _YYYY-MM-DD (when Project Owner shipped or stopped)_
+**Phase identifier:** C
+**Final status:** SHIPPED 2026-04-12
+**Total cycle rounds:** 1 (Project Owner direct-ship via override; no Codex audit cycle)
+**Total commits:** Phase C work bundled into the Phase D commit chain (a9619d8 documents Phase C completion alongside Phase D Step 1/2/4); no Phase-C-only commit exists.
+**Total tests added:** Phase C added 0 net tests (15 hand-authored soul cards + loader integration; tests subsumed by existing soul_cards / soul_essence suites that grew in Phase B). 127-test baseline preserved.
+**Date opened:** 2026-04-12
+**Date closed:** 2026-04-12 (PO direct ship under override; closing block backfilled 2026-04-14)
 
-**Lessons for the next phase:** _2-3 sentences from Claude AI summarizing what worked, what didn't, and what should change in the next phase's plan_
+**Lessons for the next phase:** Project-Owner-override direct ship is a legitimate close path when the formal audit cycle is unnecessary (e.g., pure soul-card authoring with no behavioral change). The pattern recurs in later phases (H, K, F-Fidelity). Closing-block placeholder text should be filled at ship time, not deferred — this phase's placeholder survived through Phase F before being caught in 2026-04-14 housekeeping audit.
 
 **Cross-references:**
 - Master plan: `Docs/IMPLEMENTATION_PLAN_v7.1.md` §3

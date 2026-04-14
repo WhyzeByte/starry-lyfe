@@ -3,7 +3,8 @@
 **Date opened:** 2026-04-14
 **Depends on:** Phase F (Scene-Aware Section Retrieval, SHIPPED 2026-04-13), Phase 4 (Whyze-Byte Validation, SHIPPED 2026-04-13)
 **Replaces:** n/a — new phase derived from REMEDIATION_2026-04-13.md §5.R-5.1
-**Status:** IN PROGRESS
+**Status:** SHIPPED 2026-04-14
+**Last touched:** 2026-04-14 by Claude Code (housekeeping closure)
 
 ---
 
@@ -172,3 +173,23 @@ This confirms the rubric correctly flags pair-name drift (e.g., "Entangled Pair"
 - **Add a scene:** edit `tests/fidelity/scenes/{character}.yaml`. Tests auto-discover via `parametrize_cases()`.
 - **Tune a threshold:** edit `min_score` in `tests/fidelity/rubrics/{character}.yaml`. Defaults: 0.7 (voice/cognitive/body), 0.8 (pair), 0.5 (conflict/repair/autonomy).
 - **Add a canonical marker:** edit `canonical_markers` in the rubric YAML. Markers are exact substring matches against the assembled prompt text.
+
+---
+
+## 11. Closing Block (locked)
+
+**Phase identifier:** F-Fidelity
+**Final status:** SHIPPED 2026-04-14
+**Total cycle rounds:** 1 (no Codex audit cycle; direct ship under Project Owner direct-remediation authority via REMEDIATION_2026-04-13.md §5.R-5.1)
+**Total commits:** 1 (cc7f703 `feat(phase_f_fidelity): Positive Fidelity Test Harness lands`)
+**Total tests added:** 61 (24 unit fidelity tests + 37 parametrized character fidelity cases across 4 characters)
+**Date opened:** 2026-04-14
+**Date closed:** 2026-04-14
+
+**Lessons for the next phase:** The rubric YAML pattern (per-character canonical markers + anti-patterns + required structural) is reusable for future fidelity expansions — dynamic LLM-output scoring (deferred per spec §8) can layer on the same rubric data, swapping the prompt-text input for model output. The static-only scope kept the phase shippable in a single commit; deferring dynamic scoring was the right call to avoid scope creep into LLM judgment.
+
+**Cross-references:**
+- Spec source: `Docs/REMEDIATION_2026-04-13.md` §5.R-5.1
+- Original Phase F: `Docs/_phases/PHASE_F.md` (Scene-Aware Section Retrieval, distinct work)
+- Negative-filter complement: `src/starry_lyfe/validation/whyze_byte.py`
+- Vision invariant V6 mapping: §7 above
