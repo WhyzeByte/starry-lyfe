@@ -43,6 +43,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Docs/_audits/PHASE_2_AUDIT_2026-04-13.md — full self-audit record
 - Docs/_phases/REMEDIATION_2026-04-13.md — approved remediation spec
 
+### Added (Phase 6: Dreams Engine)
+
+- `src/starry_lyfe/dreams/` package — nightly batch life-simulation engine per `Docs/IMPLEMENTATION_PLAN_v7.1.md` §9
+- `run_dreams_pass(session_factory, llm_client, canon, now)` — public API that iterates all 4 canonical characters, runs the 5 content generators per character, aggregates token totals and warnings; `_assert_complete_character_keys` coverage invariant on the result map
+- apscheduler-based daemon + CLI entry `python -m starry_lyfe.dreams [--once] [--dry-run]`
+- `DreamsSettings` / `BDOneSettings` GNK-pattern config loaded from new `STARRY_LYFE__DREAMS__*` / `STARRY_LYFE__BD1__*` env vars
+- Protocol Droid BD-1: `BDOne` HTTP client wrapping `httpx.AsyncClient` with exponential backoff + circuit breaker + token tracking; `StubBDOne` deterministic test stub keyed by prompt hash
+- 5 content generators: `schedule` (deterministic from `routines.yaml`), `diary` (LLM-backed, end-to-end with Phase G prose wrapping), `off_screen` / `open_loops` / `activity_design` (placeholder stubs with TODO markers for follow-up)
+- `src/starry_lyfe/dreams/consolidation.py` — `refresh_somatic_decay` (tier-7 exponential decay), `apply_overnight_dyad_deltas` (per-dimension ±0.10 cap with audit bookkeeping), `expire_stale_loops` (TTL transition), `resolve_addressed_loops` (Dreams-resolution)
+- `src/starry_lyfe/canon/routines.yaml` + Pydantic schema + loader — canonical per-character weekday/weekend routines plus Alicia's away-mode communication_mode distribution (0.45 phone / 0.20 letter / 0.35 video_call)
+- 7 new DB models + Alembic migration 002: `LifeState`, `Activity`, `ConsolidatedMemory`, `ConsolidationLog`, `DriveState`, `ProactiveIntent`, `SessionHealth`
+- Alembic migration 003 adds `communication_mode` column to `episodic_memories` (Phase A'' retroactive)
+- `src/starry_lyfe/dreams/alicia_mode.py` — deterministic weighted sampling of `communication_mode` for Alicia-away artifacts; `should_tag_alicia_away()` narrow gate
+- `src/starry_lyfe/context/prose.py` — `render_diary_prose()` per-character helpers with `_DIARY_OPENERS` / `_DIARY_CLOSERS` phrase banks (Phase G retroactive)
+- 4 new integration test files: `test_dreams_pipeline` (end-to-end runner + anti-contamination negative), `test_dreams_to_scene_director` (Dreams `activity_context` → Rule 7 salience boost), `test_dreams_to_assembler` (Dreams `scene_description` → Layer 4/6), `test_dreams_alicia_away_mode` (full-pass tagging distribution)
+- Per-character regression bundle `test_dreams_regression_per_character.py` — 16 parametrized cases covering opener presence, cross-character contamination negatives, 3-paragraph Phase G structure, and Alicia-away communication_mode invariants
+- ~95 new tests added; baseline 748 → 843
+- `Docs/_phases/PHASE_6.md` — full phase spec + closing block
+- `apscheduler>=3.10,<4.0` added to `requirements.txt`
+
 ### Fixed (Phase 5 Round 3 direct doc remediation — closes Codex R3-F1/R3-F2)
 
 - **R3-F1** (MEDIUM): completed the remaining Phase 5 master-plan sync inside the live prose surfaces that Round 2 missed. `Docs/IMPLEMENTATION_PLAN_v7.1.md` now marks Scene Director complete in the §2 backend summary and the §8 Scene Director implementation-status block, and rewrites the stale pre-implementation classifier notes to match the shipped `src/starry_lyfe/scene/` surface.

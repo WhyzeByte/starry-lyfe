@@ -663,4 +663,90 @@ These are not production codepaths. They are probe harnesses that call the real 
 | Canonical phase and subsystem status | `Docs/IMPLEMENTATION_PLAN_v7.1.md` |
 | Module and schema index | `Docs/ARCHITECTURE.md` |
 
+---
+
+## 13. Dreams Engine (Phase 6)
+
+The Dreams Engine is the nightly batch life-simulation process that gives the characters lives between sessions. It is the only execution surface without a user in the loop: all other backend subsystems are reactive to a Whyze message; Dreams runs autonomously overnight.
+
+Master plan reference: `Docs/IMPLEMENTATION_PLAN_v7.1.md` §9. Full phase record: `Docs/_phases/PHASE_6.md`.
+
+### 13.1 Public API
+
+```python
+from starry_lyfe.dreams import run_dreams_pass, DreamsSettings, BDOne, StubBDOne
+from starry_lyfe.canon.loader import load_all_canon
+
+canon = load_all_canon()  # includes new canon.routines field
+llm_client = BDOne(BDOneSettings.from_env())  # or StubBDOne() for tests
+
+result = await run_dreams_pass(
+    session_factory=my_session_factory,
+    llm_client=llm_client,
+    canon=canon,
+)
+```
+
+`run_dreams_pass()` at `src/starry_lyfe/dreams/runner.py:65` iterates all 4 canonical characters via `CharacterID.all_strings()` with `_assert_complete_character_keys()` coverage invariant on the result. Per character: fetch session snapshot → run 5 generators → aggregate warnings and token counts.
+
+### 13.2 CLI
+
+```
+# Start the apscheduler daemon (nightly at 03:30 local by default):
+python -m starry_lyfe.dreams
+
+# Run one pass and exit (smoke test or manual catch-up):
+python -m starry_lyfe.dreams --once
+
+# Dry-run with StubBDOne (no LLM calls, no DB writes):
+python -m starry_lyfe.dreams --once --dry-run
+```
+
+Entry point: `src/starry_lyfe/dreams/daemon.py:main()`.
+
+### 13.3 Environment variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `STARRY_LYFE__DREAMS__SCHEDULE` | `"30 3 * * *"` | Cron expression for the nightly run |
+| `STARRY_LYFE__DREAMS__ENABLED` | `true` | Ops kill-switch for the scheduler loop |
+| `STARRY_LYFE__DREAMS__DRY_RUN` | `false` | Skip DB writes |
+| `STARRY_LYFE__DREAMS__MAX_TOKENS_PER_CHAR` | `8000` | Aggregate per-character LLM token budget |
+| `STARRY_LYFE__DREAMS__MISFIRE_GRACE_S` | `3600` | apscheduler catch-up window after missed fire |
+| `STARRY_LYFE__DREAMS__LLM_MODEL` | `anthropic/claude-sonnet-4-6` | Model passed to BDOne |
+| `STARRY_LYFE__BD1__BASE_URL` | `https://openrouter.ai/api/v1` | LLM endpoint |
+| `STARRY_LYFE__BD1__API_KEY` | `""` | OpenRouter / Anthropic API key |
+| `STARRY_LYFE__BD1__TIMEOUT` | `60` | Per-call timeout (seconds) |
+| `STARRY_LYFE__BD1__MAX_RETRIES` | `3` | Retries before circuit-break |
+| `STARRY_LYFE__BD1__CIRCUIT_THRESHOLD` | `5` | Consecutive failures before circuit opens |
+
+### 13.4 Retroactive soul-preservation wiring
+
+Dreams output passes through three retroactive invariants:
+
+- **Phase G (prose rendering):** every narrative text from a generator routes through a per-character prose renderer before being returned. Diary entries use `render_diary_prose(character_id, raw_content)` at `src/starry_lyfe/context/prose.py` — wraps raw LLM text in a three-paragraph opener/body/closer frame matched to the character's voice register.
+- **Phase A'' (Alicia-away tagging):** when Alicia's `life_state.is_away=True`, Dreams generators tag emitted artifacts with `communication_mode ∈ {phone, letter, video_call}` sampled from the canonical `alicia_communication_distribution` (0.45 / 0.20 / 0.35) in `routines.yaml`. The `episodic_memories` and `activities` tables carry a nullable `communication_mode` column (Alembic migration 003).
+- **Phase H (regression bundle):** `tests/unit/dreams/test_dreams_regression_per_character.py` runs parametrized regressions across all 4 characters — opener presence, cross-character contamination negatives, 3-paragraph structure, Alicia-away comm-mode invariants.
+
+### 13.5 Consolidation invariants
+
+- **Somatic decay:** `refresh_somatic_decay(session, character_id, now)` at `src/starry_lyfe/dreams/consolidation.py` applies exponential decay via the existing `apply_decay()` helper; updates `last_decayed_at`.
+- **Dyad delta cap:** `apply_overnight_dyad_deltas()` caps per-dimension deltas at **±0.10 per Dreams pass** (vs. ±0.03 per-turn runtime per `evaluate_and_update`). Over-cap requests are clamped with a warning logged.
+- **Loop expiry:** `expire_stale_loops(session, now)` transitions `open_loops.status` from `"open"` to `"expired"` when `expires_at < now`.
+- **Loop resolution:** `resolve_addressed_loops(session, character_id, loop_ids, now)` marks addressed loops as `resolved_by="dreams"`.
+
+### 13.6 File:line reference for key symbols
+
+| Symbol | File:line |
+|--------|-----------|
+| `run_dreams_pass()` | `src/starry_lyfe/dreams/runner.py:65` |
+| `DreamsSettings` / `.from_env()` | `src/starry_lyfe/dreams/config.py:22` |
+| `BDOne` / `StubBDOne` | `src/starry_lyfe/dreams/llm.py:96` / `:208` |
+| `generate_diary()` | `src/starry_lyfe/dreams/generators/diary.py:89` |
+| `generate_schedule()` | `src/starry_lyfe/dreams/generators/schedule.py:16` |
+| `pick_alicia_communication_mode()` | `src/starry_lyfe/dreams/alicia_mode.py:20` |
+| `render_diary_prose()` | `src/starry_lyfe/context/prose.py:502` |
+| `refresh_somatic_decay()` / `apply_overnight_dyad_deltas()` | `src/starry_lyfe/dreams/consolidation.py:57` / `:156` |
+| Alembic migrations | `alembic/versions/002_phase_6_dreams_tables.py`, `003_phase_6_episodic_comm_mode.py` |
+
 **End of Operator Guide.**
