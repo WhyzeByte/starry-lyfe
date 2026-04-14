@@ -865,6 +865,70 @@ def test_c2_load_kernel_cache_same_profile_reuses_entry() -> None:
     clear_kernel_cache()
 
 
+async def test_r2_4_layer_1_overrun_emits_warning(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """R-2.4 AC: regression test forces an overrun and confirms the warning fires.
+
+    Forces Layer 1 to exceed its ceiling by stubbing the token-estimate
+    helpers so the reconciliation sees actual > ceiling. Asserts that
+    `logger.warning` emits with the canonical "layer_1_budget_overrun"
+    marker and includes character_id, actual_tokens, ceiling_tokens.
+    """
+    import logging
+
+    from starry_lyfe.context import assembler as asm_module
+
+    # Stub memory retrieval — no DB needed
+    async def stub_retrieve_memories(*args: Any, **kwargs: Any) -> Any:
+        return _make_bundle("adelia")
+
+    monkeypatch.setattr(asm_module, "retrieve_memories", stub_retrieve_memories)
+
+    # Force ceiling to be very small by stubbing soul_essence_token_estimate to 0
+    # and shrinking kernel_budget via resolve_kernel_budget. Then actual Layer 1
+    # text (which carries full untrimmed soul essence regardless of budget) will
+    # overshoot the fake ceiling.
+    from starry_lyfe.context import budgets as budgets_module
+    monkeypatch.setattr(asm_module, "soul_essence_token_estimate", lambda c: 0)
+    monkeypatch.setattr(
+        budgets_module,
+        "resolve_kernel_budget",
+        lambda c, base_budget=None: 2000,
+    )
+
+    clear_kernel_cache()
+
+    caplog.set_level(logging.WARNING, logger="starry_lyfe.context.assembler")
+    await assemble_context(
+        character_id="adelia",
+        scene_context="Budget overrun regression probe.",
+        scene_state=SceneState(
+            present_characters=["adelia", "whyze"],
+            communication_mode=CommunicationMode.IN_PERSON,
+        ),
+        session=cast(AsyncSession, None),
+        embedding_service=_StubEmbeddingService(),
+    )
+
+    overrun_records = [
+        r for r in caplog.records if "layer_1_budget_overrun" in r.message
+    ]
+    assert overrun_records, (
+        "Expected at least one layer_1_budget_overrun warning. "
+        f"Got records: {[r.message for r in caplog.records]}"
+    )
+    rec = overrun_records[0]
+    assert rec.levelno == logging.WARNING
+    # Extra fields present for observability
+    assert getattr(rec, "character_id", None) == "adelia"
+    assert hasattr(rec, "actual_tokens")
+    assert hasattr(rec, "ceiling_tokens")
+
+    clear_kernel_cache()
+
+
 def test_c2_profile_produces_distinct_cache_entries_per_spec() -> None:
     """R-1.2 AC: cache key must prevent profile collisions.
 
@@ -876,29 +940,57 @@ def test_c2_profile_produces_distinct_cache_entries_per_spec() -> None:
     Before R-1.2 the cache key was (character, budget, promote_tuple) —
     two profiles with matching budget and promote_tuple would collide
     silently. R-1.2 adds profile_name to the key so the cache never
-    conflates them. This test proves the cache produces one entry per
-    (character, budget, profile, promote) tuple, with the profile
-    string visible in the key.
+    conflates them.
+
+    This test proves both halves of the AC:
+    1. Cache produces one entry per (character, budget, profile, promote)
+       tuple, with the profile string visible in the key.
+    2. When the promoted sections differ between profiles, the returned
+       kernel text differs materially (different sections surface).
     """
     from starry_lyfe.context.kernel_loader import _kernel_cache, load_kernel
 
     clear_kernel_cache()
-    # Identical budget and promote_tuple, different profile names.
-    # Before R-1.2 this would produce ONE cache entry (wrong).
-    # After R-1.2 this produces TWO entries keyed by profile.
-    load_kernel(
-        "adelia", budget=6300, promote_sections=[7, 9], profile_name="default"
+    # Identical budget, different profile_name AND different promote_sections
+    # — mirrors a real scenario where "default" promotes §7+§9 (Frameworks
+    # and Family Dynamics) while "pair_intimate" promotes §8+§3 (Intimacy
+    # Architecture and Pair). Before R-1.2 the cache could silently serve
+    # the wrong compression.
+    default_kernel = load_kernel(
+        "adelia", budget=10000, promote_sections=[7, 9], profile_name="default"
     )
-    load_kernel(
-        "adelia", budget=6300, promote_sections=[7, 9], profile_name="pair_intimate"
+    intimate_kernel = load_kernel(
+        "adelia", budget=10000, promote_sections=[8, 3], profile_name="pair_intimate"
     )
-    keys = [k for k in _kernel_cache if k.startswith("adelia:6300:")]
+
+    # Part 1: distinct cache entries (cache separation guarantee)
+    keys = [k for k in _kernel_cache if k.startswith("adelia:10000:")]
     assert len(keys) == 2, (
         f"Cache must produce distinct entries per profile. Got {len(keys)}: {keys}"
     )
     assert any("default" in k for k in keys), f"default profile missing from keys: {keys}"
     assert any("pair_intimate" in k for k in keys), (
         f"pair_intimate profile missing from keys: {keys}"
+    )
+
+    # Part 2: results differ in promoted sections (content separation guarantee)
+    # At this budget, the two (profile, promote_sections) tuples produce
+    # materially different kernel text because the final trim cuts
+    # different sections depending on primary-order placement.
+    assert default_kernel != intimate_kernel, (
+        "Different (profile, promote_sections) tuples must yield different kernel text"
+    )
+    # Concretely: §8 (Intimacy Architecture) and §9 (Family Dynamics) are
+    # both fill-tier sections. At budget=10000, promoting §8 into primary
+    # keeps §9 available in fill; promoting §9 into primary displaces §8
+    # to fill, where budget pressure trims it off. So §9 surfaces only
+    # in the pair_intimate kernel (where §8 was promoted), not the
+    # default kernel (where §9 was promoted but ended up at the trim tail).
+    default_has_family = "Family Dynamics" in default_kernel
+    intimate_has_family = "Family Dynamics" in intimate_kernel
+    assert default_has_family != intimate_has_family, (
+        f"Promoted-section divergence must produce distinct content. "
+        f"default §9 present={default_has_family}, intimate §9 present={intimate_has_family}"
     )
     clear_kernel_cache()
 

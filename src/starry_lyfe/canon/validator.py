@@ -20,7 +20,7 @@ def validate_cross_references(canon: Canon | None = None) -> list[str]:
 
     If ``canon`` is provided, validate that instance. If None, load a fresh
     canon without running validation (to avoid recursion when called from
-    ``load_all_canon(validate=True)``).
+    ``load_all_canon(validate_on_load=True)``).
     """
     errors: list[str] = []
     if canon is None:
