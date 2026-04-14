@@ -9,7 +9,7 @@ activation:
   - mortar
   - permit
   - firing
-budget_tokens: 500
+budget_tokens: 700
 card_type: knowledge
 character: adelia
 required_concepts:

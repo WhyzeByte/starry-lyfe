@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from ..canon.schemas.enums import assert_complete_character_coverage
 from ..canon.soul_essence import format_soul_essence
 from .budgets import estimate_tokens, trim_text_to_budget
 from .types import SceneType, VoiceExample, VoiceMode
@@ -48,6 +49,9 @@ VOICE_PATHS: dict[str, tuple[str, ...]] = {
         "Characters/Alicia_Marin_Voice.md",
     ),
 }
+
+assert_complete_character_coverage(KERNEL_PATHS, "KERNEL_PATHS")
+assert_complete_character_coverage(VOICE_PATHS, "VOICE_PATHS")
 
 # Kernel section budgets tuned for the 2000-token runtime window.
 # The goal is not to include whole documents. It is to ensure each runtime
@@ -282,8 +286,6 @@ def compile_kernel_with_soul(
     """
     kernel_body = compile_kernel(character_id, budget, promote_sections)
     soul = format_soul_essence(character_id)
-    if not soul:
-        return kernel_body
     return soul + "\n\n" + kernel_body
 
 
@@ -304,6 +306,7 @@ def load_kernel(
     character_id: str,
     budget: int = 2000,
     promote_sections: list[int] | None = None,
+    profile_name: str | None = None,
 ) -> str:
     """Load a section-compiled character kernel with guaranteed soul essence.
 
@@ -312,9 +315,13 @@ def load_kernel(
     substrate that rides alongside the kernel and is not subject to the
     trim budget. The budget parameter governs only the trimmable kernel
     body. Cached after first load.
+
+    The cache key includes ``profile_name`` to prevent silent collisions
+    when two scene profiles resolve to the same numeric budget for the
+    same character. (C2 remediation.)
     """
     promo_key = tuple(sorted(promote_sections)) if promote_sections else ()
-    cache_key = f"{character_id}:{budget}:{promo_key}"
+    cache_key = f"{character_id}:{budget}:{profile_name or 'none'}:{promo_key}"
     if cache_key in _kernel_cache:
         return _kernel_cache[cache_key]
     text = compile_kernel_with_soul(character_id, budget, promote_sections)

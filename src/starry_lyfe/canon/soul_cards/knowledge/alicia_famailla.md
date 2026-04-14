@@ -10,7 +10,7 @@ activation:
   - zafra
   - Joaquin
   - Carmen
-budget_tokens: 500
+budget_tokens: 1250
 card_type: knowledge
 character: alicia
 required_concepts:

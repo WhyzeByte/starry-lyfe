@@ -7,6 +7,7 @@ recency bias that deprioritizes early constraints.
 
 from __future__ import annotations
 
+from ..canon.schemas.enums import CharacterID, assert_complete_character_coverage
 from .types import CommunicationMode, SceneState
 
 # Tier 1 axioms: absolute hard rails. No flex, no calibration, no user override.
@@ -59,6 +60,7 @@ CHARACTER_CONSTRAINTS: dict[str, list[str]] = {
         "Assertive does not mean unbothered.",
     ],
 }
+assert_complete_character_coverage(CHARACTER_CONSTRAINTS, "CHARACTER_CONSTRAINTS")
 
 ALICIA_PHONE_PILLAR: list[str] = [
     "SOLSTICE PAIR PRESENCE-CONDITIONAL (PHONE): Your voice carries the regulation when the body cannot. "
@@ -174,7 +176,7 @@ def build_constraint_block(
         for constraint in char_constraints:
             sections.append(constraint)
 
-    canonical_women = {"adelia", "bina", "reina", "alicia"}
+    canonical_women = {c.value for c in CharacterID}
     women_present = [c for c in scene_state.present_characters if c in canonical_women]
     if len(women_present) >= 2:
         sections.append(

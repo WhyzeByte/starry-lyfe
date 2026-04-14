@@ -198,38 +198,121 @@ def test_protocol_extension_requires_source_tag(canon_dir: Path) -> None:
         CanonProtocols.model_validate(data)
 
 
-def test_validator_rejects_missing_dyad_interlock(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_validator_rejects_missing_dyad_interlock() -> None:
     """Dyad interlock references must resolve to interlocks.yaml keys."""
     canon = load_all_canon()
     del canon.interlocks.interlocks["anchor_dynamic"]
-    monkeypatch.setattr(canon_validator, "load_all_canon", lambda: canon)
 
-    errors = canon_validator.validate_cross_references()
+    errors = canon_validator.validate_cross_references(canon)
     assert "dyads.yaml: dyad 'adelia_bina' interlock 'anchor_dynamic' not in interlocks.yaml" in errors
 
 
-def test_validator_rejects_missing_whyze_pair_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_validator_rejects_missing_whyze_pair_key() -> None:
     """Whyze-pair dyads must point at a defined pair key."""
     canon = load_all_canon()
     del canon.pairs.pairs[PairName.ENTANGLED]
-    monkeypatch.setattr(canon_validator, "load_all_canon", lambda: canon)
 
-    errors = canon_validator.validate_cross_references()
+    errors = canon_validator.validate_cross_references(canon)
     assert "dyads.yaml: dyad 'whyze_adelia' pair 'entangled' not in pairs.yaml" in errors
 
 
-def test_validator_rejects_unknown_recovery_architecture_character(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_validator_rejects_unknown_recovery_architecture_character() -> None:
     """Recovery responders must resolve to known household members."""
     canon = load_all_canon()
     recovery = canon.protocols.protocols["bunker_mode"].recovery_architecture
     assert recovery is not None
     recovery.first_responder.character = "ghost"
-    monkeypatch.setattr(canon_validator, "load_all_canon", lambda: canon)
 
-    errors = canon_validator.validate_cross_references()
+    errors = canon_validator.validate_cross_references(canon)
     assert (
         "protocols.yaml: protocol 'bunker_mode' recovery first_responder "
         "references unknown character 'ghost'"
     ) in errors
+
+
+# --- C3 remediation: load_all_canon(validate=True) fails on corruption ---
+
+
+def test_load_all_canon_with_validate_true_raises_on_corruption(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """load_all_canon(validate=True) must raise when cross-references are broken."""
+    from starry_lyfe.canon import loader as canon_loader
+
+    # Load a real interlocks instance then delete a referenced key, mirroring
+    # the existing monkeypatch pattern used in the validator tests above.
+    base_interlocks = canon_loader.load_interlocks()
+    del base_interlocks.interlocks["anchor_dynamic"]
+    monkeypatch.setattr(canon_loader, "load_interlocks", lambda: base_interlocks)
+
+    with pytest.raises(ValueError, match="Canon validation failed"):
+        canon_loader.load_all_canon(validate=True)
+
+
+def test_load_all_canon_with_validate_false_skips_validation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """load_all_canon(validate=False) must NOT invoke validator (recursion safety)."""
+    from starry_lyfe.canon import loader as canon_loader
+    from starry_lyfe.canon import validator as cv
+
+    call_count = {"n": 0}
+
+    def counting_validator(canon: object | None = None) -> list[str]:
+        call_count["n"] += 1
+        return []
+
+    monkeypatch.setattr(cv, "validate_cross_references", counting_validator)
+    canon_loader.load_all_canon(validate=False)
+    assert call_count["n"] == 0
+
+
+def test_load_all_canon_default_validates() -> None:
+    """load_all_canon() with no args must validate by default."""
+    # Canon is currently valid, so this should succeed without error.
+    canon = load_all_canon()
+    assert canon is not None
+
+
+# --- C4 remediation: assert_complete_character_coverage helper ---
+
+
+def test_c4_assert_complete_character_coverage_catches_missing() -> None:
+    """Missing character in a per-character dict must raise."""
+    from starry_lyfe.canon.schemas.enums import assert_complete_character_coverage
+
+    with pytest.raises(ValueError, match="missing"):
+        assert_complete_character_coverage(
+            {"adelia": 1, "bina": 1, "reina": 1}, "test_dict"
+        )
+
+
+def test_c4_assert_complete_character_coverage_catches_extra() -> None:
+    """Extra character key in a per-character dict must raise."""
+    from starry_lyfe.canon.schemas.enums import assert_complete_character_coverage
+
+    with pytest.raises(ValueError, match="extra"):
+        assert_complete_character_coverage(
+            {"adelia": 1, "bina": 1, "reina": 1, "alicia": 1, "shawn": 1},
+            "test_dict",
+        )
+
+
+def test_c4_assert_complete_character_coverage_passes_for_complete_dict() -> None:
+    """Exact coverage of CharacterID must pass."""
+    from starry_lyfe.canon.schemas.enums import assert_complete_character_coverage
+
+    assert_complete_character_coverage(
+        {"adelia": 1, "bina": 1, "reina": 1, "alicia": 1}, "test_dict"
+    )
+
+
+def test_c4_assert_complete_character_coverage_works_on_sets() -> None:
+    """Helper accepts sets in addition to dicts."""
+    from starry_lyfe.canon.schemas.enums import assert_complete_character_coverage
+
+    assert_complete_character_coverage(
+        {"adelia", "bina", "reina", "alicia"}, "test_set"
+    )
+    with pytest.raises(ValueError, match="missing"):
+        assert_complete_character_coverage({"adelia", "bina"}, "test_set")

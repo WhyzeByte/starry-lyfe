@@ -1,6 +1,7 @@
 """Shared enum types for canon YAML schemas."""
 
 from enum import StrEnum
+from typing import Any
 
 
 class CharacterID(StrEnum):
@@ -10,6 +11,29 @@ class CharacterID(StrEnum):
     BINA = "bina"
     REINA = "reina"
     ALICIA = "alicia"
+
+
+def assert_complete_character_coverage(
+    d: dict[str, Any] | set[str],
+    source_name: str,
+) -> None:
+    """Raise ValueError if ``d`` does not exactly cover ``CharacterID`` membership.
+
+    C4 remediation: every per-character dict or set scattered across the
+    codebase (kernel paths, voice paths, budget scaling, pair mapping,
+    prose banks, constraint pillars, soul essence registry) must be
+    validated at module-import time to prevent silent drift when a
+    character is added, removed, or renamed.
+    """
+    expected = {c.value for c in CharacterID}
+    actual = set(d.keys()) if isinstance(d, dict) else set(d)
+    missing = expected - actual
+    extra = actual - expected
+    if missing or extra:
+        raise ValueError(
+            f"{source_name}: character coverage mismatch. "
+            f"missing={sorted(missing)}, extra={sorted(extra)}"
+        )
 
 
 class PairName(StrEnum):

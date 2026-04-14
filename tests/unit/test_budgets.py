@@ -385,20 +385,27 @@ class TestPhaseBBudgetElevation:
         )
 
     def test_b4_scene_profiles_produce_expected_budgets(self) -> None:
-        """B4: Scene profile selection returns correct layer budgets."""
+        """B4: Scene profile selection returns correct layer budgets.
+
+        Scene budgets raised 2026-04-13 to allow full soul card delivery:
+            default:       scene 1200 → 2400
+            pair_intimate: scene  800 → 1800
+            solo:          scene  800 → 1800
+        """
         from starry_lyfe.context.budgets import get_scene_profile
 
         default = get_scene_profile("default")
         assert default.kernel == 6000
-        assert default.scene == 1200
+        assert default.scene == 2400
         assert default.voice == 900
 
         intimate = get_scene_profile("pair_intimate")
         assert intimate.kernel == 8000
-        assert intimate.scene == 800
+        assert intimate.scene == 1800
 
         solo = get_scene_profile("solo")
         assert solo.kernel == 7000
+        assert solo.scene == 1800
 
         unknown = get_scene_profile("nonexistent")
         assert unknown.name == "default"

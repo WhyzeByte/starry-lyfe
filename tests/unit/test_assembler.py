@@ -552,7 +552,7 @@ async def test_recalled_dyad_included_when_other_absent(
         ["bina", "whyze"],
         "Shop closed; Reina still at court.",
     )
-    assert "Relationship bina-reina" not in without_recall.text
+    assert "bina-reina" not in without_recall.text
 
     async def stub_retrieve_memories(*args: Any, **kwargs: Any) -> Any:
         return bundle
@@ -571,7 +571,7 @@ async def test_recalled_dyad_included_when_other_absent(
         session=cast(AsyncSession, None),
         embedding_service=_StubEmbeddingService(),
     )
-    assert "Relationship bina-reina" in prompt.prompt
+    assert "bina-reina" in prompt.prompt
 
 
 # --- Phase A'' tests: communication-mode-aware pruning ---
@@ -833,6 +833,36 @@ def test_bina_whyze_scene_no_talk_mandate() -> None:
     scene = SceneState(present_characters=["bina", "whyze"])
     block = build_constraint_block("bina", scene)
     assert "TALK-TO-EACH-OTHER" not in block
+
+
+# --- C2 remediation: kernel cache must differentiate by scene profile ---
+
+
+def test_c2_load_kernel_cache_differentiates_by_profile() -> None:
+    """Same character + budget + different profile must produce distinct cache entries."""
+    from starry_lyfe.context.kernel_loader import _kernel_cache, load_kernel
+
+    clear_kernel_cache()
+    load_kernel("adelia", budget=6300, profile_name="default")
+    load_kernel("adelia", budget=6300, profile_name="solo")
+    adelia_keys = [k for k in _kernel_cache if k.startswith("adelia:6300:")]
+    assert len(adelia_keys) == 2, (
+        f"Expected 2 distinct cache entries for adelia budget=6300 across "
+        f"2 profiles, got {len(adelia_keys)}: {adelia_keys}"
+    )
+    clear_kernel_cache()
+
+
+def test_c2_load_kernel_cache_same_profile_reuses_entry() -> None:
+    """Same character + budget + same profile must reuse the cache."""
+    from starry_lyfe.context.kernel_loader import _kernel_cache, load_kernel
+
+    clear_kernel_cache()
+    load_kernel("adelia", budget=6300, profile_name="default")
+    load_kernel("adelia", budget=6300, profile_name="default")
+    adelia_keys = [k for k in _kernel_cache if k.startswith("adelia:6300:")]
+    assert len(adelia_keys) == 1, "Second call with same args must hit cache"
+    clear_kernel_cache()
 
 
 # --- Phase E R2-F3: Layer 5 scene_state wiring regression ---

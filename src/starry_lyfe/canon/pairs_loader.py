@@ -14,6 +14,8 @@ from pathlib import Path
 
 import yaml
 
+from .schemas.enums import assert_complete_character_coverage
+
 PAIRS_YAML = Path(__file__).resolve().parent / "pairs.yaml"
 
 
@@ -37,6 +39,7 @@ _CHARACTER_TO_PAIR: dict[str, str] = {
     "reina": "kinetic",
     "alicia": "solstice",
 }
+assert_complete_character_coverage(_CHARACTER_TO_PAIR, "_CHARACTER_TO_PAIR")
 
 _pair_cache: dict[str, PairMetadata] = {}
 _yaml_loaded: bool = False

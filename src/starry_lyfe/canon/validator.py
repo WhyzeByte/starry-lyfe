@@ -6,15 +6,25 @@ Runnable as: python -m starry_lyfe.canon.validator
 from __future__ import annotations
 
 import sys
+from typing import TYPE_CHECKING
 
 from .loader import load_all_canon
 from .schemas.enums import CharacterID, PairName
 
+if TYPE_CHECKING:
+    from .loader import Canon
 
-def validate_cross_references() -> list[str]:
-    """Run all cross-file validations. Returns a list of error messages (empty = pass)."""
+
+def validate_cross_references(canon: Canon | None = None) -> list[str]:
+    """Run all cross-file validations. Returns a list of error messages (empty = pass).
+
+    If ``canon`` is provided, validate that instance. If None, load a fresh
+    canon without running validation (to avoid recursion when called from
+    ``load_all_canon(validate=True)``).
+    """
     errors: list[str] = []
-    canon = load_all_canon()
+    if canon is None:
+        canon = load_all_canon(validate=False)
 
     # Build the set of valid character IDs and operator handles
     char_ids = {c.value for c in canon.characters.characters}

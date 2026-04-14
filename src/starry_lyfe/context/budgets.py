@@ -6,6 +6,8 @@ import re
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+from starry_lyfe.canon.schemas.enums import assert_complete_character_coverage
+
 
 class BlockType(StrEnum):
     """Markdown block types recognized by the structure-preserving trimmer."""
@@ -42,7 +44,7 @@ class LayerBudgets:
     episodic: int = 1200
     somatic: int = 500
     voice: int = 900
-    scene: int = 1200
+    scene: int = 2400   # raised from 1200: soul cards now deliver full body content
     constraints: int = 900
 
     @property
@@ -61,6 +63,9 @@ CHARACTER_KERNEL_BUDGET_SCALING: dict[str, float] = {
     "reina": 1.15,
     "alicia": 0.85,
 }
+assert_complete_character_coverage(
+    CHARACTER_KERNEL_BUDGET_SCALING, "CHARACTER_KERNEL_BUDGET_SCALING"
+)
 
 
 def resolve_kernel_budget(character_id: str, base_budget: int = DEFAULT_BUDGETS.kernel) -> int:
@@ -88,10 +93,10 @@ class SceneBudgetProfile:
 
 
 SCENE_PROFILES: dict[str, SceneBudgetProfile] = {
-    "default": SceneBudgetProfile(name="default", kernel=6000, scene=1200, voice=900),
-    "pair_intimate": SceneBudgetProfile(name="pair_intimate", kernel=8000, scene=800, voice=700),
-    "multi_woman_group": SceneBudgetProfile(name="multi_woman_group", kernel=5500, scene=1800, voice=1000),
-    "solo": SceneBudgetProfile(name="solo", kernel=7000, scene=800, voice=900),
+    "default":           SceneBudgetProfile(name="default",           kernel=6000, scene=2400, voice=900),
+    "pair_intimate":     SceneBudgetProfile(name="pair_intimate",     kernel=8000, scene=1800, voice=700),
+    "multi_woman_group": SceneBudgetProfile(name="multi_woman_group", kernel=5500, scene=3200, voice=1000),
+    "solo":              SceneBudgetProfile(name="solo",              kernel=7000, scene=1800, voice=900),
 }
 
 

@@ -17,6 +17,13 @@ from starry_lyfe.db.retrieval import DecayedSomaticState
 
 from .budgets import DEFAULT_BUDGETS, estimate_tokens, trim_text_to_budget, trim_to_budget
 from .kernel_loader import load_kernel, load_voice_examples, load_voice_guidance
+from .prose import (
+    render_canon_prose,
+    render_dyad_internal_prose,
+    render_dyad_whyze_prose,
+    render_protocol_prose,
+    render_somatic_prose,
+)
 from .types import LayerContent, SceneState, SceneType, VoiceExample, VoiceMode
 
 logger = logging.getLogger(__name__)
@@ -224,9 +231,15 @@ def format_kernel(
     character_id: str,
     budget: int = DEFAULT_BUDGETS.kernel,
     promote_sections: list[int] | None = None,
+    profile_name: str | None = None,
 ) -> LayerContent:
     """Layer 1: Section-aware kernel compilation preserving load-bearing sections."""
-    text = load_kernel(character_id, budget=budget, promote_sections=promote_sections)
+    text = load_kernel(
+        character_id,
+        budget=budget,
+        promote_sections=promote_sections,
+        profile_name=profile_name,
+    )
     return LayerContent(
         name="persona_kernel",
         text=text,
@@ -238,11 +251,16 @@ def format_kernel(
 def format_canon_facts(
     facts: list[CanonFact],
     budget: int = DEFAULT_BUDGETS.canon_facts,
+    character_id: str = "",
 ) -> LayerContent:
-    """Layer 2: Format canon facts into a readable block, trimmed to budget."""
+    """Layer 2: Format canon facts as a narrative paragraph (Phase G), trimmed to budget."""
     if not facts:
         text = "No canon facts available."
+    elif character_id:
+        text = render_canon_prose(character_id, facts)
+        text = trim_text_to_budget(text, budget, "[Canon facts trimmed to token budget.]")
     else:
+        # Fallback: flat list when character_id is unknown
         header = "Canon facts for this character:\n"
         remaining = max(1, budget - estimate_tokens(header))
         lines = [f"- {f.fact_key}: {f.fact_value}" for f in facts]
@@ -290,31 +308,27 @@ def format_sensory_grounding(
     scene_description: str = "",
     budget: int = DEFAULT_BUDGETS.somatic,
 ) -> LayerContent:
-    """Layer 4: Format biological/psychological state, active protocols, and environment."""
+    """Layer 4: Format somatic state and environment in per-character prose (Phase G)."""
     lines: list[str] = []
 
-    # P3-04: Include scene/environment description
     if scene_description:
         lines.append(f"Current scene: {scene_description}")
 
     if somatic_state is None:
         lines.append("No somatic state data available.")
     else:
-        lines.extend([
-            f"Current state for {somatic_state.character_id}:",
-            f"  Fatigue: {somatic_state.fatigue:.2f}",
-            f"  Stress residue: {somatic_state.stress_residue:.2f}",
-            f"  Injury residue: {somatic_state.injury_residue:.2f}",
-        ])
+        # Phase G: character-voiced prose + numeric block
+        lines.append(render_somatic_prose(somatic_state.character_id, somatic_state))
+
         if somatic_state.active_protocols:
-            proto_names = []
             for proto_key in somatic_state.active_protocols:
-                proto = canon.protocols.protocols.get(proto_key)
-                name = proto.name if proto else proto_key
-                proto_names.append(name)
-            lines.append(f"  Active protocols: {', '.join(proto_names)}")
-        else:
-            lines.append("  No active protocols.")
+                proto_prose = render_protocol_prose(somatic_state.character_id, proto_key)
+                if proto_prose:
+                    lines.append(proto_prose)
+                else:
+                    proto = canon.protocols.protocols.get(proto_key)
+                    name = proto.name if proto else proto_key
+                    lines.append(f"Active protocol: {name}.")
 
     text = "\n".join(lines)
     text = trim_text_to_budget(text, budget, "[Sensory grounding trimmed to token budget.]")
@@ -448,20 +462,15 @@ def format_scene_blocks(
     recalled_dyads: set[str] | None = None,
     explicitly_invoked_absent_dyad: frozenset[str] | None = None,
 ) -> LayerContent:
-    """Layer 6: Format relationship state, open loops, and current scene activity."""
+    """Layer 6: Format relationship state and scene context in per-character prose (Phase G)."""
     sections: list[str] = []
 
-    # Include scene/activity description
     if scene_description:
         sections.append(f"Current activity: {scene_description}")
 
-    # Dyad state with Whyze
+    # Phase G: character-voiced dyad prose + numeric block
     for wd in dyads_whyze:
-        sections.append(
-            f"Relationship with Whyze ({wd.pair_name}): "
-            f"trust={wd.trust:.2f}, intimacy={wd.intimacy:.2f}, "
-            f"conflict={wd.conflict:.2f}, tension={wd.unresolved_tension:.2f}"
-        )
+        sections.append(render_dyad_whyze_prose(character_id, wd))
 
     recalled = recalled_dyads or set()
     invoked = explicitly_invoked_absent_dyad or frozenset()
@@ -476,13 +485,8 @@ def format_scene_blocks(
             or dyad_key in invoked
             or dyad_key_rev in invoked
         ):
-            sections.append(
-                f"Relationship {iwd.member_a}-{iwd.member_b} ({iwd.interlock or 'n/a'}): "
-                f"trust={iwd.trust:.2f}, intimacy={iwd.intimacy:.2f}, "
-                f"conflict={iwd.conflict:.2f}"
-            )
+            sections.append(render_dyad_internal_prose(character_id, iwd))
 
-    # Open loops (already ranked by urgency from retrieval)
     if open_loops:
         loop_lines = [f"- [{loop.urgency}] {loop.loop_summary}" for loop in open_loops]
         trimmed = trim_to_budget(loop_lines, budget // 2)

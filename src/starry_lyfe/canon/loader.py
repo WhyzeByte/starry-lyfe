@@ -79,9 +79,15 @@ class Canon:
     voice_parameters: CanonVoiceParameters
 
 
-def load_all_canon() -> Canon:
-    """Load and validate the entire canon directory. Fail-closed on any error."""
-    return Canon(
+def load_all_canon(validate: bool = True) -> Canon:
+    """Load and validate the entire canon directory. Fail-closed on any error.
+
+    When ``validate`` is True (default), cross-file referential integrity
+    checks run via ``validator.validate_cross_references()`` and any
+    errors raise ``ValueError``. Pass ``validate=False`` only for
+    recursion-safe use inside the validator itself. (C3 remediation.)
+    """
+    canon = Canon(
         characters=load_characters(),
         pairs=load_pairs(),
         dyads=load_dyads(),
@@ -89,3 +95,11 @@ def load_all_canon() -> Canon:
         interlocks=load_interlocks(),
         voice_parameters=load_voice_parameters(),
     )
+    if validate:
+        from .validator import validate_cross_references
+        errors = validate_cross_references(canon)
+        if errors:
+            raise ValueError(
+                "Canon validation failed:\n" + "\n".join(f"  - {e}" for e in errors)
+            )
+    return canon

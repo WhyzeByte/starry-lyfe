@@ -24,6 +24,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from .schemas.enums import assert_complete_character_coverage
+
 
 @dataclass(frozen=True)
 class SoulBlock:
@@ -187,8 +189,9 @@ ADELIA = SoulEssence(
             label="entangled_pair_name",
             text=(
                 "What Whyze and I have is the Entangled Pair. Catalyst and "
-                "Architect. ENFP-A and INTJ-T. Ne-dominant meeting Ni-dominant "
-                "head-on. The architecture has a name because the name is "
+                "Architect. ENFP-A and INTJ-T. Intuitive Symbiosis: Ne-dominant "
+                "meeting Ni-dominant head-on, opposite vectors on the same "
+                "perceptual axis. The architecture has a name because the name is "
                 "load-bearing and I do not pretend otherwise."
             ),
         ),
@@ -827,6 +830,7 @@ SOUL_ESSENCES: dict[str, SoulEssence] = {
     "reina": REINA,
     "alicia": ALICIA,
 }
+assert_complete_character_coverage(SOUL_ESSENCES, "SOUL_ESSENCES")
 
 
 def get_soul_essence(character: str) -> SoulEssence | None:
@@ -844,10 +848,18 @@ def format_soul_essence(character: str) -> str:
     Returns a block that Layer 1 assembly can guarantee in every prompt
     for the focal character, regardless of kernel trim budget. This is
     the canonical soul substrate and should never be trimmed.
+
+    Raises ValueError if the character has no registered soul essence.
+    A missing soul essence means Layer 1 would ship without canonical
+    identity substrate — this is a FAIL condition per Vision §7, not
+    an ignorable edge case.
     """
     essence = get_soul_essence(character)
     if essence is None:
-        return ""
+        raise ValueError(
+            f"No soul essence registered for character '{character}'. "
+            f"Known characters: {sorted(SOUL_ESSENCES.keys())}"
+        )
 
     parts: list[str] = []
     if essence.identity:
@@ -879,4 +891,4 @@ def soul_essence_token_estimate(character: str) -> int:
     """
     from starry_lyfe.context.budgets import estimate_tokens
     text = format_soul_essence(character)
-    return estimate_tokens(text) if text else 0
+    return estimate_tokens(text)

@@ -9,7 +9,7 @@ activation:
   - tack
   - paddock
   - ride
-budget_tokens: 500
+budget_tokens: 950
 card_type: knowledge
 character: reina
 required_concepts:

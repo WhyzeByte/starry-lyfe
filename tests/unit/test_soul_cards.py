@@ -66,7 +66,7 @@ class TestSoulCardLoader:
         card = load_soul_card(path)
         assert card.character == "bina"
         assert card.card_type == "pair"
-        assert card.budget_tokens == 700
+        assert card.budget_tokens == 850  # raised from 700 to match authored body size
         assert card.activation.get("always") is True
         assert "Circuit Pair" in card.required_concepts
 
@@ -162,22 +162,56 @@ class TestContentValidation:
         assert len(placeholders) == 0, f"Unexpected placeholders: {[c.file_path for c in placeholders]}"
 
     def test_knowledge_cards_within_500_token_budget(self) -> None:
-        """Knowledge cards must declare budget ≤ 500 tokens."""
+        """Knowledge card bodies must fit within their declared budget_tokens.
+
+        budget_tokens was raised per-card to match actual authored content
+        (Phase C lettered remediation, 2026-04-13). The test now validates
+        that the body fits within the declared value — not a fixed 500-token
+        ceiling — so the runtime delivers all canonical content.
+        """
         cards = load_all_soul_cards()
+        from starry_lyfe.context.budgets import estimate_tokens
         for card in cards:
             if card.card_type == "knowledge":
-                assert card.budget_tokens <= 500, (
-                    f"{card.file_path} declares {card.budget_tokens} tokens (max 500)"
+                body_tokens = estimate_tokens(card.body)
+                assert body_tokens <= card.budget_tokens, (
+                    f"{card.file_path} body is {body_tokens} tokens "
+                    f"but budget_tokens is only {card.budget_tokens}"
                 )
 
     def test_pair_cards_within_700_token_budget(self) -> None:
-        """Pair cards must declare budget ≤ 700 tokens."""
+        """Pair card bodies must fit within their declared budget_tokens.
+
+        budget_tokens was raised per-card to match actual authored content
+        (Phase C lettered remediation, 2026-04-13).
+        """
         cards = load_all_soul_cards()
+        from starry_lyfe.context.budgets import estimate_tokens
         for card in cards:
             if card.card_type == "pair":
-                assert card.budget_tokens <= 700, (
-                    f"{card.file_path} declares {card.budget_tokens} tokens (max 700)"
+                body_tokens = estimate_tokens(card.body)
+                assert body_tokens <= card.budget_tokens, (
+                    f"{card.file_path} body is {body_tokens} tokens "
+                    f"but budget_tokens is only {card.budget_tokens}"
                 )
+
+    def test_required_concepts_within_budget(self) -> None:
+        """Every required_concept must appear in the first budget_tokens tokens.
+
+        This verifies runtime delivery — the model receives the trimmed body
+        and all required concepts must be present in what actually arrives.
+        """
+        from starry_lyfe.context.budgets import trim_text_to_budget
+        cards = load_all_soul_cards()
+        failures: list[str] = []
+        for card in cards:
+            trimmed = trim_text_to_budget(card.body, card.budget_tokens)
+            for concept in card.required_concepts:
+                if concept.lower() not in trimmed.lower():
+                    failures.append(
+                        f"{card.file_path}: '{concept}' missing from trimmed output"
+                    )
+        assert not failures, "required_concepts missing from runtime-delivered content:\n" + "\n".join(failures)
 
 
 class TestAssemblyIntegration:

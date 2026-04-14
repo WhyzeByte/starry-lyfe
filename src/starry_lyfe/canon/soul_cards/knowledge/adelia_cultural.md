@@ -8,7 +8,7 @@ activation:
   - Marrickville
   - Joaquin
   - Ines
-budget_tokens: 500
+budget_tokens: 800
 card_type: knowledge
 character: adelia
 required_concepts:

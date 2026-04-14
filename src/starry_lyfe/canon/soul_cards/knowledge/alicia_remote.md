@@ -4,13 +4,13 @@ activation:
   - phone
   - letter
   - video_call
-budget_tokens: 500
+budget_tokens: 1100
 card_type: knowledge
 character: alicia
 required_concepts:
 - four-phase return
 - intermittent presence
-- communication mode
+- Remote communication register
 - Sun Override
 - carried forward
 source: Characters/Alicia/Alicia_Marin_Knowledge_Stack.md

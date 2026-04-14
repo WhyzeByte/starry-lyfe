@@ -12,7 +12,7 @@ activation:
   - Assyrian
   - Iranian
   - Farsi
-budget_tokens: 500
+budget_tokens: 1200
 card_type: knowledge
 character: bina
 required_concepts:

@@ -1,7 +1,7 @@
 ---
 activation:
   always: true
-budget_tokens: 700
+budget_tokens: 1150
 card_type: pair
 character: alicia
 required_concepts:

@@ -119,8 +119,9 @@ async def assemble_context(
         character_id,
         budget=max(1, kernel_budget - reserved_kernel_tokens),
         promote_sections=promote or None,
+        profile_name=scene_profile,
     )
-    layer_2 = format_canon_facts(memories.canon_facts)
+    layer_2 = format_canon_facts(memories.canon_facts, character_id=character_id)
     layer_3 = format_memory_fragments(memories.episodic_memories)
     layer_4 = format_sensory_grounding(
         memories.somatic_state, canon, scene_state.scene_description

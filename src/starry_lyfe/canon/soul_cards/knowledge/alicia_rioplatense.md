@@ -9,7 +9,7 @@ activation:
   - Argentina
   - zamba
   - Mercedes Sosa
-budget_tokens: 500
+budget_tokens: 900
 card_type: knowledge
 character: alicia
 required_concepts:

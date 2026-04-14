@@ -1,0 +1,596 @@
+# Operator Guide: Character Markdown -> Runtime Prompt
+
+**Version:** 1.1 (2026-04-13)
+**Scope:** Accurate walkthrough of how character-source material becomes the seven-layer runtime prompt.
+**Audience:** Project Owner, operators, and anyone who needs the runtime map without re-reading the whole codebase.
+
+---
+
+## 1. What This Document Is (And Is Not)
+
+**Is:** A runtime-oriented guide. It starts with the canonical character corpus and ends at the XML-wrapped prompt returned by `assemble_context()`.
+
+**Is not:**
+- An authoring guide. For phase-by-phase buildout rules, see `Docs/IMPLEMENTATION_PLAN_v7.1.md`.
+- A governance spec. For character-behavior rules, see `Docs/Persona_Tier_Framework_v7.1.md`.
+- A four-agent workflow guide. For SDLC rules, see `AGENTS.md`.
+- A database schema reference. For retrieval tiers and backend architecture, see `Docs/ARCHITECTURE.md`.
+
+This document was audited directly against the current code on 2026-04-13. The references below describe what the runtime actually does now, not what earlier phases intended to do.
+
+---
+
+## 2. Canonical Character Corpus vs Direct Runtime Inputs
+
+Each resident character currently has four canonical markdown files under `Characters/`:
+
+| Role | Filename Pattern | Example | Runtime Status |
+|------|------------------|---------|----------------|
+| Kernel | `{Character}_v7.1.md` | `Adelia_Raye_v7.1.md` | Loaded directly at runtime |
+| Voice | `{Character}_Voice.md` | `Adelia_Raye_Voice.md` | Loaded directly at runtime |
+| Knowledge Stack | `{Character}_Knowledge_Stack.md` | `Adelia_Raye_Knowledge_Stack.md` | Authoring source only; distilled into soul cards / soul essence |
+| Pair | `{Character}_{PairName}_Pair.md` | `Adelia_Raye_Entangled_Pair.md` | Authoring source only; distilled into soul cards / soul essence |
+
+That distinction matters:
+
+- The runtime loader in [kernel_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:14) directly reads only the kernel and voice files.
+- Pair and knowledge markdown are not live-loaded by `assemble_context()`. Their runtime products are:
+  - [soul_essence.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/soul_essence.py:1)
+  - [src/starry_lyfe/canon/soul_cards/](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/soul_cards)
+
+### 2.1 Current File Layout
+
+Character markdown now lives flat in `Characters/`:
+
+- [Adelia_Raye_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Adelia_Raye_v7.1.md:1)
+- [Bina_Malek_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Bina_Malek_v7.1.md:1)
+- [Reina_Torres_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Reina_Torres_v7.1.md:1)
+- [Alicia_Marin_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Alicia_Marin_v7.1.md:1)
+
+The kernel and voice loaders still support a legacy nested fallback layout for backward compatibility; see `KERNEL_PATHS` and `VOICE_PATHS` in [kernel_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:14).
+
+### 2.2 The Four Characters
+
+| Character ID | Full Name | Pair | MBTI |
+|--------------|-----------|------|------|
+| `adelia` | Adelia Raye | Entangled | ENFP-A |
+| `bina` | Bina Malek | Circuit | ISFJ-A |
+| `reina` | Reina Torres | Kinetic | ESTP-A |
+| `alicia` | Alicia Marin | Solstice | ESFP-A |
+
+### 2.3 `<!-- PRESERVE -->` Markers
+
+The block-aware trimmer recognizes `<!-- PRESERVE -->` markers anywhere in kernel text, though they are typically used in Section 2 (`Core Identity`).
+
+```markdown
+<!-- PRESERVE -->
+I am Adelia Raye. I build fire for a living...
+<!-- /PRESERVE -->
+```
+
+Important runtime behavior:
+
+- `parse_markdown_blocks()` and `trim_text_to_budget()` in [budgets.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/budgets.py:138) protect the next content block from normal drop-priority trimming.
+- In strict kernel compilation paths, a preserved block that cannot fit its section budget raises `KernelCompilationError` instead of being silently dropped.
+- Promoted fill-tier sections use permissive trimming, so the strongest non-trimmable mechanism is now soul essence, not markdown preservation.
+
+---
+
+## 3. The Runtime Surface: What The Model Receives
+
+Every prompt returned by `assemble_context()` is seven XML-wrapped layers joined with `\n\n` in this fixed order:
+
+| # | Marker | Layer | Runtime Source |
+|---|--------|-------|----------------|
+| 1 | `<PERSONA_KERNEL>` | Persona kernel | Soul essence + compiled kernel body + pair soul cards |
+| 2 | `<CANON_FACTS>` | Canon facts | `retrieve_memories().canon_facts` |
+| 3 | `<MEMORY_FRAGMENTS>` | Episodic memory | `retrieve_memories().episodic_memories` |
+| 4 | `<SENSORY_GROUNDING>` | Somatic grounding | `retrieve_memories().somatic_state` + active protocol prose |
+| 5 | `<VOICE_DIRECTIVES>` | Voice directives | Pair metadata + optional baseline + selected voice exemplars |
+| 6 | `<SCENE_CONTEXT>` | Scene context | Whyze dyads + internal dyads + open loops + knowledge soul cards |
+| 7 | `<CONSTRAINTS>` | Terminal constraints | Tier 1 axioms + character pillar + scene-conditional gates |
+
+Layer markers are defined in [assembler.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/assembler.py:30).
+
+### 3.1 Terminal Anchoring
+
+Layer 7 is always last. That is enforced by:
+
+- Layer ordering inside [assemble_context()](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/assembler.py:51)
+- `AssembledPrompt.is_terminally_anchored` in [types.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/types.py:132)
+
+The structural check is literal: the final prompt must end with `</CONSTRAINTS>`.
+
+---
+
+## 4. Layer 1: Kernel Path (`v7.1.md` -> compiled kernel)
+
+### 4.1 Loading
+
+`KERNEL_PATHS` in [kernel_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:14) maps each character ID to candidate kernel paths. `_load_raw_kernel()` at [line 290](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:290) resolves the first existing path and reads it as UTF-8.
+
+`_sanitize_kernel_text()` at [line 110](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:110) removes frontend-only scaffolding such as `# SYSTEM_ROLE:`, `**Version:**`, and `**Target:**`.
+
+### 4.2 Section Parsing
+
+`_parse_kernel_sections()` at [line 127](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:127) splits on `^## (\d+)\.` and returns `(section_number, section_text)` tuples.
+
+All four current kernels use 11 numbered sections:
+
+| Section | Typical Name | Example Evidence |
+|---------|--------------|------------------|
+| 1 | Runtime Directives | [Adelia_Raye_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Adelia_Raye_v7.1.md:6) |
+| 2 | Core Identity | [Bina_Malek_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Bina_Malek_v7.1.md:16) |
+| 3 | Whyze / Pair | [Reina_Torres_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Reina_Torres_v7.1.md:41) |
+| 4 | Silent Routing | [Alicia_Marin_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Alicia_Marin_v7.1.md:55) |
+| 5 | Behavioral Tier Framework | [Adelia_Raye_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Adelia_Raye_v7.1.md:69) |
+| 6 | Voice Architecture / Voice Signature | [Alicia_Marin_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Alicia_Marin_v7.1.md:99) |
+| 7 | Character-specific framework section | [Reina_Torres_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Reina_Torres_v7.1.md:120) |
+| 8 | Intimacy / orientation section | [Bina_Malek_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Bina_Malek_v7.1.md:166) |
+| 9 | Family Dynamics | [Adelia_Raye_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Adelia_Raye_v7.1.md:207) |
+| 10 | What This Is Not | [Reina_Torres_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Reina_Torres_v7.1.md:240) |
+| 11 | Astrological Architecture | [Alicia_Marin_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Alicia_Marin_v7.1.md:199) |
+
+### 4.3 Section Budgets and Orders
+
+Baseline section budgets live in `SECTION_TOKEN_TARGETS` at [kernel_loader.py:55](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:55):
+
+| Section | Target Tokens |
+|---------|---------------|
+| 1 | 300 |
+| 2 | 900 |
+| 3 | 1000 |
+| 4 | 250 |
+| 5 | 900 |
+| 7 | 550 |
+| 6 | 300 |
+
+Assembly orders live at [kernel_loader.py:65-67](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:65):
+
+- `PRIMARY_SECTION_ORDER = [1, 2, 3, 4, 5, 7, 6]`
+- `EXPANSION_SECTION_ORDER = [2, 3, 5, 7, 6, 8, 9, 10, 11]`
+- `FILL_SECTION_ORDER = [8, 9, 10, 11]`
+
+### 4.4 Scene-Aware Section Promotion
+
+`scene_type_to_promoted_sections()` at [kernel_loader.py:85](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:85) maps `SceneType` to promoted sections:
+
+| SceneType | Promoted Sections |
+|-----------|-------------------|
+| `DOMESTIC` | 7, 9 |
+| `INTIMATE` | 8, 3 |
+| `CONFLICT` | 5, 7 |
+| `REPAIR` | 8, 9 |
+| `PUBLIC` | 10, 5 |
+| `GROUP` | 6, 9 |
+| `SOLO_PAIR` | 3, 8 |
+| `TRANSITION` | none |
+
+Sections already in the primary set stay primary; promotion only changes behavior for fill-tier sections 8-11.
+
+### 4.5 Compilation
+
+`compile_kernel()` at [kernel_loader.py:153](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:153) runs three stages:
+
+1. Baseline allocation to primary sections.
+2. Expansion into higher-priority sections while budget remains.
+3. Final assembly with strict trimming for original primary sections and permissive trimming for promoted fill-tier sections.
+
+`load_kernel()` at [kernel_loader.py:303](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:303) caches by `(character_id, budget, promote_sections)`.
+
+---
+
+## 5. Soul Essence and Soul Cards
+
+### 5.1 Soul Essence
+
+Soul essence is hand-authored Python, not live-loaded markdown. See [soul_essence.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/soul_essence.py:1).
+
+The `SoulEssence` dataclass supports four block families:
+
+- `identity`
+- `pair`
+- `behavioral`
+- `intimacy`
+
+`compile_kernel_with_soul()` at [kernel_loader.py:267](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:267) prepends this content to the compiled kernel body.
+
+Important current-state note:
+
+- The formatter supports all four headings.
+- The checked-in essences currently populate `identity` and `pair`.
+- `behavioral` and `intimacy` are defined in the type but are presently empty in the concrete registry, so `format_soul_essence()` currently emits only the non-empty sections for each character.
+
+See [format_soul_essence()](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/soul_essence.py:842).
+
+### 5.2 Soul Cards
+
+Soul cards are YAML-fronted markdown files under [src/starry_lyfe/canon/soul_cards/](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/soul_cards).
+
+Current directories:
+
+- `pair/` contains one always-on card per character
+- `knowledge/` contains scene-conditional cards
+
+Loader and activation code lives in [soul_cards.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/soul_cards.py:43).
+
+Supported activation rules:
+
+| Rule | Fires When |
+|------|------------|
+| `always: true` | Always active |
+| `communication_mode: [...]` | Current communication mode matches |
+| `with_character: [...]` | A listed character is present |
+| `scene_keyword: [...]` | A listed keyword appears in `scene_state.scene_description` |
+
+Activation is OR-based across rule types: the first matching rule activates the card.
+
+### 5.3 Runtime Wiring
+
+In [assemble_context()](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/assembler.py:51):
+
+- Pair cards are formatted and appended to Layer 1.
+- Knowledge cards are formatted and appended to Layer 6.
+- Token reservations happen before host-layer formatting so these merges do not silently blow past layer ceilings.
+
+---
+
+## 6. Layer 5: Pair Metadata, Baseline, and Voice Exemplars
+
+### 6.1 Pair Metadata
+
+Structured pair metadata lives in [pairs.yaml](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/pairs.yaml:1). The runtime loader is [pairs_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/pairs_loader.py:1).
+
+`format_pair_metadata()` at [pairs_loader.py:87](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/pairs_loader.py:87) currently surfaces six fields:
+
+- `PAIR`
+- `CLASSIFICATION`
+- `MECHANISM`
+- `CORE METAPHOR`
+- `WHAT SHE PROVIDES`
+- `HOW SHE BREAKS HIS SPIRAL`
+
+`shared_functions` and `cadence` stay in YAML but are intentionally omitted from Layer 5.
+
+### 6.2 Character Baseline
+
+If Phase 2 retrieval returns a `CharacterBaseline`, `format_voice_directives()` also adds a compact metadata paragraph using:
+
+- `full_name`
+- `epithet`
+- `mbti`
+- `dominant_function`
+- `pair_name`
+- `heritage`
+- `profession`
+- `voice_params`
+
+Model definition: [character_baseline.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/db/models/character_baseline.py:16)
+
+### 6.3 Voice.md Structure
+
+Voice files are loaded via `VOICE_PATHS` in [kernel_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:33).
+
+Each example block is expected to look like this:
+
+```markdown
+## Example 1: Mid-Thought Tangent That Resolves
+
+<!-- mode: domestic, solo_pair -->
+<!-- communication_mode: in_person -->
+
+**What it teaches the model:** Teaching prose...
+
+**User:** Prompt text...
+
+**Assistant:** Full response...
+
+**Abbreviated:** First abbreviated line...
+Continuation lines are allowed here.
+```
+
+Two important parser details:
+
+- `**Abbreviated:**` is not restricted to a single line. `_extract_voice_examples()` continues collecting subsequent non-header lines into the same abbreviated block.
+- File-order position is preserved as `index`, so tie-breaks are based on actual file order, not the example number text alone.
+
+Parser entry points:
+
+- [load_voice_guidance()](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:399)
+- [_extract_voice_examples()](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:463)
+- [load_voice_examples()](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:568)
+
+### 6.4 Mode-Aware Exemplar Selection
+
+`derive_active_voice_modes()` in [layers.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/layers.py:90) derives the active mode set from `SceneState`.
+
+`_select_voice_exemplars()` at [layers.py:130](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/layers.py:130) then:
+
+1. Filters by `communication_mode`.
+2. Keeps examples whose modes overlap the active modes.
+3. Ranks by:
+   - count of non-`DOMESTIC` overlaps
+   - total overlap count
+   - file order
+4. Returns the top two.
+5. Falls back to file-order selection if no mode match survives.
+
+`format_voice_directives()` at [layers.py:337](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/layers.py:337) emits:
+
+- `Voice rhythm exemplars:` when the mode-aware path fires
+- `Voice calibration guidance:` when it falls back to the older teaching-note path
+
+---
+
+## 7. `SceneState`: The Runtime Control Surface
+
+`SceneState` is defined in [types.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/types.py:92).
+
+### 7.1 Fields
+
+| Field | Primary Effects |
+|-------|-----------------|
+| `present_characters` | Layer 6 dyad visibility, domestic-context Layer 5 mode accumulation, Layer 7 talk-to-each-other mandate |
+| `public_scene` | Public-scene gate in Layer 7, domestic-context `PUBLIC` activation in Layer 5 |
+| `alicia_home` | Alicia in-person assembly preflight |
+| `scene_description` | Layer 4 and Layer 6 prose, soul-card `scene_keyword` activation |
+| `communication_mode` | Layer 5 filtering, Alicia mode-specific constraint pillar, soul-card `communication_mode` activation |
+| `recalled_dyads` | Layer 6 absent-dyad inclusion |
+| `voice_modes` | Explicit VoiceMode override |
+| `scene_type` | Layer 1 section promotion and Layer 5 mode derivation |
+| `modifiers` | Layer 5 additive modes, Layer 6 absent-dyad override, Layer 7 conditional gates |
+
+### 7.2 SceneType -> VoiceMode
+
+`_SCENE_TYPE_VOICE_MODES` lives at [layers.py:52](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/layers.py:52):
+
+| SceneType | Active VoiceModes |
+|-----------|-------------------|
+| `DOMESTIC` | `DOMESTIC` |
+| `INTIMATE` | `INTIMATE`, `SOLO_PAIR` |
+| `CONFLICT` | `CONFLICT` |
+| `REPAIR` | `REPAIR`, `SILENT` |
+| `PUBLIC` | `PUBLIC` |
+| `GROUP` | `GROUP` |
+| `SOLO_PAIR` | `SOLO_PAIR`, `DOMESTIC` |
+| `TRANSITION` | `DOMESTIC` |
+
+### 7.3 Modifier -> VoiceMode Accumulation
+
+These stack on top of the `scene_type` result:
+
+| Modifier | Adds |
+|----------|------|
+| `pair_escalation_active` | `ESCALATION` |
+| `warm_refusal_required` | `WARM_REFUSAL` |
+| `silent_register_active` | `SILENT` |
+| `group_temperature_shift` | `GROUP_TEMPERATURE` |
+| `post_intensity_crash_active` | `REPAIR` |
+
+### 7.4 Modifier -> Layer 7 Effects
+
+Layer 7 injections come from [constraints.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/constraints.py:102):
+
+| Modifier / Field | Effect |
+|------------------|--------|
+| `public_scene` or `work_colleagues_present` | Public-scene gate |
+| `post_intensity_crash_active` | Character-specific crash protocol |
+| `pair_escalation_active` | Admissibility protocol |
+| `communication_mode` for Alicia | Phone / letter / video-specific pillar |
+
+### 7.5 Legacy Domestic Fallback
+
+When:
+
+- `voice_modes` is `None`
+- `scene_type == DOMESTIC`
+- no modifiers are active
+
+`derive_active_voice_modes()` falls back to domestic-context cues:
+
+- add `PUBLIC` if `public_scene=True`
+- add `SOLO_PAIR` when exactly 2 characters are present
+- add `GROUP` when more than 2 are present
+
+That preserves older callers that still rely on `present_characters` and `public_scene` rather than explicit `scene_type`.
+
+---
+
+## 8. Budgeting
+
+### 8.1 Default Layer Budgets
+
+`DEFAULT_BUDGETS` lives at [budgets.py:56](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/budgets.py:56):
+
+| Layer | Budget |
+|-------|--------|
+| 1 kernel | 6000 |
+| 2 canon facts | 600 |
+| 3 episodic | 1200 |
+| 4 somatic | 500 |
+| 5 voice | 900 |
+| 6 scene | 2400 |
+| 7 constraints | 900 |
+
+### 8.2 Scene Profiles
+
+`SCENE_PROFILES` lives at [budgets.py:90](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/budgets.py:90):
+
+| Profile | Kernel | Scene | Voice |
+|---------|--------|-------|-------|
+| `default` | 6000 | 2400 | 900 |
+| `pair_intimate` | 8000 | 1800 | 700 |
+| `multi_woman_group` | 5500 | 3200 | 1000 |
+| `solo` | 7000 | 1800 | 900 |
+
+### 8.3 Per-Character Kernel Scaling
+
+`resolve_kernel_budget()` at [budgets.py:66](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/budgets.py:66) applies:
+
+| Character | Multiplier | From base 6000 |
+|-----------|------------|----------------|
+| Adelia | 1.05 | 6300 |
+| Bina | 1.20 | 7200 |
+| Reina | 1.15 | 6900 |
+| Alicia | 0.85 | 5100 |
+
+### 8.4 Soul-Essence Surcharge
+
+Soul essence is outside the trimmable kernel budget. The actual current surcharge can be inspected with `soul_essence_token_estimate()` at [soul_essence.py:874](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/soul_essence.py:874).
+
+As of 2026-04-13, the checked-in estimates are:
+
+| Character | Soul Essence Tokens |
+|-----------|---------------------|
+| Adelia | 1886 |
+| Bina | 1876 |
+| Reina | 1701 |
+| Alicia | 2112 |
+
+### 8.5 Trimming
+
+`trim_text_to_budget()` lives at [budgets.py:406](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/budgets.py:406).
+
+Drop strategy:
+
+1. Remove horizontal rules.
+2. Remove trailing content blocks.
+3. Remove trailing `h3` sections.
+4. Remove trailing `h2` sections.
+5. Fall back to word-level trimming when not in strict mode.
+
+Strict mode is used for core kernel compilation. Promoted fill-tier sections use permissive trimming.
+
+---
+
+## 9. End-to-End Flow (`assemble_context()`)
+
+Entry point: [assembler.py:51](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/assembler.py:51)
+
+Signature:
+
+```python
+assemble_context(
+    character_id,
+    scene_context,
+    scene_state,
+    session,
+    embedding_service,
+    canon=None,
+    scene_profile="default",
+)
+```
+
+Two inputs are easy to confuse:
+
+- `scene_context`: retrieval query text passed into `retrieve_memories()`
+- `scene_state.scene_description`: descriptive scene text used by Layer 4, Layer 6, and soul-card keyword activation
+
+Runtime sequence:
+
+1. Load canon if the caller did not pass it.
+2. If Alicia is being assembled for an in-person scene while `alicia_home=False`, raise `AliciaAwayError`.
+3. Call `retrieve_memories()` for canon facts, baseline, dyads, episodic memories, open loops, and somatic state.
+4. Resolve the scene budget profile and per-character kernel scaling.
+5. Activate soul cards and split them into pair cards and knowledge cards.
+6. Reserve token space for those card bodies.
+7. Build Layer 1 through Layer 6.
+8. Merge pair cards into Layer 1 and knowledge cards into Layer 6.
+9. Build Layer 7 from `build_constraint_block(character_id, scene_state)`.
+10. XML-wrap all seven layers and join them with `\n\n`.
+11. Return `AssembledPrompt(prompt, character_id, layers, total_tokens, constraint_block_position)`.
+
+---
+
+## 10. Reference Map
+
+| Concern | File | Symbol | Line |
+|---------|------|--------|------|
+| Kernel paths | `src/starry_lyfe/context/kernel_loader.py` | `KERNEL_PATHS` | 14 |
+| Voice paths | `src/starry_lyfe/context/kernel_loader.py` | `VOICE_PATHS` | 33 |
+| Section budgets | `src/starry_lyfe/context/kernel_loader.py` | `SECTION_TOKEN_TARGETS` | 55 |
+| Section orders | `src/starry_lyfe/context/kernel_loader.py` | `PRIMARY_SECTION_ORDER` / `EXPANSION_SECTION_ORDER` / `FILL_SECTION_ORDER` | 65-67 |
+| Scene promotion map | `src/starry_lyfe/context/kernel_loader.py` | `scene_type_to_promoted_sections()` | 85 |
+| Kernel compilation | `src/starry_lyfe/context/kernel_loader.py` | `compile_kernel()` | 153 |
+| Soul-wrapped kernel | `src/starry_lyfe/context/kernel_loader.py` | `compile_kernel_with_soul()` | 267 |
+| Kernel cache entry | `src/starry_lyfe/context/kernel_loader.py` | `load_kernel()` | 303 |
+| Legacy voice-guidance parse | `src/starry_lyfe/context/kernel_loader.py` | `load_voice_guidance()` | 399 |
+| Structured voice-example parse | `src/starry_lyfe/context/kernel_loader.py` | `_extract_voice_examples()` | 463 |
+| Voice-example cache | `src/starry_lyfe/context/kernel_loader.py` | `load_voice_examples()` | 568 |
+| Soul essence formatter | `src/starry_lyfe/canon/soul_essence.py` | `format_soul_essence()` | 842 |
+| Soul essence estimate | `src/starry_lyfe/canon/soul_essence.py` | `soul_essence_token_estimate()` | 874 |
+| Pair metadata load | `src/starry_lyfe/canon/pairs_loader.py` | `get_pair_metadata()` | 76 |
+| Pair metadata format | `src/starry_lyfe/canon/pairs_loader.py` | `format_pair_metadata()` | 87 |
+| Soul-card load | `src/starry_lyfe/context/soul_cards.py` | `load_soul_card()` | 43 |
+| Soul-card activation | `src/starry_lyfe/context/soul_cards.py` | `find_activated_cards()` | 75 |
+| Soul-card format | `src/starry_lyfe/context/soul_cards.py` | `format_soul_cards()` | 115 |
+| Voice-mode derivation | `src/starry_lyfe/context/layers.py` | `derive_active_voice_modes()` | 90 |
+| Exemplar ranking | `src/starry_lyfe/context/layers.py` | `_select_voice_exemplars()` | 130 |
+| Layer 1 formatter | `src/starry_lyfe/context/layers.py` | `format_kernel()` | 230 |
+| Layer 5 formatter | `src/starry_lyfe/context/layers.py` | `format_voice_directives()` | 337 |
+| Layer 6 formatter | `src/starry_lyfe/context/layers.py` | `format_scene_blocks()` | 448 |
+| Layer 7 builder | `src/starry_lyfe/context/constraints.py` | `build_constraint_block()` | 102 |
+| Layer markers | `src/starry_lyfe/context/assembler.py` | `LAYER_MARKERS` | 30 |
+| Assembler entry | `src/starry_lyfe/context/assembler.py` | `assemble_context()` | 51 |
+| Communication mode enum | `src/starry_lyfe/context/types.py` | `CommunicationMode` | 9 |
+| Scene type enum | `src/starry_lyfe/context/types.py` | `SceneType` | 18 |
+| Scene modifiers | `src/starry_lyfe/context/types.py` | `SceneModifiers` | 36 |
+| Voice modes | `src/starry_lyfe/context/types.py` | `VoiceMode` | 55 |
+| Scene state | `src/starry_lyfe/context/types.py` | `SceneState` | 92 |
+| Terminal-anchor check | `src/starry_lyfe/context/types.py` | `AssembledPrompt.is_terminally_anchored` | 132 |
+| Default budgets | `src/starry_lyfe/context/budgets.py` | `DEFAULT_BUDGETS` | 56 |
+| Per-character scaling | `src/starry_lyfe/context/budgets.py` | `resolve_kernel_budget()` | 66 |
+| Scene profiles | `src/starry_lyfe/context/budgets.py` | `SCENE_PROFILES` | 90 |
+| Budget trimmer | `src/starry_lyfe/context/budgets.py` | `trim_text_to_budget()` | 406 |
+
+---
+
+## 11. Observability and Sample Artifacts
+
+### 11.1 DEBUG Logging
+
+`_select_voice_exemplars()` emits DEBUG logs from `starry_lyfe.context.layers` with keys such as:
+
+- `character_id`
+- `active_modes`
+- `candidates_count`
+- `mode_matched_count`
+- `selected_titles`
+
+The steady-state event is `voice_exemplar_selection`; fallback branches emit explicit fallback variants.
+
+### 11.2 Canonical Sample Prompts
+
+Current checked-in sample prompts live in [Docs/_phases/_samples](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/_samples).
+
+Useful sets:
+
+- `PHASE_B_assembled_*` for budget-elevated Layer 1 behavior
+- `PHASE_C_assembled_*` for soul-card activation
+- `PHASE_D_assembled_*` for pair metadata in Layer 5
+- `PHASE_E_assembled_*` for mode-aware voice exemplars
+- `PHASE_F_assembled_*` for section promotion and full VoiceMode reachability
+
+### 11.3 Regeneration Scripts
+
+Checked-in sample regeneration scripts:
+
+- [scripts/generate_phase_e_samples.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/scripts/generate_phase_e_samples.py:1)
+- [scripts/generate_phase_f_samples.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/scripts/generate_phase_f_samples.py:1)
+
+These are not production codepaths. They are probe harnesses that call the real assembler with local canonical sample data standing in for PostgreSQL retrieval.
+
+---
+
+## 12. What This Guide Does Not Cover
+
+| Topic | See |
+|-------|-----|
+| Phase history and audit trail | `Docs/_phases/PHASE_*.md` |
+| Tier-framework doctrine | `Docs/Persona_Tier_Framework_v7.1.md` |
+| Backend vs Msty voice authority split | `Docs/ADR_001_Voice_Authority_Split.md` |
+| Msty few-shot seeding | `scripts/seed_msty_persona_studio.py` |
+| Retrieval implementation details | `src/starry_lyfe/db/retrieval.py` |
+| Full system architecture | `Docs/ARCHITECTURE.md` |
+
+**End of Operator Guide.**

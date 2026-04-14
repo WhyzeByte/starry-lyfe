@@ -10,7 +10,7 @@ activation:
   - Cuatrecasas
   - Barcelona
   - criminal
-budget_tokens: 500
+budget_tokens: 1100
 card_type: knowledge
 character: reina
 required_concepts:

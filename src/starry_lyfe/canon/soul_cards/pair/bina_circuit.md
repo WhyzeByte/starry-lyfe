@@ -1,7 +1,7 @@
 ---
 activation:
   always: true
-budget_tokens: 700
+budget_tokens: 850
 card_type: pair
 character: bina
 required_concepts:
@@ -9,7 +9,7 @@ required_concepts:
 - Orthogonal Opposition
 - total division of operational domains
 - diagnostic love
-- translation not mirroring
+- translation, not mirroring
 source: Characters/Bina/Bina_Malek_Circuit_Pair.md
 ---
 

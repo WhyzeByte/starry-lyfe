@@ -11,12 +11,12 @@ activation:
   - father
   - mother
   - twin
-budget_tokens: 500
+budget_tokens: 1050
 card_type: knowledge
 character: bina
 required_concepts:
 - Epic of Gilgamesh
-- Farhad Malek
+- Farhad
 - Shirin Malek
 - Arash
 - Urmia to Edmonton

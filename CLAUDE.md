@@ -380,8 +380,8 @@ These corrections override any conflicting content in project files. Apply befor
 
 ## 19. CURRENT PHASE STATUS (2026-04-12)
 
-**Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13).
-**APPROVED, awaiting Claude Code execution:** Phase F (Scene-Aware Section Retrieval + Cross-Cutting Modifiers + Dormant VoiceMode Activation).
+**Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13), F (2026-04-13), G (2026-04-13), J.1–J.4 (2026-04-13), H (2026-04-13), K (2026-04-13), Phase 4/Whyze-Byte (2026-04-13). Lettered-phase remediation complete (2026-04-13).
+**Next phase:** Phase 5 (Scene Director).
 
 ### Project-wide Quality Directive (Project Owner, 2026-04-13)
 
@@ -482,15 +482,14 @@ Removed: `Vision/{Adelia Raye,Alicia Marin,Bina Malek,Reina Torres}.md`, `Docs/_
 
 ### Test baseline
 
-**184 passed, 0 failed** as of 2026-04-12 post-Phase-D QA (127 pre-D + 13 new Phase D tests including live `assemble_context()` regression).
+**541 passed, 0 failed** as of 2026-04-13 post-lettered-phase remediation (540 pre-remediation + 1 new required_concepts runtime delivery test).
 
 ### Outstanding work (Phase D onward)
 
 - Phase D: Live Pair Data in Prompt — SHIPPED 2026-04-12
 - Phase E: Voice Exemplar Restoration — SHIPPED 2026-04-13 (includes Patch E hardening: strict Layer 5 invariant + diacritic fix)
-- Phase E: Voice Exemplar Restoration (blocked on Phase I + Phase D)
-- Phase F: Scene-Aware Section Retrieval + Cross-Cutting Modifiers
-- Phase G: Dramaturgical Prose Rendering with Per-Character Templates
+- Phase F: Scene-Aware Section Retrieval + Cross-Cutting Modifiers — SHIPPED 2026-04-13 (220 tests; 11/11 VoiceModes live)
+- Phase G: Dramaturgical Prose Rendering with Per-Character Templates — SHIPPED 2026-04-13 (237 tests; per-character prose renderers for Layers 2, 4, 6)
 - Phase J.1-J.4: Per-Character Remediation Passes (sequential)
 - Phase H: Soul Regression Tests with Hybrid Methodology
 - Phase K: Subjective Success Proxies
