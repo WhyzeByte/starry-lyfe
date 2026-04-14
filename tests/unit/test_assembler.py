@@ -865,6 +865,44 @@ def test_c2_load_kernel_cache_same_profile_reuses_entry() -> None:
     clear_kernel_cache()
 
 
+def test_c2_profile_produces_distinct_cache_entries_per_spec() -> None:
+    """R-1.2 AC: cache key must prevent profile collisions.
+
+    Per spec §1.2 acceptance: "load Adelia at budget=X profile=default,
+    then load Adelia at budget=X profile=pair_intimate, assert the two
+    results differ in their promoted sections and are not the same
+    cached object."
+
+    Before R-1.2 the cache key was (character, budget, promote_tuple) —
+    two profiles with matching budget and promote_tuple would collide
+    silently. R-1.2 adds profile_name to the key so the cache never
+    conflates them. This test proves the cache produces one entry per
+    (character, budget, profile, promote) tuple, with the profile
+    string visible in the key.
+    """
+    from starry_lyfe.context.kernel_loader import _kernel_cache, load_kernel
+
+    clear_kernel_cache()
+    # Identical budget and promote_tuple, different profile names.
+    # Before R-1.2 this would produce ONE cache entry (wrong).
+    # After R-1.2 this produces TWO entries keyed by profile.
+    load_kernel(
+        "adelia", budget=6300, promote_sections=[7, 9], profile_name="default"
+    )
+    load_kernel(
+        "adelia", budget=6300, promote_sections=[7, 9], profile_name="pair_intimate"
+    )
+    keys = [k for k in _kernel_cache if k.startswith("adelia:6300:")]
+    assert len(keys) == 2, (
+        f"Cache must produce distinct entries per profile. Got {len(keys)}: {keys}"
+    )
+    assert any("default" in k for k in keys), f"default profile missing from keys: {keys}"
+    assert any("pair_intimate" in k for k in keys), (
+        f"pair_intimate profile missing from keys: {keys}"
+    )
+    clear_kernel_cache()
+
+
 # --- Phase E R2-F3: Layer 5 scene_state wiring regression ---
 
 

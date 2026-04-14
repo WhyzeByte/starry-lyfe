@@ -19,6 +19,19 @@ from .models.open_loop import OpenLoop
 from .models.transient_somatic import TransientSomaticState
 
 
+class DecayConfigIncompleteError(ValueError):
+    """Raised when a somatic state's decay_config is missing required keys.
+
+    Per REMEDIATION_2026-04-13.md R-2.2: decay configuration must be
+    complete at the data-record level. Silent .get(key, default)
+    fallbacks would mask a misconfigured DB row and ship wrong decay
+    behavior for that character without any audit trail.
+    """
+
+
+REQUIRED_DECAY_KEYS: set[str] = {"fatigue", "stress_residue", "injury_residue"}
+
+
 @dataclass
 class DecayedSomaticState:
     """Transient somatic state with decay applied at read time."""
@@ -155,11 +168,20 @@ async def _retrieve_somatic(session: AsyncSession, character_id: str) -> Decayed
     elapsed_hours = (now - state.last_decayed_at).total_seconds() / 3600.0
     config: dict[str, float] = state.decay_config
 
+    # R-2.2: decay_config must be complete. Silent defaults would mask a
+    # misconfigured DB row and ship wrong decay behavior for that character.
+    missing = REQUIRED_DECAY_KEYS - set(config.keys())
+    if missing:
+        raise DecayConfigIncompleteError(
+            f"decay_config for character_id={state.character_id!r} is missing "
+            f"required keys: {sorted(missing)}. Expected all of: {sorted(REQUIRED_DECAY_KEYS)}"
+        )
+
     return DecayedSomaticState(
         character_id=state.character_id,
-        fatigue=apply_decay(state.fatigue, config.get("fatigue", 8.0), elapsed_hours),
-        stress_residue=apply_decay(state.stress_residue, config.get("stress_residue", 24.0), elapsed_hours),
-        injury_residue=apply_decay(state.injury_residue, config.get("injury_residue", 72.0), elapsed_hours),
+        fatigue=apply_decay(state.fatigue, config["fatigue"], elapsed_hours),
+        stress_residue=apply_decay(state.stress_residue, config["stress_residue"], elapsed_hours),
+        injury_residue=apply_decay(state.injury_residue, config["injury_residue"], elapsed_hours),
         active_protocols=state.active_protocols,
         protocol_metadata=state.protocol_metadata,
         custom_fields=state.custom_fields,

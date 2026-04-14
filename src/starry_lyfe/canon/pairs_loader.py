@@ -14,7 +14,7 @@ from pathlib import Path
 
 import yaml
 
-from .schemas.enums import assert_complete_character_coverage
+from .schemas.enums import _assert_complete_character_keys
 
 PAIRS_YAML = Path(__file__).resolve().parent / "pairs.yaml"
 
@@ -39,7 +39,7 @@ _CHARACTER_TO_PAIR: dict[str, str] = {
     "reina": "kinetic",
     "alicia": "solstice",
 }
-assert_complete_character_coverage(_CHARACTER_TO_PAIR, "_CHARACTER_TO_PAIR")
+_assert_complete_character_keys(_CHARACTER_TO_PAIR, "_CHARACTER_TO_PAIR")
 
 _pair_cache: dict[str, PairMetadata] = {}
 _yaml_loaded: bool = False
@@ -58,9 +58,11 @@ def _ensure_loaded() -> None:
     data = yaml.safe_load(PAIRS_YAML.read_text(encoding="utf-8"))
     pairs = data.get("pairs", {})
 
+    missing: list[str] = []
     for char_id, pair_key in _CHARACTER_TO_PAIR.items():
         pair_data = pairs.get(pair_key)
         if pair_data is None:
+            missing.append(f"{char_id}->{pair_key}")
             continue
         _pair_cache[char_id] = PairMetadata(
             full_name=pair_data["full_name"],
@@ -72,6 +74,16 @@ def _ensure_loaded() -> None:
             shared_functions=pair_data["shared_functions"],
             cadence=pair_data["cadence"],
         )
+
+    if missing:
+        # R-2.1 remediation: collect all missing entries and raise a single
+        # error listing them, rather than deferring to per-access ValueError.
+        expected_keys = sorted(set(_CHARACTER_TO_PAIR.values()))
+        msg = (
+            f"pairs.yaml is missing entries for: {missing}. "
+            f"Expected pair_keys: {expected_keys}"
+        )
+        raise ValueError(msg)
 
     _yaml_loaded = True
 

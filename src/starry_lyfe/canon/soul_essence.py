@@ -24,7 +24,27 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .schemas.enums import assert_complete_character_coverage
+from .schemas.enums import _assert_complete_character_keys
+
+
+class SoulEssenceNotFoundError(ValueError):
+    """Raised when format_soul_essence is called with an unregistered character_id.
+
+    Per REMEDIATION_2026-04-13.md R-1.1 (Decision D-1, strict propagation):
+    this error MUST propagate from the point of raise through the entire
+    assembly chain (kernel_loader.py -> layers.py -> assembler.py) to the
+    caller boundary. No intermediate try/except blocks are permitted.
+    Any such catch is a future attenuation point that could silently
+    reintroduce the Vision V6-V9 FAIL mode this class exists to prevent.
+
+    Acceptable explicit handlers (only at the outermost boundary):
+    - Production runtime: let it propagate to the turn boundary. Fail the turn loudly.
+    - CLI / sample generation: let it propagate to the CLI boundary. Exit non-zero.
+    - Tests: assert the raise, or use an explicitly-registered test fixture.
+    - Batch jobs: fail the item, log with full context, move on. Never silently skip.
+
+    Unacceptable: bare except, substituting a degraded prompt, logging-and-returning-None.
+    """
 
 
 @dataclass(frozen=True)
@@ -830,7 +850,7 @@ SOUL_ESSENCES: dict[str, SoulEssence] = {
     "reina": REINA,
     "alicia": ALICIA,
 }
-assert_complete_character_coverage(SOUL_ESSENCES, "SOUL_ESSENCES")
+_assert_complete_character_keys(SOUL_ESSENCES, "SOUL_ESSENCES")
 
 
 def get_soul_essence(character: str) -> SoulEssence | None:
@@ -856,9 +876,9 @@ def format_soul_essence(character: str) -> str:
     """
     essence = get_soul_essence(character)
     if essence is None:
-        raise ValueError(
+        raise SoulEssenceNotFoundError(
             f"No soul essence registered for character '{character}'. "
-            f"Known characters: {sorted(SOUL_ESSENCES.keys())}"
+            f"Registered: {sorted(SOUL_ESSENCES.keys())}"
         )
 
     parts: list[str] = []

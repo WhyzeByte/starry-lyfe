@@ -8,9 +8,12 @@ final block in the prompt, immediately before the user's input).
 
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from starry_lyfe.canon.loader import Canon, load_all_canon
+from starry_lyfe.canon.soul_essence import soul_essence_token_estimate
 from starry_lyfe.db.embed import EmbeddingService
 from starry_lyfe.db.retrieval import retrieve_memories
 
@@ -26,6 +29,8 @@ from .layers import (
     format_voice_directives,
 )
 from .types import AssembledPrompt, CommunicationMode, LayerContent, SceneState
+
+logger = logging.getLogger(__name__)
 
 LAYER_MARKERS: dict[int, str] = {
     1: "PERSONA_KERNEL",
@@ -161,6 +166,34 @@ async def assemble_context(
             text=combined_layer_6,
             estimated_tokens=estimate_tokens(combined_layer_6),
             layer_number=6,
+        )
+
+    # R-2.4: post-assembly budget reconciliation. Layer 1 and Layer 6 get
+    # soul-card tokens merged in after their formatters have already
+    # applied trim. Compare actual against the effective ceiling so
+    # budget overruns surface in logs rather than silently degrading
+    # downstream layers.
+    layer_1_actual = estimate_tokens(layer_1.text)
+    layer_1_ceiling = kernel_budget + soul_essence_token_estimate(character_id)
+    if layer_1_actual > layer_1_ceiling:
+        logger.warning(
+            "layer_1_budget_overrun",
+            extra={
+                "character_id": character_id,
+                "actual_tokens": layer_1_actual,
+                "ceiling_tokens": layer_1_ceiling,
+                "kernel_budget": kernel_budget,
+            },
+        )
+    layer_6_actual = estimate_tokens(layer_6.text)
+    if layer_6_actual > profile.scene:
+        logger.warning(
+            "layer_6_budget_overrun",
+            extra={
+                "character_id": character_id,
+                "actual_tokens": layer_6_actual,
+                "ceiling_tokens": profile.scene,
+            },
         )
 
     # Build Layer 7: terminal constraints (character-specific)

@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from ..canon.schemas.enums import assert_complete_character_coverage
+from ..canon.schemas.enums import _assert_complete_character_keys
 from ..canon.soul_essence import format_soul_essence
 from .budgets import estimate_tokens, trim_text_to_budget
 from .types import SceneType, VoiceExample, VoiceMode
@@ -50,8 +50,8 @@ VOICE_PATHS: dict[str, tuple[str, ...]] = {
     ),
 }
 
-assert_complete_character_coverage(KERNEL_PATHS, "KERNEL_PATHS")
-assert_complete_character_coverage(VOICE_PATHS, "VOICE_PATHS")
+_assert_complete_character_keys(KERNEL_PATHS, "KERNEL_PATHS")
+_assert_complete_character_keys(VOICE_PATHS, "VOICE_PATHS")
 
 # Kernel section budgets tuned for the 2000-token runtime window.
 # The goal is not to include whole documents. It is to ensure each runtime
@@ -321,7 +321,7 @@ def load_kernel(
     same character. (C2 remediation.)
     """
     promo_key = tuple(sorted(promote_sections)) if promote_sections else ()
-    cache_key = f"{character_id}:{budget}:{profile_name or 'none'}:{promo_key}"
+    cache_key = f"{character_id}:{budget}:{profile_name or 'default'}:{promo_key}"
     if cache_key in _kernel_cache:
         return _kernel_cache[cache_key]
     text = compile_kernel_with_soul(character_id, budget, promote_sections)

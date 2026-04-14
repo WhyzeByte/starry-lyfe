@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from starry_lyfe.canon.pairs_loader import (
     PairMetadata,
     clear_pair_cache,
@@ -223,3 +225,49 @@ class TestLayer5Integration:
                     assert field in layer_5.text, (
                         f"{char_id}: Layer 5 missing '{field}' in live assembled prompt"
                     )
+
+
+# --- R-2.1 remediation: pairs loader reports all missing entries at once ---
+
+
+class TestPairsLoaderMissingEntriesR21:
+    """R-2.1: authoring a character without a pairs.yaml entry fails loudly at load."""
+
+    def test_pairs_loader_reports_all_missing_at_once(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Two missing pair entries must surface in ONE error listing both.
+
+        Before R-2.1 this was a silent skip that deferred to per-access ValueError.
+        """
+        from starry_lyfe.canon import pairs_loader as pl
+
+        # Force a fresh load
+        clear_pair_cache()
+
+        # Patch yaml.safe_load within pairs_loader to return canon minus two pairs
+        original = pl.yaml.safe_load
+
+        def fake_safe_load(text: str) -> dict:
+            data = original(text)
+            # Remove two pairs so two characters lack mappings
+            pairs = dict(data.get("pairs", {}))
+            pairs.pop("circuit", None)
+            pairs.pop("kinetic", None)
+            data["pairs"] = pairs
+            return data
+
+        monkeypatch.setattr(pl.yaml, "safe_load", fake_safe_load)
+
+        with pytest.raises(ValueError) as excinfo:
+            pl._ensure_loaded()
+
+        msg = str(excinfo.value)
+        # Both missing entries must be in the single error message
+        assert "bina->circuit" in msg
+        assert "reina->kinetic" in msg
+        assert "pairs.yaml is missing entries" in msg
+
+        # Cleanup
+        clear_pair_cache()

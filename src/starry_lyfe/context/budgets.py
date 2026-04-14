@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass, field
 from enum import StrEnum
 
-from starry_lyfe.canon.schemas.enums import assert_complete_character_coverage
+from starry_lyfe.canon.schemas.enums import _assert_complete_character_keys
 
 
 class BlockType(StrEnum):
@@ -63,7 +63,7 @@ CHARACTER_KERNEL_BUDGET_SCALING: dict[str, float] = {
     "reina": 1.15,
     "alicia": 0.85,
 }
-assert_complete_character_coverage(
+_assert_complete_character_keys(
     CHARACTER_KERNEL_BUDGET_SCALING, "CHARACTER_KERNEL_BUDGET_SCALING"
 )
 

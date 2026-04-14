@@ -79,14 +79,35 @@ class Canon:
     voice_parameters: CanonVoiceParameters
 
 
-def load_all_canon(validate: bool = True) -> Canon:
+class CanonValidationError(ValueError):
+    """Raised when ``load_all_canon(validate_on_load=True)`` finds cross-reference errors.
+
+    Per REMEDIATION_2026-04-13.md R-1.3: invalid canon must fail loud at
+    startup, not silently at inference. The error carries the full list
+    of errors for structured handling.
+    """
+
+    def __init__(self, errors: list[str]) -> None:
+        self.errors = list(errors)
+        super().__init__(self.format_errors())
+
+    def format_errors(self) -> str:
+        """Human-readable multiline error report."""
+        return "Canon validation failed:\n" + "\n".join(f"  - {e}" for e in self.errors)
+
+
+def load_all_canon(validate_on_load: bool = True) -> Canon:
     """Load and validate the entire canon directory. Fail-closed on any error.
 
-    When ``validate`` is True (default), cross-file referential integrity
-    checks run via ``validator.validate_cross_references()`` and any
-    errors raise ``ValueError``. Pass ``validate=False`` only for
-    recursion-safe use inside the validator itself. (C3 remediation.)
+    When ``validate_on_load`` is True (default), cross-file referential
+    integrity checks run via ``validator.validate_cross_references()``
+    and any errors raise ``CanonValidationError``. Pass
+    ``validate_on_load=False`` only for recursion-safe use inside the
+    validator itself, or for test fixtures that deliberately construct
+    broken canon. (R-1.3 remediation.)
     """
+    import time
+    start = time.perf_counter()
     canon = Canon(
         characters=load_characters(),
         pairs=load_pairs(),
@@ -95,11 +116,16 @@ def load_all_canon(validate: bool = True) -> Canon:
         interlocks=load_interlocks(),
         voice_parameters=load_voice_parameters(),
     )
-    if validate:
+    if validate_on_load:
         from .validator import validate_cross_references
         errors = validate_cross_references(canon)
         if errors:
-            raise ValueError(
-                "Canon validation failed:\n" + "\n".join(f"  - {e}" for e in errors)
-            )
+            raise CanonValidationError(errors)
+    elapsed_ms = (time.perf_counter() - start) * 1000.0
+    import logging
+    logging.getLogger(__name__).info(
+        "load_all_canon completed in %.1fms (validate_on_load=%s)",
+        elapsed_ms,
+        validate_on_load,
+    )
     return canon

@@ -24,7 +24,7 @@ def validate_cross_references(canon: Canon | None = None) -> list[str]:
     """
     errors: list[str] = []
     if canon is None:
-        canon = load_all_canon(validate=False)
+        canon = load_all_canon(validate_on_load=False)
 
     # Build the set of valid character IDs and operator handles
     char_ids = {c.value for c in canon.characters.characters}

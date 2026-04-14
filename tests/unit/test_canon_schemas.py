@@ -230,14 +230,15 @@ def test_validator_rejects_unknown_recovery_architecture_character() -> None:
     ) in errors
 
 
-# --- C3 remediation: load_all_canon(validate=True) fails on corruption ---
+# --- R-1.3 remediation: load_all_canon(validate_on_load=True) fails on corruption ---
 
 
-def test_load_all_canon_with_validate_true_raises_on_corruption(
+def test_load_all_canon_with_validate_on_load_true_raises_on_corruption(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """load_all_canon(validate=True) must raise when cross-references are broken."""
+    """load_all_canon(validate_on_load=True) must raise CanonValidationError on broken cross-refs."""
     from starry_lyfe.canon import loader as canon_loader
+    from starry_lyfe.canon.loader import CanonValidationError
 
     # Load a real interlocks instance then delete a referenced key, mirroring
     # the existing monkeypatch pattern used in the validator tests above.
@@ -245,14 +246,20 @@ def test_load_all_canon_with_validate_true_raises_on_corruption(
     del base_interlocks.interlocks["anchor_dynamic"]
     monkeypatch.setattr(canon_loader, "load_interlocks", lambda: base_interlocks)
 
-    with pytest.raises(ValueError, match="Canon validation failed"):
-        canon_loader.load_all_canon(validate=True)
+    with pytest.raises(CanonValidationError) as excinfo:
+        canon_loader.load_all_canon(validate_on_load=True)
+
+    # CanonValidationError carries structured errors and format_errors() helper
+    err = excinfo.value
+    assert isinstance(err.errors, list)
+    assert len(err.errors) > 0
+    assert "Canon validation failed" in err.format_errors()
 
 
-def test_load_all_canon_with_validate_false_skips_validation(
+def test_load_all_canon_with_validate_on_load_false_skips_validation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """load_all_canon(validate=False) must NOT invoke validator (recursion safety)."""
+    """load_all_canon(validate_on_load=False) must NOT invoke validator (recursion safety)."""
     from starry_lyfe.canon import loader as canon_loader
     from starry_lyfe.canon import validator as cv
 
@@ -263,7 +270,7 @@ def test_load_all_canon_with_validate_false_skips_validation(
         return []
 
     monkeypatch.setattr(cv, "validate_cross_references", counting_validator)
-    canon_loader.load_all_canon(validate=False)
+    canon_loader.load_all_canon(validate_on_load=False)
     assert call_count["n"] == 0
 
 
@@ -274,45 +281,118 @@ def test_load_all_canon_default_validates() -> None:
     assert canon is not None
 
 
-# --- C4 remediation: assert_complete_character_coverage helper ---
+def test_canon_validation_error_format_errors_lists_each() -> None:
+    """CanonValidationError.format_errors() must include every error line."""
+    from starry_lyfe.canon.loader import CanonValidationError
+
+    err = CanonValidationError(["err one", "err two", "err three"])
+    formatted = err.format_errors()
+    assert "err one" in formatted
+    assert "err two" in formatted
+    assert "err three" in formatted
+    assert err.errors == ["err one", "err two", "err three"]
 
 
-def test_c4_assert_complete_character_coverage_catches_missing() -> None:
+# --- C4 remediation: _assert_complete_character_keys helper ---
+
+
+def test_c4__assert_complete_character_keys_catches_missing() -> None:
     """Missing character in a per-character dict must raise."""
-    from starry_lyfe.canon.schemas.enums import assert_complete_character_coverage
+    from starry_lyfe.canon.schemas.enums import _assert_complete_character_keys
 
     with pytest.raises(ValueError, match="missing"):
-        assert_complete_character_coverage(
+        _assert_complete_character_keys(
             {"adelia": 1, "bina": 1, "reina": 1}, "test_dict"
         )
 
 
-def test_c4_assert_complete_character_coverage_catches_extra() -> None:
+def test_c4__assert_complete_character_keys_catches_extra() -> None:
     """Extra character key in a per-character dict must raise."""
-    from starry_lyfe.canon.schemas.enums import assert_complete_character_coverage
+    from starry_lyfe.canon.schemas.enums import _assert_complete_character_keys
 
     with pytest.raises(ValueError, match="extra"):
-        assert_complete_character_coverage(
+        _assert_complete_character_keys(
             {"adelia": 1, "bina": 1, "reina": 1, "alicia": 1, "shawn": 1},
             "test_dict",
         )
 
 
-def test_c4_assert_complete_character_coverage_passes_for_complete_dict() -> None:
+def test_c4__assert_complete_character_keys_passes_for_complete_dict() -> None:
     """Exact coverage of CharacterID must pass."""
-    from starry_lyfe.canon.schemas.enums import assert_complete_character_coverage
+    from starry_lyfe.canon.schemas.enums import _assert_complete_character_keys
 
-    assert_complete_character_coverage(
+    _assert_complete_character_keys(
         {"adelia": 1, "bina": 1, "reina": 1, "alicia": 1}, "test_dict"
     )
 
 
-def test_c4_assert_complete_character_coverage_works_on_sets() -> None:
+def test_c4__assert_complete_character_keys_works_on_sets() -> None:
     """Helper accepts sets in addition to dicts."""
-    from starry_lyfe.canon.schemas.enums import assert_complete_character_coverage
+    from starry_lyfe.canon.schemas.enums import _assert_complete_character_keys
 
-    assert_complete_character_coverage(
+    _assert_complete_character_keys(
         {"adelia", "bina", "reina", "alicia"}, "test_set"
     )
     with pytest.raises(ValueError, match="missing"):
-        assert_complete_character_coverage({"adelia", "bina"}, "test_set")
+        _assert_complete_character_keys({"adelia", "bina"}, "test_set")
+
+
+# --- R-3.1 remediation: CharacterID classmethods ---
+
+
+def test_character_id_all_returns_all_four_members() -> None:
+    """CharacterID.all() returns the four canonical characters as enum members."""
+    from starry_lyfe.canon.schemas.enums import CharacterID
+
+    members = CharacterID.all()
+    assert len(members) == 4
+    assert CharacterID.ADELIA in members
+    assert CharacterID.BINA in members
+    assert CharacterID.REINA in members
+    assert CharacterID.ALICIA in members
+
+
+def test_character_id_all_strings_returns_lowercase_strings() -> None:
+    """CharacterID.all_strings() returns the four string values."""
+    from starry_lyfe.canon.schemas.enums import CharacterID
+
+    strings = CharacterID.all_strings()
+    assert strings == ["adelia", "bina", "reina", "alicia"]
+
+
+# --- R-3.2 remediation: every per-character dict in src/ covers CharacterID ---
+
+
+def test_character_id_coverage_across_modules() -> None:
+    """Every character-keyed dict across src/ must cover CharacterID exactly."""
+    from starry_lyfe.canon.pairs_loader import _CHARACTER_TO_PAIR
+    from starry_lyfe.canon.schemas.enums import CharacterID
+    from starry_lyfe.canon.soul_essence import SOUL_ESSENCES
+    from starry_lyfe.context.budgets import CHARACTER_KERNEL_BUDGET_SCALING
+    from starry_lyfe.context.constraints import CHARACTER_CONSTRAINTS
+    from starry_lyfe.context.kernel_loader import KERNEL_PATHS, VOICE_PATHS
+    from starry_lyfe.context.prose import (
+        _FATIGUE_PHRASES,
+        _INTIMACY_PHRASES,
+        _STRESS_PHRASES,
+        _TRUST_PHRASES,
+    )
+
+    expected = set(CharacterID.all_strings())
+    registry: list[tuple[str, dict[str, object]]] = [
+        ("CHARACTER_KERNEL_BUDGET_SCALING", CHARACTER_KERNEL_BUDGET_SCALING),
+        ("KERNEL_PATHS", KERNEL_PATHS),
+        ("VOICE_PATHS", VOICE_PATHS),
+        ("_CHARACTER_TO_PAIR", _CHARACTER_TO_PAIR),
+        ("_TRUST_PHRASES", _TRUST_PHRASES),
+        ("_INTIMACY_PHRASES", _INTIMACY_PHRASES),
+        ("_FATIGUE_PHRASES", _FATIGUE_PHRASES),
+        ("_STRESS_PHRASES", _STRESS_PHRASES),
+        ("CHARACTER_CONSTRAINTS", CHARACTER_CONSTRAINTS),
+        ("SOUL_ESSENCES", SOUL_ESSENCES),
+    ]
+    for name, d in registry:
+        assert set(d.keys()) == expected, (
+            f"{name} does not cover CharacterID exactly. "
+            f"expected={sorted(expected)}, actual={sorted(d.keys())}"
+        )

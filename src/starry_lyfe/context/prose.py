@@ -17,7 +17,7 @@ for tests that assert numeric values; the prose block is the quality win.
 
 from __future__ import annotations
 
-from starry_lyfe.canon.schemas.enums import assert_complete_character_coverage
+from starry_lyfe.canon.schemas.enums import _assert_complete_character_keys
 from starry_lyfe.db.models.canon_facts import CanonFact
 from starry_lyfe.db.models.dyad_state_internal import DyadStateInternal
 from starry_lyfe.db.models.dyad_state_whyze import DyadStateWhyze
@@ -57,7 +57,7 @@ _TRUST_PHRASES: dict[str, list[str]] = {
         "The body will not settle. Something is registering as unsafe.",
     ],
 }
-assert_complete_character_coverage(_TRUST_PHRASES, "_TRUST_PHRASES")
+_assert_complete_character_keys(_TRUST_PHRASES, "_TRUST_PHRASES")
 
 
 def _trust_phrase(character_id: str, trust: float) -> str:
@@ -104,7 +104,7 @@ _INTIMACY_PHRASES: dict[str, list[str]] = {
         "Close distance is not available right now.",
     ],
 }
-assert_complete_character_coverage(_INTIMACY_PHRASES, "_INTIMACY_PHRASES")
+_assert_complete_character_keys(_INTIMACY_PHRASES, "_INTIMACY_PHRASES")
 
 
 def _intimacy_phrase(character_id: str, intimacy: float) -> str:
@@ -266,7 +266,7 @@ _FATIGUE_PHRASES: dict[str, list[str]] = {
         "The body is settled and attending.",
     ],
 }
-assert_complete_character_coverage(_FATIGUE_PHRASES, "_FATIGUE_PHRASES")
+_assert_complete_character_keys(_FATIGUE_PHRASES, "_FATIGUE_PHRASES")
 
 _STRESS_HIGH = 0.60
 _STRESS_MOD = 0.30
@@ -293,7 +293,7 @@ _STRESS_PHRASES: dict[str, list[str]] = {
         "Stress residue: low.",
     ],
 }
-assert_complete_character_coverage(_STRESS_PHRASES, "_STRESS_PHRASES")
+_assert_complete_character_keys(_STRESS_PHRASES, "_STRESS_PHRASES")
 
 
 def _fatigue_phrase(character_id: str, fatigue: float) -> str:

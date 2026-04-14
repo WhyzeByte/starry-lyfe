@@ -1,7 +1,9 @@
+name: starry-lyfe
+
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: starry-lyfe-db
+    container_name: Starry-Lyfe
     environment:
       POSTGRES_DB: starry_lyfe
       POSTGRES_USER: starry_lyfe

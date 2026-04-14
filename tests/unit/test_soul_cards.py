@@ -4,11 +4,14 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from starry_lyfe.context import assembler as assembler_module
 from starry_lyfe.context.assembler import assemble_context
 from starry_lyfe.context.budgets import DEFAULT_BUDGETS, resolve_kernel_budget
 from starry_lyfe.context.soul_cards import (
     SoulCard,
+    SoulCardActivation,
     find_activated_cards,
     format_soul_cards,
     load_all_soul_cards,
@@ -67,7 +70,7 @@ class TestSoulCardLoader:
         assert card.character == "bina"
         assert card.card_type == "pair"
         assert card.budget_tokens == 850  # raised from 700 to match authored body size
-        assert card.activation.get("always") is True
+        assert card.activation.always is True
         assert "Circuit Pair" in card.required_concepts
 
     def test_all_soul_cards_load_without_error(self) -> None:
@@ -227,7 +230,7 @@ class TestAssemblyIntegration:
             card_type="pair",
             source="test",
             budget_tokens=700,
-            activation={"always": True},
+            activation=SoulCardActivation(always=True),
             body=("Circuit Pair " + ("pairword " * 1200)).strip(),
         )
         knowledge_card = SoulCard(
@@ -235,7 +238,7 @@ class TestAssemblyIntegration:
             card_type="knowledge",
             source="test",
             budget_tokens=500,
-            activation={"scene_keyword": ["kitchen"]},
+            activation=SoulCardActivation(scene_keyword=["kitchen"]),
             body=("knowledgeword " * 900).strip(),
         )
 
@@ -273,3 +276,37 @@ class TestAssemblyIntegration:
         )
         assert layer_1.estimated_tokens <= effective_l1_ceiling
         assert layer_6.estimated_tokens <= DEFAULT_BUDGETS.scene
+
+
+# --- R-2.3 remediation: SoulCardActivation Pydantic model ---
+
+
+class TestSoulCardActivationPydantic:
+    """R-2.3: activation is a Pydantic model with strict validation."""
+
+    def test_activation_is_pydantic_model(self) -> None:
+        act = SoulCardActivation(always=True)
+        assert act.always is True
+        assert act.communication_mode == []
+        assert act.with_character == []
+        assert act.scene_keyword == []
+
+    def test_activation_rejects_unknown_field(self) -> None:
+        """Unknown activation fields must fail validation (extra=forbid)."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+            SoulCardActivation(always=True, mystery_field=[])  # type: ignore[call-arg]
+
+    def test_activation_validates_list_fields(self) -> None:
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            SoulCardActivation(communication_mode="not-a-list")  # type: ignore[arg-type]
+
+    def test_all_canon_soul_cards_load_under_pydantic(self) -> None:
+        """Every existing soul card in src/starry_lyfe/canon/soul_cards/ must load cleanly."""
+        cards = load_all_soul_cards()
+        assert len(cards) == 15
+        for card in cards:
+            assert isinstance(card.activation, SoulCardActivation)

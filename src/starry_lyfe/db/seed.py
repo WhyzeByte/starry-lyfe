@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import traceback
 import uuid
 
 from sqlalchemy import select
@@ -247,6 +248,8 @@ def main() -> None:
     try:
         asyncio.run(seed_database())
     except Exception as e:
+        # R-2.5: print full traceback so operators can debug a bad seed.
+        traceback.print_exc()
         print(f"Seed failed: {e}", file=sys.stderr)
         sys.exit(1)
 
