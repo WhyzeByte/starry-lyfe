@@ -6,6 +6,52 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added (Phase 3: Context Assembly — Complete)
+
+- Seven-layer context assembler (`assembler.py`) with terminal constraint anchoring
+- Per-layer formatters (`layers.py`): kernel, canon facts, memory fragments, sensory grounding, voice directives, scene blocks, constraints
+- Section-aware kernel compilation (`kernel_loader.py`) with PRESERVE markers and per-section token budgets
+- Soul essence (`soul_essence.py`): 45 hand-authored canonical blocks, guaranteed surcharge on kernel budget, never trimmed
+- Soul cards (`soul_cards/`): 15 YAML-fronted markdown cards with Pydantic-validated activation rules (always / communication_mode / with_character / scene_keyword)
+- Pair metadata runtime surface (`pairs_loader.py`) — 6 fields from pairs.yaml emitted as structured block at top of Layer 5
+- VoiceMode enum (11 modes) and mode-aware exemplar selection with public-register safety
+- SceneType enum (8 types) + SceneModifiers dataclass (4 cross-cutting flags) driving section promotion and Layer 7 constraint injection
+- Per-character dramaturgical prose renderers (`prose.py`) for Layers 2, 4, 6
+- Structured DEBUG logging in `_select_voice_exemplars()` for runtime observability
+- OPERATOR_GUIDE.md — 676-line runtime pipeline walkthrough (markdown → 7-layer prompt)
+- Phase E voice rhythm exemplars (all 4 characters, mode-tagged)
+- Phase F scene-aware section retrieval with dormant VoiceMode closure (11/11 modes reachable)
+- Phase G per-character prose rendering
+- Phase H soul regression test suite (adelia/bina/reina/alicia)
+- Phase K subjective success proxies
+- Assembler sample artifacts at `Docs/_phases/_samples/PHASE_F_assembled_*.txt`
+
+### Added (Phase 4: Whyze-Byte Validation Pipeline — Complete)
+
+- `validation/whyze_byte.py` persona fidelity validator
+- Whyze-Byte regression test suite
+
+### Added (Phase 2 audit remediation — REMEDIATION_2026-04-13.md)
+
+- `SoulEssenceNotFoundError(ValueError)` — fail-loud semantics for missing character soul essence (Vision V6-V9 defense)
+- `CanonValidationError(ValueError)` with `.errors` list and `.format_errors()` helper
+- `DecayConfigIncompleteError(ValueError)` + `REQUIRED_DECAY_KEYS` guard in `fetch_decayed_somatic_state`
+- `SoulCardActivation` Pydantic model with `extra='forbid'` replacing untyped activation dict
+- `CharacterID.all()` and `CharacterID.all_strings()` classmethods
+- `_assert_complete_character_keys()` helper wired at module-load in 6 modules (budgets, kernel_loader, pairs_loader, prose, constraints, soul_essence)
+- Post-assembly Layer 1 / Layer 6 budget reconciliation warnings
+- Docs/_audits/PHASE_2_AUDIT_2026-04-13.md — full self-audit record
+- Docs/REMEDIATION_2026-04-13.md — approved remediation spec
+
+### Changed (Phase 2 audit remediation)
+
+- `load_all_canon()` now validates cross-file referential integrity by default (`validate_on_load=True`)
+- `load_kernel()` cache key includes `profile_name` — prevents silent profile-collision caching
+- `format_soul_essence()` raises `SoulEssenceNotFoundError` instead of silently returning empty string
+- Pair loader `_ensure_loaded()` collects all missing entries and raises a single comprehensive error (was silent skip)
+- `fetch_decayed_somatic_state` requires complete decay_config; removed `.get(key, default)` fallbacks
+- `seed.main()` prints full traceback before exit-nonzero on failure
+
 ### Added (Phase 2: Memory Service)
 - PostgreSQL + pgvector seven-tier memory substrate
 - SQLAlchemy 2.0+ async ORM models for all 7 memory tiers
