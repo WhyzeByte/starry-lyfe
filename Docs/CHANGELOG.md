@@ -43,6 +43,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Docs/_audits/PHASE_2_AUDIT_2026-04-13.md — full self-audit record
 - Docs/REMEDIATION_2026-04-13.md — approved remediation spec
 
+### Added (Phase 2 audit polish — Tier 4)
+
+- `CharacterNotFoundError(ValueError)` unifies character-lookup failures in `kernel_loader._load_raw_kernel` and `pairs_loader.get_pair_metadata`
+- `logger.warning` on missing Voice.md file or unregistered character path (M3)
+- One-time `logger.warning` when a character's Voice.md has zero mode-tagged examples, signaling Layer 5 fallback to legacy calibration guidance (M4)
+- Defense-in-depth documentation on the `_select_voice_exemplars` communication-mode empty-candidate branch (L1)
+
+### Changed (Phase 2 audit polish — Tier 4)
+
+- `budgets.py` LayerBudgets.scene comment replaced with dated Phase C pointer (M1)
+- `budgets.py` heading regex now uses walrus operator; removed `# type: ignore[union-attr]` (M2)
+
 ### Changed (Phase 2 audit remediation)
 
 - `load_all_canon()` now validates cross-file referential integrity by default (`validate_on_load=True`)

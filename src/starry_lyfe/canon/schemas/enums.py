@@ -4,6 +4,21 @@ from enum import StrEnum
 from typing import Any
 
 
+class CharacterNotFoundError(ValueError):
+    """Raised when a character_id lookup fails in any canonical registry.
+
+    Unifies the prior ad-hoc mix of ValueError and KeyError raises across
+    kernel_loader, pairs_loader, and other modules that keep per-character
+    registries. Subclasses ValueError so existing `except ValueError`
+    handlers keep working.
+
+    Per REMEDIATION_2026-04-13.md L2: distinct typed error for lookup
+    failures gives callers a single narrow class to catch when they want
+    to recover from unknown-character cases, without accidentally
+    swallowing unrelated ValueErrors.
+    """
+
+
 class CharacterID(StrEnum):
     """The four canonical characters."""
 

@@ -14,7 +14,7 @@ from pathlib import Path
 
 import yaml
 
-from .schemas.enums import _assert_complete_character_keys
+from .schemas.enums import CharacterNotFoundError, _assert_complete_character_keys
 
 PAIRS_YAML = Path(__file__).resolve().parent / "pairs.yaml"
 
@@ -94,7 +94,7 @@ def get_pair_metadata(character_id: str) -> PairMetadata:
 
     if character_id not in _pair_cache:
         msg = f"No pair metadata for character '{character_id}'"
-        raise ValueError(msg)
+        raise CharacterNotFoundError(msg)
 
     return _pair_cache[character_id]
 
@@ -120,3 +120,8 @@ def clear_pair_cache() -> None:
     global _yaml_loaded  # noqa: PLW0603
     _pair_cache.clear()
     _yaml_loaded = False
+
+
+# R-2.1: missing pair manifest entries must fail at module import rather than
+# silently surviving until first runtime access.
+_ensure_loaded()

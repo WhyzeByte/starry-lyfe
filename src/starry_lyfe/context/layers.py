@@ -163,6 +163,14 @@ def _select_voice_exemplars(
     else:
         candidates = list(examples)
 
+    # L1: defense-in-depth fallback. In production corpora every example
+    # carries communication_mode="any" by default (see
+    # kernel_loader._extract_voice_examples), so the comm-mode filter
+    # cannot empty the candidate list today. This branch survives in case
+    # a future Voice.md author writes ONLY mode-specific exemplars and
+    # callers request a mode with no canonical coverage. Returning raw
+    # examples[:max_exemplars] preserves the contract that Layer 5 always
+    # emits something rather than crashing on the slice.
     if not candidates:
         selected = examples[:max_exemplars]
         logger.debug(

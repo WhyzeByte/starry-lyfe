@@ -6,9 +6,11 @@
 **Resolutions:** All open questions resolved by Project Owner 2026-04-13. See §9.
 **Source findings:**
 - `PHASE_2_AUDIT_2026-04-13.md` (Claude Code self-audit, CHANGELOG Phases 1–2)
-- `character_conversion_assessment.md` (external review, 2026-04-14, unsigned)
+- External conversion assessment themes (ChatGPT Pro advisory review; the original chat artifact was not checked into this repository, so only the summarized folds preserved here are auditable)
 
-**Scope note:** This remediation covers foundation hardening for CHANGELOG Phases 1 (Canon YAML) and 2 (Memory Service). It runs **parallel to** the currently-executing Foundry Phase D and does not block it. The two workstreams touch different surfaces.
+**Scope note:** This remediation covers foundation hardening for CHANGELOG Phases 1 (Canon YAML) and 2 (Memory Service). It was authored while Foundry Phase D was active. Tier 1-3 have since landed in code and are reflected in `Docs/CHANGELOG.md` and `Docs/IMPLEMENTATION_PLAN_v7.1.md`.
+
+**Current status (repo state):** Treat this file as a historical remediation spec, not an active handoff document. The approval-time status line above is preserved as historical context only. Tier 1-3 landed in commit `f031007`. Tier 4 remains deferred. R-5.1 through R-5.3 remain future planning notes only.
 
 ---
 
@@ -67,7 +69,7 @@ Diagnostic context (character_id, profile, budget) can be added via a top-level 
 - Error message includes character_id and sorted list of registered characters.
 - Assembler surfaces the error with character_id in the traceback.
 - **Call-site audit completed:** every caller of the context assembler has been identified and either (a) lets the raise propagate, or (b) catches `SoulEssenceNotFoundError` with an explicit, reviewed, documented handler. No silent catches anywhere in the chain.
-- Existing test suite still passes (127 passed baseline).
+- Existing test suite remains green for the current repo state.
 - New unit test: `test_soul_essence_raises_on_missing_character` in `tests/unit/canon/test_soul_essence.py`.
 - New unit test: `test_soul_essence_error_message_lists_registered_characters`.
 - New integration test: context assembly for an unregistered character fails loudly, does not emit a prompt.
@@ -272,7 +274,7 @@ Defer to a dedicated polish pass. Not in this remediation commit.
 
 ## 5. Conversion Assessment Folds
 
-Three ideas from `character_conversion_assessment.md` are strong enough to carry forward. Each is scoped for a **future** Foundry phase, not this remediation commit.
+Three ideas from the external conversion assessment are strong enough to carry forward. The original advisory chat artifact is not stored in this repository; this section preserves only the accepted themes distilled into this spec. These items did **not** land in the Phase 2 remediation commit and must be re-slotted against the current master-plan queue rather than the historical Phase D/E/F sequence captured in the original draft.
 
 ### R-5.1 — Positive Fidelity Test Harness (candidate Phase E)
 
@@ -289,7 +291,7 @@ Three ideas from `character_conversion_assessment.md` are strong enough to carry
 
 **Why this matters:** complements Whyze-Byte. Moves the test suite from "did not violate" to "sounds like her." Addresses V6 (cognitive hand-off integrity) which currently has no code-level tripwire — this would give it one.
 
-**Deferred to:** Phase E spec authoring. Do not start until Phase D ships.
+**Deferred to:** a future fidelity-testing follow-up phase. The earlier Phase E targeting in this draft is historical only; Phase E has already shipped.
 
 ---
 
@@ -309,7 +311,7 @@ Plus shared artifacts:
 
 **Why this matters:** this is the single most interesting gap either audit identifies. It is the bridge between canon and interiority. Without it, continuity stays operational and the women never develop the kind of private carryover that makes off-screen life feel real.
 
-**Deferred to:** needs its own Vision pass before spec. Not a mechanical addition. Candidate for a Phase F or F' scope.
+**Deferred to:** needs its own Vision pass before spec. Not a mechanical addition. The earlier "Phase F or F'" note in this draft is obsolete because Phase F has already shipped.
 
 ---
 
@@ -396,7 +398,15 @@ Directly contradicts canon rule: *"Soul redundancy: pair labels live in soul ess
 
 ---
 
-## 7. Execution Plan
+## 7. Execution Plan (historical draft) / Execution Outcome (current state)
+
+Current outcome: Tier 1 through Tier 3 are no longer proposed work. They landed in commit `f031007` and are reflected in the current codebase, `Docs/CHANGELOG.md`, and `Docs/IMPLEMENTATION_PLAN_v7.1.md`.
+
+Current outcome: Tier 4 (R-M1 through R-L2) remains deferred.
+
+Current outcome: R-5.1 through R-5.3 were not implemented as part of this remediation and must be slotted against the current master-plan queue rather than the historical Phase E/F references preserved below.
+
+Historical note: the draft bullets that follow are preserved for traceability. Their original 127-test target and Phase E/F routing should not be treated as current repo guidance.
 
 **Tier 1 commit (R-1.1 → R-1.3):** single commit, small. Claude Code executes via standard 4-agent cycle (plan → execute → Codex audit → Claude AI QA → ship). Expected test baseline: 127 pass + new tests for each R-1.x. Target: 130+ pass, 0 failed.
 
@@ -410,9 +420,9 @@ Directly contradicts canon rule: *"Soul redundancy: pair labels live in soul ess
 
 ---
 
-## 8. QA Checklist for This Remediation (Step 5 gates)
+## 8. Historical QA Checklist for This Remediation (approval-time gates)
 
-When Claude Code returns each tier for QA, Claude AI verifies:
+This checklist is preserved to show what QA was asked to verify at approval time. Current closure should be read against the implemented code and the latest repo verification runs, not the historical 127-test baseline that applied when this spec was drafted.
 
 **Tier 1:**
 - [ ] `format_soul_essence` raises on missing character
@@ -422,7 +432,7 @@ When Claude Code returns each tier for QA, Claude AI verifies:
 - [ ] Regression test proves profile-keyed cache separation
 - [ ] `load_all_canon(validate_on_load=True)` is the default
 - [ ] `CanonValidationError` carries human-readable error list
-- [ ] Test suite: 127 baseline preserved, new tests green
+- [ ] Test suite green for the current repo state
 - [ ] All 4 character samples regenerate cleanly at `Docs/_phases/_samples/`
 - [ ] Terminal anchoring: all samples end at `</WHYZE_BYTE_CONSTRAINTS>`
 - [ ] Vision invariants V1–V10 spot-checked: no regression
@@ -458,7 +468,7 @@ Project Owner override. Tier 1 proceeds on Claude Code self-audit + Claude AI re
 
 ### D-3 — Conversion assessment provenance: **ChatGPT Pro, advisory only**
 
-Authored by ChatGPT Pro. Outside the 4-agent Foundry cycle. Weight for future reviews: advisory. Good ideas get folded through Claude AI QA against canon rules; bad ideas get rejected with citations. Same treatment as this round. Future external reviews should be dated, signed, and acknowledged as external when folded in.
+Authored by ChatGPT Pro. Outside the 4-agent Foundry cycle. Weight for future reviews: advisory. Good ideas get folded through Claude AI QA against canon rules; bad ideas get rejected with citations. Same treatment as this round. The original chat artifact for this review was not checked into the repository; this file preserves only the accepted summary. Future external reviews should be dated, signed, and acknowledged as external when folded in.
 
 ### D-4 — Traceability manifests (R-5.3): **independent phase item**
 

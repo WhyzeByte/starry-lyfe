@@ -929,6 +929,105 @@ async def test_r2_4_layer_1_overrun_emits_warning(
     clear_kernel_cache()
 
 
+async def test_r2_4_normal_assembly_emits_no_budget_warnings(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """R-2.4 AC: ordinary assembly should not emit budget-overrun warnings."""
+    import logging
+
+    from starry_lyfe.context import soul_cards as soul_cards_module
+
+    async def stub_retrieve_memories(*args: Any, **kwargs: Any) -> Any:
+        return _make_bundle("bina")
+
+    monkeypatch.setattr(assembler_module, "retrieve_memories", stub_retrieve_memories)
+    monkeypatch.setattr(soul_cards_module, "find_activated_cards", lambda *args, **kwargs: [])
+    monkeypatch.setattr(soul_cards_module, "format_soul_cards", lambda *args, **kwargs: "")
+
+    clear_kernel_cache()
+
+    caplog.set_level(logging.WARNING, logger="starry_lyfe.context.assembler")
+    await assemble_context(
+        character_id="bina",
+        scene_context="Quiet kitchen cleanup.",
+        scene_state=SceneState(
+            present_characters=["bina", "whyze"],
+            scene_description="Kitchen after dinner, ordinary domestic scene.",
+            communication_mode=CommunicationMode.IN_PERSON,
+        ),
+        session=cast(AsyncSession, None),
+        embedding_service=_StubEmbeddingService(),
+    )
+
+    budget_warning_messages = {
+        "layer_1_budget_overrun",
+        "layer_6_budget_overrun",
+    }
+    warnings = [r.message for r in caplog.records if r.message in budget_warning_messages]
+    assert not warnings, f"Normal assembly should be warning-clean. Got: {warnings}"
+
+    clear_kernel_cache()
+
+
+async def test_r2_4_layer_6_overrun_emits_warning(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """R-2.4 AC: Layer 6 overrun must emit the canonical warning."""
+    import logging
+
+    from starry_lyfe.context import soul_cards as soul_cards_module
+    from starry_lyfe.context.types import LayerContent
+
+    async def stub_retrieve_memories(*args: Any, **kwargs: Any) -> Any:
+        return _make_bundle("adelia")
+
+    def stub_format_scene_blocks(*args: Any, **kwargs: Any) -> LayerContent:
+        text = "Scene context overrun probe. " * 800
+        return LayerContent(
+            name="scene_blocks",
+            text=text,
+            estimated_tokens=estimate_tokens(text),
+            layer_number=6,
+        )
+
+    monkeypatch.setattr(assembler_module, "retrieve_memories", stub_retrieve_memories)
+    monkeypatch.setattr(assembler_module, "format_scene_blocks", stub_format_scene_blocks)
+    monkeypatch.setattr(soul_cards_module, "find_activated_cards", lambda *args, **kwargs: [])
+    monkeypatch.setattr(soul_cards_module, "format_soul_cards", lambda *args, **kwargs: "")
+
+    clear_kernel_cache()
+
+    caplog.set_level(logging.WARNING, logger="starry_lyfe.context.assembler")
+    await assemble_context(
+        character_id="adelia",
+        scene_context="Layer 6 overrun regression probe.",
+        scene_state=SceneState(
+            present_characters=["adelia", "whyze"],
+            scene_description="Workshop corner; scene text intentionally inflated via stub.",
+            communication_mode=CommunicationMode.IN_PERSON,
+        ),
+        session=cast(AsyncSession, None),
+        embedding_service=_StubEmbeddingService(),
+    )
+
+    overrun_records = [
+        r for r in caplog.records if "layer_6_budget_overrun" in r.message
+    ]
+    assert overrun_records, (
+        "Expected at least one layer_6_budget_overrun warning. "
+        f"Got records: {[r.message for r in caplog.records]}"
+    )
+    rec = overrun_records[0]
+    assert rec.levelno == logging.WARNING
+    assert getattr(rec, "character_id", None) == "adelia"
+    assert hasattr(rec, "actual_tokens")
+    assert hasattr(rec, "ceiling_tokens")
+
+    clear_kernel_cache()
+
+
 def test_c2_profile_produces_distinct_cache_entries_per_spec() -> None:
     """R-1.2 AC: cache key must prevent profile collisions.
 

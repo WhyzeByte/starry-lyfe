@@ -44,7 +44,10 @@ class LayerBudgets:
     episodic: int = 1200
     somatic: int = 500
     voice: int = 900
-    scene: int = 2400   # raised from 1200: soul cards now deliver full body content
+    scene: int = 2400
+    # Phase C (2026-04-12): scene budget doubled from 1200 to 2400 so
+    # knowledge soul cards can merge full body content into Layer 6
+    # without displacing dyad state and open-loop prose.
     constraints: int = 900
 
     @property
@@ -201,9 +204,9 @@ def parse_markdown_blocks(text: str) -> list[MarkdownBlock]:
             _flush()
             continue
 
-        if _HEADING_RE.match(stripped):
+        if (heading_match := _HEADING_RE.match(stripped)) is not None:
             _flush()
-            level = len(_HEADING_RE.match(stripped).group(1))  # type: ignore[union-attr]
+            level = len(heading_match.group(1))
             blocks.append(MarkdownBlock(
                 block_type=BlockType.HEADING,
                 text=line,

@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 
-from ..canon.schemas.enums import _assert_complete_character_keys
+from ..canon.schemas.enums import CharacterNotFoundError, _assert_complete_character_keys
 from ..canon.soul_essence import format_soul_essence
 from .budgets import estimate_tokens, trim_text_to_budget
 from .types import SceneType, VoiceExample, VoiceMode
+
+logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
@@ -294,7 +297,7 @@ def _load_raw_kernel(character_id: str) -> str:
     rel_paths = KERNEL_PATHS.get(character_id)
     if rel_paths is None:
         msg = f"No kernel path defined for character '{character_id}'"
-        raise ValueError(msg)
+        raise CharacterNotFoundError(msg)
     full_path = _resolve_repo_path(rel_paths)
     if full_path is None:
         msg = f"Kernel file not found for {character_id}: {rel_paths}"
@@ -415,10 +418,24 @@ def load_voice_guidance(
     if character_id not in _voice_raw_cache:
         rel_paths = VOICE_PATHS.get(character_id)
         if rel_paths is None:
+            # M3: no Voice.md path registered for this character
+            logger.warning(
+                "Voice.md path not registered for character_id=%r; "
+                "Layer 5 will fall back to baseline metadata only.",
+                character_id,
+            )
             _voice_raw_cache[character_id] = None
         else:
             full_path = _resolve_repo_path(rel_paths)
             if full_path is None:
+                # M3: Voice.md file missing at all registered paths
+                logger.warning(
+                    "Voice.md file not found for character_id=%r at any "
+                    "registered path: %s; Layer 5 will fall back to "
+                    "baseline metadata only.",
+                    character_id,
+                    rel_paths,
+                )
                 _voice_raw_cache[character_id] = None
             else:
                 text = full_path.read_text(encoding="utf-8")
@@ -582,14 +599,38 @@ def load_voice_examples(character_id: str) -> list[VoiceExample] | None:
     if character_id not in _voice_examples_cache:
         rel_paths = VOICE_PATHS.get(character_id)
         if rel_paths is None:
+            # M3: no Voice.md path registered for this character
+            logger.warning(
+                "Voice.md path not registered for character_id=%r; "
+                "mode-aware exemplar selection will be unavailable.",
+                character_id,
+            )
             _voice_examples_cache[character_id] = None
         else:
             full_path = _resolve_repo_path(rel_paths)
             if full_path is None:
+                # M3: Voice.md file missing at all registered paths
+                logger.warning(
+                    "Voice.md file not found for character_id=%r at any "
+                    "registered path: %s; mode-aware exemplar selection "
+                    "will be unavailable.",
+                    character_id,
+                    rel_paths,
+                )
                 _voice_examples_cache[character_id] = None
             else:
                 text = full_path.read_text(encoding="utf-8")
-                _voice_examples_cache[character_id] = _extract_voice_examples(text)
+                examples = _extract_voice_examples(text)
+                _voice_examples_cache[character_id] = examples
+                # M4: warn once if a character's Voice.md has zero
+                # mode-tagged examples (legacy Phase A/A' path).
+                if examples and not any(ex.modes for ex in examples):
+                    logger.warning(
+                        "Voice.md for character_id=%r has no mode-tagged "
+                        "examples; Layer 5 will use legacy calibration "
+                        "guidance path instead of Phase E rhythm exemplars.",
+                        character_id,
+                    )
 
     return _voice_examples_cache[character_id]
 

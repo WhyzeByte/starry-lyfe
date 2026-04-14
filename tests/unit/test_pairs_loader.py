@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import importlib.util
+import sys
+from pathlib import Path
+
 import pytest
+import yaml
 
 from starry_lyfe.canon.pairs_loader import (
     PairMetadata,
@@ -11,6 +16,22 @@ from starry_lyfe.canon.pairs_loader import (
     get_pair_metadata,
 )
 from starry_lyfe.context.budgets import DEFAULT_BUDGETS
+
+ROOT = Path(__file__).resolve().parents[2]
+PAIRS_LOADER_PATH = ROOT / "src" / "starry_lyfe" / "canon" / "pairs_loader.py"
+
+
+def _load_pairs_loader_module(module_name: str):
+    spec = importlib.util.spec_from_file_location(module_name, PAIRS_LOADER_PATH)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        sys.modules.pop(module_name, None)
 
 
 class TestPairsLoader:
@@ -232,6 +253,31 @@ class TestLayer5Integration:
 
 class TestPairsLoaderMissingEntriesR21:
     """R-2.1: authoring a character without a pairs.yaml entry fails loudly at load."""
+
+    def test_pairs_loader_import_reports_all_missing_at_once(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Missing pair rows must fail on module import, not only on first access."""
+        original_safe_load = yaml.safe_load
+
+        def fake_safe_load(text: str) -> dict[str, object]:
+            data = original_safe_load(text)
+            assert isinstance(data, dict)
+            pairs = dict(data.get("pairs", {}))
+            pairs.pop("circuit", None)
+            pairs.pop("kinetic", None)
+            return {**data, "pairs": pairs}
+
+        monkeypatch.setattr(yaml, "safe_load", fake_safe_load)
+
+        with pytest.raises(ValueError) as excinfo:
+            _load_pairs_loader_module("starry_lyfe.canon.pairs_loader_import_r21")
+
+        msg = str(excinfo.value)
+        assert "bina->circuit" in msg
+        assert "reina->kinetic" in msg
+        assert "pairs.yaml is missing entries" in msg
 
     def test_pairs_loader_reports_all_missing_at_once(
         self,

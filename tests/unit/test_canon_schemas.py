@@ -363,6 +363,42 @@ def test_character_id_all_strings_returns_lowercase_strings() -> None:
 # --- R-3.2 remediation: every per-character dict in src/ covers CharacterID ---
 
 
+# --- L2 remediation: CharacterNotFoundError unification ---
+
+
+def test_character_not_found_error_subclasses_value_error() -> None:
+    """Backward-compat: existing `except ValueError` handlers still catch it."""
+    from starry_lyfe.canon.schemas.enums import CharacterNotFoundError
+
+    assert issubclass(CharacterNotFoundError, ValueError)
+
+
+def test_character_not_found_error_exported_from_canon_package() -> None:
+    """CharacterNotFoundError is importable from the canon package root."""
+    from starry_lyfe import canon as canon_pkg
+
+    assert hasattr(canon_pkg, "CharacterNotFoundError")
+    assert "CharacterNotFoundError" in canon_pkg.__all__
+
+
+def test_kernel_loader_raises_character_not_found_for_unknown() -> None:
+    """kernel_loader._load_raw_kernel raises CharacterNotFoundError for unknown id."""
+    from starry_lyfe.canon.schemas.enums import CharacterNotFoundError
+    from starry_lyfe.context.kernel_loader import _load_raw_kernel
+
+    with pytest.raises(CharacterNotFoundError, match="No kernel path defined"):
+        _load_raw_kernel("ghost")
+
+
+def test_pairs_loader_raises_character_not_found_for_unknown() -> None:
+    """get_pair_metadata raises CharacterNotFoundError for unknown character."""
+    from starry_lyfe.canon.pairs_loader import get_pair_metadata
+    from starry_lyfe.canon.schemas.enums import CharacterNotFoundError
+
+    with pytest.raises(CharacterNotFoundError, match="No pair metadata"):
+        get_pair_metadata("ghost")
+
+
 def test_character_id_coverage_across_modules() -> None:
     """Every character-keyed dict across src/ must cover CharacterID exactly."""
     from starry_lyfe.canon.pairs_loader import _CHARACTER_TO_PAIR
