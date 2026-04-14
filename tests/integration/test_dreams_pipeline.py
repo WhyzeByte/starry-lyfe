@@ -162,18 +162,28 @@ async def test_schedule_generator_fires_for_every_character(canon: Any) -> None:
         assert cr.schedule_generated, f"{char_id} schedule did not fire"
 
 
-async def test_warnings_aggregate_from_stub_generators(canon: Any) -> None:
-    """Placeholder generators emit warnings that must reach the pass result."""
+async def test_warnings_aggregate_from_generator_failures(canon: Any) -> None:
+    """Per-generator LLM failures propagate into the pass-level warnings list.
+
+    Post-R3/R4/R5: all 5 generators are real. Previously this test relied
+    on 3 of 5 being placeholder stubs emitting warnings; now we induce
+    real failures via StubBDOne.fail_next_n and assert the runner
+    aggregates them.
+    """
+    # 4 characters × 4 LLM-backed generators (diary / off_screen /
+    # open_loops / activity_design) = 16 LLM calls total. Fail every call.
+    failing = StubBDOne(fail_next_n=64)
     result = await run_dreams_pass(
         session_factory=_stub_session_factory,  # type: ignore[arg-type]
         snapshot_loader=_empty_snapshot_loader,
-        llm_client=StubBDOne(),
+        llm_client=failing,
         canon=canon,
         now=datetime(2026, 4, 14, 3, 30, tzinfo=UTC),
     )
-    # 4 characters × 3 stub generators (off_screen, open_loops, activity_design)
-    # = at least 12 warnings; pass-level warnings aggregate per-character ones.
-    assert len(result.warnings) >= 12
+    # Each character contributes at least one warning per failing generator.
+    # The four LLM-backed generators × 4 characters = 16 failure warnings
+    # minimum, aggregated through per-character lists into the pass warnings.
+    assert len(result.warnings) >= 16
 
 
 async def test_cross_character_contamination_negative(canon: Any) -> None:
