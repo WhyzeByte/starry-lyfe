@@ -98,8 +98,12 @@ class SceneDirectorInput:
             both to infer scene type / modifiers and to synthesize the
             ``scene_description`` field when no hint is provided.
         present_characters: Lowercase character names present in the
-            scene (e.g. ``["adelia", "bina"]``). ``"whyze"`` is implicit
-            and should NOT appear in this list.
+            scene (e.g. ``["adelia", "bina", "whyze"]``). ``"whyze"`` is
+            the runtime-canonical convention (every pre-Phase-5
+            ``assemble_context`` caller includes Whyze explicitly). The
+            classifier auto-appends ``"whyze"`` if the caller omits it,
+            so both input shapes are accepted and produce the same
+            ``SceneState.present_characters`` shape downstream.
         alicia_home: Whether Alicia is physically at home right now.
             When False, in-person scenes where Alicia is marked present
             raise AliciaAwayContradictionError.
@@ -159,18 +163,38 @@ def classify_scene(director_input: SceneDirectorInput) -> SceneState:
     # (5) scene_description
     scene_description = _synthesize_scene_description(director_input.user_message, director_input.hints)
 
-    # (6) Build SceneState
+    # (6) Normalize present_characters to runtime convention (Whyze included).
+    # Every pre-Phase-5 assemble_context caller passes Whyze explicitly;
+    # layers.py:75-84 derives GROUP/SOLO_PAIR from raw len(present_characters).
+    # Auto-appending here keeps the classifier lenient for both input shapes
+    # while producing the single runtime-canonical SceneState shape.
+    normalized_present = list(director_input.present_characters)
+    if "whyze" not in normalized_present:
+        normalized_present.append("whyze")
+
+    # (7) Normalize recalled_dyads to dyad-key shape that layers.format_scene_blocks()
+    # actually consumes. The modifier field keeps the bare-name shape (it is
+    # literally "the names of absent dyads that were invoked"); SceneState's
+    # runtime-facing field gets "<present_woman>-<absent_name>" pairs so
+    # Layer 6 internal-dyad prose actually renders. See PHASE_5.md Round 1
+    # remediation F1.
+    recalled_dyads = _to_dyad_keys(
+        modifiers.explicitly_invoked_absent_dyad,
+        present_women=women_present,
+    )
+
+    # (8) Build SceneState
     # public_scene flag mirrors SceneType.PUBLIC or work_colleagues_present
     # modifier so Layer 7 constraints.py fires the right pillar.
     public_scene = scene_type == SceneType.PUBLIC or modifiers.work_colleagues_present
 
     return SceneState(
-        present_characters=list(director_input.present_characters),
+        present_characters=normalized_present,
         public_scene=public_scene,
         alicia_home=director_input.alicia_home,
         scene_description=scene_description,
         communication_mode=comm_mode,
-        recalled_dyads=set(modifiers.explicitly_invoked_absent_dyad),
+        recalled_dyads=recalled_dyads,
         voice_modes=None,
         scene_type=scene_type,
         modifiers=modifiers,
@@ -227,7 +251,13 @@ def _classify_modifiers(text: str, hints: SceneDirectorHints) -> SceneModifiers:
 
 
 def _detect_absent_dyads(text: str) -> frozenset[str]:
-    """Scan for named-absent-pair mentions like 'missing reina'."""
+    """Scan for named-absent-pair mentions like 'missing reina'.
+
+    Returns BARE NAMES of the absent characters (e.g. ``{"reina"}``).
+    ``_to_dyad_keys`` below normalizes this to the dyad-key shape
+    (``{"adelia-reina"}``) that Layer 6 consumes. The modifier field keeps
+    bare names so the semantic "who was invoked" data stays readable.
+    """
     hits: set[str] = set()
     for name in _CANONICAL_WOMEN:
         for pattern in _ABSENT_DYAD_PATTERNS:
@@ -236,6 +266,34 @@ def _detect_absent_dyads(text: str) -> frozenset[str]:
                 hits.add(name)
                 break
     return frozenset(hits)
+
+
+def _to_dyad_keys(
+    absent_names: frozenset[str], present_women: list[str]
+) -> set[str]:
+    """Normalize absent-dyad bare names to the dyad-key shape Layer 6 reads.
+
+    For each absent name ``N``, emit ``"<W>-<N>"`` for every canonical
+    woman ``W`` in ``present_women`` (excluding ``N`` itself). Layer 6
+    (``format_scene_blocks`` in ``layers.py:535-541``) silently ignores
+    keys that do not match any loaded internal-dyad row, so emitting
+    one key per present woman covers all reasonable focal characters
+    without requiring the classifier to know who the focal is.
+
+    Example:
+        absent={"reina"}, present=["adelia", "bina"]
+        -> {"adelia-reina", "bina-reina"}
+
+    When assembling for Adelia: the "adelia-reina" key matches her
+    internal-dyad row and the prose renders. When assembling for Bina:
+    "bina-reina" matches. Other keys are inert.
+    """
+    keys: set[str] = set()
+    for absent in absent_names:
+        for woman in present_women:
+            if woman != absent and woman != "whyze":
+                keys.add(f"{woman}-{absent}")
+    return keys
 
 
 def _synthesize_scene_description(

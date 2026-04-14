@@ -320,14 +320,21 @@ class TestModifiersInference:
         assert state.modifiers.group_temperature_shift is True
 
     def test_absent_dyad_detected(self) -> None:
+        """R1 remediation (F1): modifier field keeps bare names for semantic
+        readability, SceneState.recalled_dyads is normalized to the dyad-key
+        shape that layers.format_scene_blocks consumes."""
         state = classify_scene(
             SceneDirectorInput(
                 user_message="missing reina, thinking about bina",
                 present_characters=["adelia"],
             )
         )
+        # Modifier field — bare names (what was invoked).
         assert state.modifiers.explicitly_invoked_absent_dyad == frozenset({"reina", "bina"})
-        assert state.recalled_dyads == {"reina", "bina"}
+        # SceneState field — dyad-key shape (what Layer 6 reads).
+        # present_women after whyze-auto-append filtering: ["adelia"].
+        # For absent={"reina", "bina"}, emit {"adelia-reina", "adelia-bina"}.
+        assert state.recalled_dyads == {"adelia-reina", "adelia-bina"}
 
     def test_hint_forced_modifiers_wholly_replaces(self) -> None:
         """hints.forced_modifiers wholly replaces inference — never merged."""
@@ -394,6 +401,48 @@ class TestSceneDescription:
             SceneDirectorInput(user_message=long, present_characters=["adelia"])
         )
         assert len(state.scene_description) <= 200
+
+
+# ---------------------------------------------------------------------------
+# present_characters normalization (R2 remediation / F2)
+# ---------------------------------------------------------------------------
+
+
+class TestPresentCharacters:
+    def test_whyze_auto_appended_when_absent(self) -> None:
+        """R2 remediation (F2): classifier normalizes to runtime convention
+        (Whyze included) when caller omits. Layer 5 mode accumulation in
+        layers.py:75-84 depends on this shape."""
+        state = classify_scene(
+            SceneDirectorInput(
+                user_message="adelia and bina are in the kitchen",
+                present_characters=["adelia", "bina"],
+            )
+        )
+        assert state.present_characters == ["adelia", "bina", "whyze"]
+
+    def test_whyze_preserved_when_caller_supplies_it(self) -> None:
+        """Caller-supplied whyze is not double-appended."""
+        state = classify_scene(
+            SceneDirectorInput(
+                user_message="adelia and bina and whyze in the kitchen",
+                present_characters=["adelia", "bina", "whyze"],
+            )
+        )
+        assert state.present_characters == ["adelia", "bina", "whyze"]
+        # No duplicates
+        assert state.present_characters.count("whyze") == 1
+
+    def test_whyze_only_turn(self) -> None:
+        """Edge case: caller passes empty list. Whyze-only turn is a
+        legitimate runtime shape, not a regression."""
+        state = classify_scene(
+            SceneDirectorInput(
+                user_message="just me, nobody else here",
+                present_characters=[],
+            )
+        )
+        assert state.present_characters == ["whyze"]
 
 
 # ---------------------------------------------------------------------------

@@ -3,8 +3,8 @@
 **Date opened:** 2026-04-14
 **Depends on:** Phase F (Scene-Aware Section Retrieval, SHIPPED 2026-04-13), Phase A'' (Communication-Mode-Aware Pruning, SHIPPED 2026-04-13), Phase F-Fidelity (Positive Fidelity Harness, SHIPPED 2026-04-14)
 **Replaces:** n/a — first implementation of `Docs/IMPLEMENTATION_PLAN_v7.1.md` §8 (Scene Director)
-**Status:** SHIPPED 2026-04-14
-**Last touched:** 2026-04-14 by Claude Code (ship)
+**Status:** SHIPPED 2026-04-14 (remediation-1 2026-04-14 closes Codex Round 1 F1/F2/F3)
+**Last touched:** 2026-04-14 by Claude Code (remediation-1)
 
 ---
 
@@ -305,3 +305,120 @@ deterministic front door over fuzzy inference.
 - Phase F section promotion: `src/starry_lyfe/context/kernel_loader.py:80-92`
 - Dyad-state memory tier 4: `src/starry_lyfe/db/models/dyad_state_internal.py`, `src/starry_lyfe/db/retrieval.py:88-98`
 - Vision V6 Cognitive Hand-Off Integrity: also covered positively by Phase F-Fidelity rubrics (`Docs/_phases/PHASE_F_FIDELITY.md`)
+
+---
+
+## 11. Codex Audit â€” Round 1 (post-ship)
+
+**Date:** 2026-04-14  
+**Auditor:** Codex  
+**Scope reviewed:** `Docs/IMPLEMENTATION_PLAN_v7.1.md` §8, this phase record, `src/starry_lyfe/scene/{classifier,next_speaker,turn_history,errors,__init__}.py`, `src/starry_lyfe/context/{assembler,layers,types}.py`, `tests/unit/scene/*`, `tests/integration/test_scene_director_to_assembler.py`, and `Docs/OPERATOR_GUIDE.md`.
+
+### Verification context
+
+- `pytest tests/unit/scene tests/integration/test_scene_director_to_assembler.py -q` -> `70 passed`
+- `pytest -q` with hard DB mode -> `737 passed`
+- `ruff check src tests` -> passed
+- `python -m mypy src` -> passed
+
+### Executive assessment
+
+The Phase 5 surface is real and the package is broadly well-structured, but the shipped implementation is not fully spec-safe. Two red-team probes found concrete live-path defects that the current suite misses: absent-dyad inference does not survive the classifier -> assembler path, and the public `present_characters` contract disagrees with downstream runtime semantics in a way that can mis-route Layer 5 for two-woman domestic scenes. There is also one lower-severity architecture drift: the scorer does not consume current activity context despite §8 still naming it as a fitness input.
+
+### Findings
+
+| ID | Severity | Finding | Evidence | Recommended remediation |
+|----|----------|---------|----------|--------------------------|
+| F1 | High | Scene Director absent-dyad inference is broken on the live classifier -> assembler path. | `classifier.py:229-238` returns bare names like `reina`; `classifier.py:173` copies them into `SceneState.recalled_dyads`; `layers.py:533-540` only honors dyad keys like `adelia-reina` / `reina-adelia`. Live probe: `classify_scene(SceneDirectorInput(user_message='adelia and i are in the kitchen, thinking about reina', present_characters=['adelia', 'whyze']))` produced `recalled_dyads={'reina'}`, but `assemble_context()` with a stubbed `adelia-reina` internal dyad rendered no dyad prose in Layer 6. Current tests stop at the classifier surface (`tests/unit/scene/test_classifier.py:322`, `tests/unit/scene/test_director.py:70`) and never verify classifier-inferred absent dyads reach Layer 6. | Normalize inferred absent-dyad output to the dyad-key shape that `format_scene_blocks()` actually consumes, or update Layer 6 to accept name-level recalls. Add an integration regression that asserts classifier-inferred absent dyads render the intended internal dyad prose end-to-end. |
+| F2 | Medium | The public `present_characters` contract is inconsistent with downstream runtime semantics, and the mismatch can mis-route Layer 5 voice selection. | The public API docstring says `"whyze" is implicit and should NOT appear in this list` at `classifier.py:100-102`, and the operator guide example follows that contract at `Docs/OPERATOR_GUIDE.md:431-437`. But domestic-context mode accumulation still keys off raw `len(scene.present_characters)` at `layers.py:75-84`. Live probe: `classify_scene(SceneDirectorInput(user_message='adelia and bina are in the kitchen making dinner', present_characters=['adelia', 'bina']))` yields active modes `['domestic', 'solo_pair']`, while the same scene with `['adelia', 'bina', 'whyze']` yields `['domestic', 'group']`. The current integration tests only cover 1-woman+Whyze classifier cases (`tests/integration/test_scene_director_to_assembler.py:53`, `:75`, `:117`, `:141`, `:170`) and never exercise the documented "Whyze implicit" path against Layer 5 behavior. | Make the contract explicit and consistent: either require Whyze in `present_characters` everywhere, or normalize the classifier output so downstream code sees the same shape regardless of caller convention. Add a regression proving the public API example produces the intended Layer 5 mode path for two-woman domestic scenes. |
+| F3 | Low | Phase 5 still does not implement the full §8 scoring inputs described in the master plan. | `IMPLEMENTATION_PLAN_v7.1.md:998-1016` says next-speaker selection draws on dyad state, current activity context, and recent turn history. But `NextSpeakerInput` in `next_speaker.py:67-81` carries no activity-context input beyond `scene_state`, and the scoring loop at `next_speaker.py:115-217` never consults `scene_state.scene_description` or `scene_state.scene_type`. The phase file narrowed the implementation narrative to dyad state + turn history at `Docs/_phases/PHASE_5.md:27-30`, but that narrowing is not reflected back into the canonical spec. | Either add an explicit activity-context input to the scorer, or record the reduction as an approved deviation in the canonical spec/phase record so future implementers are not misled about what Phase 5 actually shipped. |
+
+### Runtime probe summary
+
+1. **Absent dyad probe:** classifier inferred `recalled_dyads={'reina'}` from `thinking about reina`, but the assembled Layer 6 block still rendered only `Current activity: ...` and omitted the stubbed `adelia-reina` dyad prose.
+2. **Whyze-implicit probe:** the documented public API example shape (`present_characters=['adelia', 'bina']`) yields `['domestic', 'solo_pair']`; the runtime-internal shape used elsewhere (`['adelia', 'bina', 'whyze']`) yields `['domestic', 'group']` for the same domestic scene.
+3. **Verification integrity:** all scene tests, full `pytest`, `ruff`, and `mypy` still pass, which confirms the two defects are currently outside the checked-in regression surface rather than caught-and-waived behavior.
+
+### Verified resolved
+
+- The Scene Director package exists and exports the promised public surface.
+- Alicia-away contradiction handling is real and fires before prompt assembly.
+- Rule of One zero-out, Whyze-chain handling, recency suppression, and dyad-provider injection are all implemented and covered by the checked-in suite.
+- The broader repo remains green under full-suite verification (`737 passed`).
+
+### Recommended remediation order
+
+1. Fix absent-dyad normalization end-to-end (F1).
+2. Normalize the `present_characters` contract and add the missing Layer 5 regression (F2).
+3. Decide whether current activity context is a real scoring requirement or a stale architectural promise, then update code or canon accordingly (F3).
+
+### Gate recommendation
+
+**FAIL.** Phase 5 should not remain treated as fully clean while F1 and F2 are open. The implementation is close, but the current suite passes without exercising two important front-door contracts.
+
+---
+
+## 12. Round 1 Remediation (2026-04-14)
+
+**Author:** Claude Code under Project Owner direct-remediation authority
+**Plan:** `C:\Users\Whyze\.claude\plans\fizzy-napping-whisper.md` (approved 2026-04-14)
+**Commit:** `fix(phase_5): Round 1 remediation — close F1/F2/F3 from Codex audit`
+
+### Fixes landed
+
+**F1 — Absent-dyad normalization (HIGH)**
+
+- `src/starry_lyfe/scene/classifier.py` gains `_to_dyad_keys()` helper.
+- The modifier field `explicitly_invoked_absent_dyad` keeps bare names (semantic "who was invoked").
+- The runtime-facing `SceneState.recalled_dyads` is now populated with dyad-key shape (`"<W>-<N>"` for every present woman `W` not equal to `N`). Layer 6's string-equality check in `format_scene_blocks()` at `layers.py:535-541` now matches classifier-inferred recalls.
+- Integration regression added at `tests/integration/test_scene_director_to_assembler.py::test_f1_classifier_absent_dyad_renders_in_layer_6` — stubs an `adelia-reina` internal-dyad row, classifies `"thinking about reina"`, asserts the assembled prompt contains `"adelia-reina"` (the internal-dyad prose marker).
+
+**F2 — `present_characters` contract (MEDIUM)**
+
+- `classify_scene()` now auto-appends `"whyze"` to `present_characters` when the caller omits it.
+- `SceneDirectorInput` docstring updated to reflect the Whyze-included runtime convention (every pre-Phase-5 `assemble_context` test passes Whyze explicitly — the classifier's original "whyze implicit" claim was aspirational and wrong).
+- Caller may still pass Whyze explicitly; not double-appended.
+- Integration regression added at `tests/integration/test_scene_director_to_assembler.py::test_f2_two_woman_domestic_routes_as_group` — classifies the documented public-API example (`["adelia", "bina"]`) and asserts Layer 5 mode accumulation emits `GROUP`, not `SOLO_PAIR`.
+
+**F3 — Current activity context (LOW)**
+
+- `NextSpeakerInput` gains `activity_context: str | None = None`.
+- `select_next_speaker()` adds Rule (7) narrative salience: `+0.05` when the candidate's name appears in `scene_state.scene_description` OR `speaker_input.activity_context`.
+- Three unit tests added at `tests/unit/scene/test_next_speaker.py::TestActivityContext`.
+- `Docs/IMPLEMENTATION_PLAN_v7.1.md` §8 updated with a Phase 5 implementation note confirming all three §8 scoring inputs (dyad state, turn history, activity context) now ship.
+
+### Verification
+
+- `pytest tests/unit tests/integration tests/fidelity -q` → **746 passed** (+9 new vs 737 pre-remediation baseline).
+- `ruff check src tests` → clean.
+- `mypy --strict src` → clean.
+- Round 1 live probes re-run: both F1 and F2 paths now produce the expected downstream behavior.
+
+### Updated acceptance criteria
+
+| AC | Description | Status |
+|----|-------------|--------|
+| AC-R1.1 | `classify_scene()` absent-dyad output is dyad-key shape | PASS |
+| AC-R1.2 | End-to-end Layer 6 renders internal-dyad prose for classifier-inferred recalls | PASS |
+| AC-R1.3 | `classify_scene()` auto-appends `"whyze"`; preserves when supplied | PASS |
+| AC-R1.4 | Documented public API example routes as GROUP, not SOLO_PAIR | PASS |
+| AC-R1.5 | `NextSpeakerInput.activity_context: str \| None = None` field exists | PASS |
+| AC-R1.6 | Rule (7) +0.05 boost when candidate named in scene_description or activity_context | PASS |
+| AC-R1.7 | 737 pre-remediation tests still pass; ≥ 8 new | PASS (746 total) |
+| AC-R1.8 | ruff + mypy --strict clean | PASS |
+| AC-R1.9 | Existing `test_absent_dyad_detected` expects dyad-key shape | PASS |
+| AC-R1.10 | This phase file records Round 1 remediation + updated closing block | PASS |
+| AC-R1.11 | `OPERATOR_GUIDE.md` §7.6 example reflects corrected contract | PASS |
+| AC-R1.12 | `IMPLEMENTATION_PLAN_v7.1.md` §8 records Phase 5 implementation note | PASS |
+| AC-R1.13 | `CHANGELOG.md` records Round 1 remediation | PASS |
+
+### Updated closing block
+
+**Final status:** SHIPPED 2026-04-14 (feat commit `fc9b3ed` + remediation-1 commit)
+**Total cycle rounds:** 2 (1 ship + 1 Codex audit + remediation)
+**Total commits:** 2 (fc9b3ed + Round 1 remediation)
+**Total tests added:** 95 (86 original + 9 Round 1 regressions)
+**Date opened:** 2026-04-14
+**Date closed:** 2026-04-14
+
+**Lessons for the next phase:** Codex red-team live probes caught two defects (F1, F2) that the original test suite missed because the suite did not exercise the full classifier-to-assembler path. Next phase should include at least one end-to-end regression per documented public-API contract, not just a unit test per rule. The classifier-as-normalizer pattern (F1 dyad-key shape, F2 whyze-append) is the right architecture: keep downstream consumers strict about shape, let the front-door layer absorb caller-shape variance.

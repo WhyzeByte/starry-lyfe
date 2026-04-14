@@ -4,10 +4,16 @@ Verifies AC-5.6: the classifier-produced SceneState yields a prompt
 semantically equivalent to a hand-constructed SceneState with the same
 field values, and the inferred scene_type / modifiers drive the same
 kernel section promotion and Layer 7 constraint decisions.
+
+Also verifies the Round 1 remediation end-to-end:
+- F1: classifier absent-dyad normalization renders internal-dyad prose in Layer 6.
+- F2: two-woman-domestic scene routes as GROUP via Layer 5 mode accumulation.
 """
 
 from __future__ import annotations
 
+import uuid
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -16,10 +22,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from starry_lyfe.context import assembler as assembler_module
 from starry_lyfe.context.assembler import assemble_context
+from starry_lyfe.context.layers import derive_active_voice_modes
 from starry_lyfe.context.types import (
     SceneState,
     SceneType,
+    VoiceMode,
 )
+from starry_lyfe.db.models.dyad_state_internal import DyadStateInternal
 from starry_lyfe.scene import (
     SceneDirectorHints,
     SceneDirectorInput,
@@ -199,6 +208,120 @@ async def test_hints_forced_scene_type_reaches_assembler(
     assert scene_state.scene_type == SceneType.INTIMATE
 
     # Sanity: assembler accepts the forced type without complaint.
+    prompt = await assemble_context(
+        character_id="adelia",
+        scene_context=scene_state.scene_description,
+        scene_state=scene_state,
+        session=cast(AsyncSession, None),
+        embedding_service=cast(Any, _StubEmbeddingService()),
+    )
+    assert prompt.is_terminally_anchored
+
+
+# ---------------------------------------------------------------------------
+# Round 1 remediation regressions
+# ---------------------------------------------------------------------------
+
+
+def _make_internal_dyad(
+    member_a: str, member_b: str, *, intimacy: float = 0.5
+) -> DyadStateInternal:
+    return DyadStateInternal(
+        id=uuid.uuid4(),
+        dyad_key=f"{member_a}_{member_b}",
+        member_a=member_a,
+        member_b=member_b,
+        subtype="resident_continuous",
+        interlock=None,
+        trust=0.7,
+        intimacy=intimacy,
+        conflict=0.1,
+        unresolved_tension=0.2,
+        repair_history=0.5,
+        is_currently_active=True,
+        last_updated_at=datetime.now(UTC),
+        created_at=datetime.now(UTC),
+    )
+
+
+async def test_f1_classifier_absent_dyad_renders_in_layer_6(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """F1 remediation end-to-end: classifier-inferred absent dyads produce
+    Layer 6 internal-dyad prose for the focal character.
+
+    Pre-remediation: classifier emitted ``{"reina"}`` (bare name) which
+    layers.format_scene_blocks could not match against its dyad-key
+    check. No Layer 6 prose rendered.
+
+    Post-remediation: classifier emits ``{"adelia-reina"}`` (dyad-key
+    shape). Layer 6 matches and renders the internal-dyad prose.
+    """
+
+    # Stub a retrieval bundle with the adelia-reina internal dyad row
+    # that Layer 6 should render when Reina is invoked as absent.
+    async def _stub(*args: Any, **kwargs: Any) -> Any:
+        return SimpleNamespace(
+            canon_facts=[],
+            episodic_memories=[],
+            somatic_state=None,
+            character_baseline=None,
+            dyad_states_whyze=[],
+            dyad_states_internal=[_make_internal_dyad("adelia", "reina")],
+            open_loops=[],
+        )
+
+    monkeypatch.setattr(assembler_module, "retrieve_memories", _stub)
+
+    scene_state = classify_scene(
+        SceneDirectorInput(
+            user_message="adelia and i are in the kitchen, thinking about reina",
+            present_characters=["adelia"],  # classifier auto-appends whyze
+        )
+    )
+    # Sanity: dyad-key shape, not bare name.
+    assert "adelia-reina" in scene_state.recalled_dyads
+
+    prompt = await assemble_context(
+        character_id="adelia",
+        scene_context=scene_state.scene_description,
+        scene_state=scene_state,
+        session=cast(AsyncSession, None),
+        embedding_service=cast(Any, _StubEmbeddingService()),
+    )
+    # render_dyad_internal_prose opens with "<member_a>-<other> — <interlock>."
+    # For the stubbed adelia-reina row this produces "adelia-reina — pair."
+    # The substring "adelia-reina" is the load-bearing end-to-end marker.
+    assert "adelia-reina" in prompt.prompt
+
+
+async def test_f2_two_woman_domestic_routes_as_group(
+    stub_memories: None,
+) -> None:
+    """F2 remediation end-to-end: a two-woman domestic scene (the
+    documented public-API example) normalizes to present_characters
+    shape ``[..., "whyze"]`` and Layer 5 mode accumulation picks GROUP,
+    not SOLO_PAIR.
+
+    Pre-remediation: classifier returned ``present_characters=["adelia",
+    "bina"]``; layers.py:75-84 counted raw len == 2 and added SOLO_PAIR.
+    Post-remediation: classifier auto-appends whyze; len == 3 adds GROUP.
+    """
+    scene_state = classify_scene(
+        SceneDirectorInput(
+            user_message="adelia and bina are in the kitchen making dinner",
+            present_characters=["adelia", "bina"],  # documented shape
+        )
+    )
+    # R2 normalization
+    assert scene_state.present_characters == ["adelia", "bina", "whyze"]
+    assert scene_state.scene_type == SceneType.DOMESTIC
+
+    modes = derive_active_voice_modes(scene_state)
+    assert VoiceMode.GROUP in modes
+    assert VoiceMode.SOLO_PAIR not in modes
+
+    # Assemble to confirm the whole pipeline accepts the normalized shape.
     prompt = await assemble_context(
         character_id="adelia",
         scene_context=scene_state.scene_description,

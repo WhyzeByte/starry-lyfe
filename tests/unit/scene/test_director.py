@@ -69,15 +69,21 @@ class TestComposition:
 
     def test_classify_then_select_with_absent_dyad(self) -> None:
         """A recalled-dyad scene: Reina absent but mentioned. Classifier
-        should surface the recalled_dyad; next-speaker should still pick
-        from present_characters only."""
+        should surface the dyad-key shape that Layer 6 consumes;
+        next-speaker should still pick from present_characters only.
+
+        R1 remediation (F1): ``recalled_dyads`` is normalized to
+        ``"<W>-<N>"`` dyad-key form, not bare names. The bare names
+        remain accessible via ``modifiers.explicitly_invoked_absent_dyad``.
+        """
         scene_state = classify_scene(
             SceneDirectorInput(
                 user_message="adelia and i are in the kitchen, thinking about reina",
                 present_characters=["adelia"],
             )
         )
-        assert "reina" in scene_state.recalled_dyads
+        assert "adelia-reina" in scene_state.recalled_dyads
+        assert "reina" in scene_state.modifiers.explicitly_invoked_absent_dyad
         decision = select_next_speaker(
             NextSpeakerInput(
                 scene_state=scene_state,

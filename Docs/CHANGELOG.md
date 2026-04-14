@@ -43,6 +43,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Docs/_audits/PHASE_2_AUDIT_2026-04-13.md — full self-audit record
 - Docs/_phases/REMEDIATION_2026-04-13.md — approved remediation spec
 
+### Fixed (Phase 5 Round 1 remediation — closes Codex F1/F2/F3)
+
+- **F1** (HIGH): classifier-inferred absent dyads now normalize to `"<W>-<N>"` dyad-key shape (via `_to_dyad_keys()` in `classifier.py`) so `layers.format_scene_blocks()` actually renders the internal-dyad prose in Layer 6. Pre-remediation: classifier emitted bare names that Layer 6's string-equality check could not match.
+- **F2** (MEDIUM): `classify_scene()` auto-appends `"whyze"` to `present_characters` when caller omits. Matches the runtime-canonical convention used by every pre-Phase-5 `assemble_context` test and prevents Layer 5 mode-derivation mis-routing (`solo_pair` vs `group`) for two-woman domestic scenes.
+- **F3** (LOW): `NextSpeakerInput` gains `activity_context: str | None = None` field; `select_next_speaker()` adds Rule (7) narrative-salience (+0.05) when candidate is named in `scene_state.scene_description` or `activity_context`. Closes the `IMPLEMENTATION_PLAN_v7.1.md` §8 "current activity context" scoring-input gap.
+- 9 new regression tests (3 classifier shape, 2 integration F1/F2, 4 Rule 7 salience). Test baseline 737 → 746.
+
 ### Added (Phase 5: Scene Director)
 
 - `src/starry_lyfe/scene/` package — pre-assembly Scene Director implementing `Docs/IMPLEMENTATION_PLAN_v7.1.md` §8

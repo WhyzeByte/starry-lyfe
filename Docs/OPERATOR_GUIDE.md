@@ -431,16 +431,20 @@ from starry_lyfe.scene import classify_scene, SceneDirectorInput
 scene_state = classify_scene(
     SceneDirectorInput(
         user_message="adelia and bina are in the kitchen making dinner",
-        present_characters=["adelia", "bina"],
+        present_characters=["adelia", "bina", "whyze"],  # Whyze-included convention
         alicia_home=True,
     )
 )
-# scene_state is now a fully-populated SceneState ready for assemble_context().
+# scene_state.present_characters is ["adelia", "bina", "whyze"] and is ready
+# for assemble_context(). If the caller omits "whyze", the classifier
+# auto-appends it so downstream Layer 5 mode accumulation counts correctly.
 ```
 
 The classifier is rule-based — keyword tables for `CommunicationMode`, `SceneType`, and each of the seven `SceneModifiers` flags. Hints (`SceneDirectorHints`) always win over inference for callers that already know the answer (HTTP UI, tests).
 
-For Crew Conversations, `select_next_speaker(speaker_input)` scores present women per the Talk-to-Each-Other Mandate (Vision §6, §7), Rule of One, and dyad-state fitness (memory tier 4). Dyad state is injected via a `DyadStateProvider` Protocol — the production wiring uses `build_dyad_state_provider(rows)` to wrap a list returned by `_retrieve_internal_dyads()`.
+**Absent-dyad normalization:** when the message invokes an absent woman (e.g., "thinking about reina"), the modifier field `explicitly_invoked_absent_dyad` records the bare name, and `SceneState.recalled_dyads` is populated with the dyad-key shape `"<present_woman>-<absent_name>"` that Layer 6's `format_scene_blocks()` reads at `src/starry_lyfe/context/layers.py:535-541`.
+
+For Crew Conversations, `select_next_speaker(speaker_input)` scores present women per the Talk-to-Each-Other Mandate (Vision §6, §7), Rule of One, dyad-state fitness (memory tier 4), and narrative salience. The narrative-salience rule reads `scene_state.scene_description` and the optional `speaker_input.activity_context` (Phase 6 Dreams-sourced) — a candidate named in either receives a small score boost. Dyad state is injected via a `DyadStateProvider` Protocol — the production wiring uses `build_dyad_state_provider(rows)` to wrap a list returned by `_retrieve_internal_dyads()`.
 
 See [`Docs/_phases/PHASE_5.md`](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_5.md) for the full design (rules, weights, deferred items, known limitations).
 

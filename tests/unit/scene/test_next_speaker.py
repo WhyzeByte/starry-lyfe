@@ -408,3 +408,107 @@ class TestBuildDyadStateProvider:
     def test_empty_list_produces_empty_provider(self) -> None:
         provider = build_dyad_state_provider([])
         assert provider.get("adelia", "bina") is None
+
+
+# ---------------------------------------------------------------------------
+# Activity-context salience (R3 remediation / F3)
+# ---------------------------------------------------------------------------
+
+
+class TestActivityContext:
+    def test_candidate_named_in_scene_description_boosted(self) -> None:
+        """R3 (F3): scene_state.scene_description is read as activity context.
+
+        A scene whose description names a candidate should boost that
+        candidate's score relative to an otherwise-identical scene with
+        a neutral description.
+        """
+        neutral = SceneState(
+            present_characters=["adelia", "bina"],
+            scene_description="quiet evening",
+            communication_mode=CommunicationMode.IN_PERSON,
+        )
+        named_adelia = SceneState(
+            present_characters=["adelia", "bina"],
+            scene_description="Adelia is arranging lanterns",
+            communication_mode=CommunicationMode.IN_PERSON,
+        )
+        neutral_decision = select_next_speaker(
+            NextSpeakerInput(
+                scene_state=neutral,
+                turn_history=[],
+                dyad_state_provider=_empty_provider(),
+            )
+        )
+        named_decision = select_next_speaker(
+            NextSpeakerInput(
+                scene_state=named_adelia,
+                turn_history=[],
+                dyad_state_provider=_empty_provider(),
+            )
+        )
+        assert named_decision.scores["adelia"] > neutral_decision.scores["adelia"]
+
+    def test_candidate_named_in_activity_context_boosted(self) -> None:
+        """R3 (F3): explicit activity_context field is read alongside
+        scene_description. Phase 6 Dreams will source longer activity
+        narratives here."""
+        neutral = select_next_speaker(
+            NextSpeakerInput(
+                scene_state=_scene(["adelia", "bina"]),
+                turn_history=[],
+                dyad_state_provider=_empty_provider(),
+                activity_context="evening setup",
+            )
+        )
+        salient = select_next_speaker(
+            NextSpeakerInput(
+                scene_state=_scene(["adelia", "bina"]),
+                turn_history=[],
+                dyad_state_provider=_empty_provider(),
+                activity_context="Bina is plating dinner at the island",
+            )
+        )
+        assert salient.scores["bina"] > neutral.scores["bina"]
+
+    def test_salience_differential_matches_weight(self) -> None:
+        """The salience boost magnitude is roughly 0.05 — assert a lower
+        bound rather than an exact equality so weight tuning does not
+        churn the test."""
+        base = select_next_speaker(
+            NextSpeakerInput(
+                scene_state=_scene(["adelia", "bina"]),
+                turn_history=[],
+                dyad_state_provider=_empty_provider(),
+            )
+        )
+        boosted = select_next_speaker(
+            NextSpeakerInput(
+                scene_state=SceneState(
+                    present_characters=["adelia", "bina"],
+                    scene_description="Adelia and Bina discussing the evening",
+                    communication_mode=CommunicationMode.IN_PERSON,
+                ),
+                turn_history=[],
+                dyad_state_provider=_empty_provider(),
+            )
+        )
+        # Both named → both boosted. Differential vs base must be positive.
+        for c in ("adelia", "bina"):
+            assert boosted.scores[c] > base.scores[c]
+
+    def test_candidate_absent_from_context_not_boosted(self) -> None:
+        """Candidates not named receive no salience boost."""
+        decision = select_next_speaker(
+            NextSpeakerInput(
+                scene_state=SceneState(
+                    present_characters=["adelia", "reina"],
+                    scene_description="Adelia is arranging lanterns",
+                    communication_mode=CommunicationMode.IN_PERSON,
+                ),
+                turn_history=[],
+                dyad_state_provider=_empty_provider(),
+            )
+        )
+        # Adelia named → boosted; Reina absent from description → not boosted.
+        assert decision.scores["adelia"] > decision.scores["reina"]

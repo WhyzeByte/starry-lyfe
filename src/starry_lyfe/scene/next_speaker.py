@@ -43,6 +43,13 @@ _TENSION_WEIGHT = 0.05
 # Recency suppression
 _RECENCY_PENALTY = 0.05
 
+# Narrative salience (R3 remediation / F3 — IMPLEMENTATION_PLAN §8
+# "current activity context" as a scoring input). Small boost when the
+# candidate's name appears in the current scene description or in an
+# optional caller-provided activity_context (Phase 6 Dreams will source
+# longer-form activity narratives here).
+_ACTIVITY_SALIENCE_BOOST = 0.05
+
 # Stable tiebreak order — must match canonical character enumeration in
 # canon/schemas/enums.py (CharacterID). Used only when scores tie exactly.
 _STABLE_TIEBREAK_ORDER: tuple[str, ...] = ("adelia", "bina", "reina", "alicia")
@@ -74,19 +81,27 @@ class NextSpeakerInput:
 
     Attributes:
         scene_state: The classifier's output. Drives residence zero-out
-            and residence-aware communication-mode gating.
+            and residence-aware communication-mode gating. Also the
+            short-form activity context source (``scene_description``)
+            read by Rule 7 narrative salience.
         turn_history: Recent turns, caller-trimmed (the scoring function
             inspects at most the last 2 entries). Newer turns last.
         in_turn_already_spoken: For Crew-mode multi-speaker response
             bundles. Each character who already spoke in THIS turn is
             zeroed out (Rule of One).
         dyad_state_provider: Injected accessor for tier-4 dyad state.
+        activity_context: Optional longer-form activity narrative
+            (e.g., a Dreams-generated activity summary in Phase 6).
+            Read alongside ``scene_state.scene_description`` by Rule 7
+            (narrative salience). Default ``None`` keeps Phase 5
+            callers backwards-compatible.
     """
 
     scene_state: SceneState
     turn_history: list[TurnEntry]
     dyad_state_provider: DyadStateProvider
     in_turn_already_spoken: list[str] = field(default_factory=list)
+    activity_context: str | None = None
 
 
 @dataclass(frozen=True)
@@ -123,6 +138,9 @@ def select_next_speaker(speaker_input: NextSpeakerInput) -> NextSpeakerDecision:
     4. Woman-to-woman continuation: last turn was w2w → reward.
     5. Dyad-state fitness: intimacy and tension with other present women.
     6. Recency suppression: just spoke non-whyze → small penalty.
+    7. Narrative salience (R3): candidate named in scene_description or
+       activity_context → small boost. Implements the "current activity
+       context" scoring input from IMPLEMENTATION_PLAN §8.
 
     Returns the ``argmax``; ties broken by stable canonical ordering.
 
@@ -220,6 +238,22 @@ def select_next_speaker(speaker_input: NextSpeakerInput) -> NextSpeakerDecision:
             score -= _RECENCY_PENALTY
             reasons.append(
                 f"{candidate}: -{_RECENCY_PENALTY:.2f} (recency: just spoke)"
+            )
+
+        # (7) Narrative salience — implements IMPLEMENTATION_PLAN §8
+        # "current activity context" scoring input. Reads the short-form
+        # scene description AND the optional long-form activity_context
+        # (Phase 6 Dreams-sourced).
+        activity_blob = (
+            speaker_input.scene_state.scene_description
+            + " "
+            + (speaker_input.activity_context or "")
+        ).lower()
+        if candidate.lower() in activity_blob:
+            score += _ACTIVITY_SALIENCE_BOOST
+            reasons.append(
+                f"{candidate}: +{_ACTIVITY_SALIENCE_BOOST:.2f} "
+                f"(narrative salience: named in activity context)"
             )
 
         scores[candidate] = score

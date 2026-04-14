@@ -1014,6 +1014,8 @@ The Scene Director does NOT do classification on its own. The classification log
 - **Residence-aware turn roster for Alicia:** When Alicia is away on operations, she does not appear in scenes unless the scene is explicitly a phone call, video call, or letter — and Phase A'' communication-mode pruning then applies to her assembled prompt for that turn.
 - **Dyad state as a fitness input:** The scoring function uses dyad state (memory tier 4) as one input among several, including current activity context and recent turn history.
 
+**Phase 5 implementation note (SHIPPED 2026-04-14, remediation-1 2026-04-14):** `src/starry_lyfe/scene/select_next_speaker` wires all three §8 scoring inputs: dyad state via the injected `DyadStateProvider` (Protocol at `next_speaker.py`), recent turn history via `NextSpeakerInput.turn_history`, and current activity context via `scene_state.scene_description` (short form) plus `NextSpeakerInput.activity_context` (optional long form, to be populated by Phase 6 Dreams-generated activity narratives). See `Docs/_phases/PHASE_5.md` for the full scoring rule table, weights, and Codex Round 1 audit + remediation record.
+
 ---
 
 ## 9. Dreams Engine (Life Simulation)
