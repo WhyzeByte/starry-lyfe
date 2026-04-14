@@ -189,7 +189,7 @@ The backend runs as a service on Port 8001 and exposes the following responsibil
 - **Context Assembly:** COMPLETE as Phase 3. The execution phases under §4 shipped and now define the live seven-layer assembly path.
 - **Model Routing:** Architecture defined. Per-character inference parameters resolved at §6.
 - **Whyze-Byte Pipeline:** COMPLETE as Phase 4. Implementation lives at `src/starry_lyfe/validation/whyze_byte.py`; architecture remains documented at §7.
-- **Scene Director:** PLANNED as Phase 5. Architecture defined at §8. Phase F adds the scene type infrastructure that the Scene Director will consume.
+- **Scene Director:** COMPLETE as Phase 5. Implementation lives at `src/starry_lyfe/scene/`; `classify_scene()` handles front-door scene classification and `select_next_speaker()` handles Talk-to-Each-Other next-speaker scoring. Architecture remains documented at §8.
 - **Memory Service:** COMPLETE (Phases 1+2). Architecture defined at §5.
 - **Dreams Engine:** PLANNED as Phase 6. Architecture defined at §9.
 
@@ -999,13 +999,13 @@ The Scene Director is the next-speaker selection engine for multi-character scen
 
 ### Implementation Status
 
-**PLANNED** as Phase 5 of the overall backend build. Not yet implemented.
+**COMPLETE** as Phase 5 of the overall backend build. Shipped 2026-04-14. Runtime surface lives at `src/starry_lyfe/scene/`; the full phase record is `Docs/_phases/PHASE_5.md`.
 
 #### Phase F infrastructure (already specified under §4)
 
-Phase F adds the `SceneType` enum and `SceneModifiers` flag set to `types.py`. When Phase 5 is implemented, the Scene Director consumes this infrastructure: it classifies the current conversation state into a `SceneType` value and a set of active `SceneModifiers`, then passes that classification to the Context Assembly path for kernel section promotion (Phase F mapping table) and to the Whyze-Byte validator for constraint variant selection.
+Phase F added the `SceneType` enum and `SceneModifiers` flag set to `types.py`. Phase 5 consumes this infrastructure: it classifies the current conversation state into a `SceneType` value and a set of active `SceneModifiers`, then passes that classification to the Context Assembly path for kernel section promotion (Phase F mapping table) and to the Whyze-Byte validator for constraint variant selection.
 
-The Scene Director does NOT do classification on its own. The classification logic lives in `assembler.py` (or wherever the Scene Director ends up living) but the enum values and modifier definitions are in `types.py` so they are shared between assembly, validation, and routing.
+The shipped Scene Director splits classification and scoring into two modules: `src/starry_lyfe/scene/classifier.py` owns `classify_scene()` and `src/starry_lyfe/scene/next_speaker.py` owns `select_next_speaker()`. The enum values and modifier definitions remain in `context/types.py` so assembly, validation, and routing share the same scene substrate.
 
 #### Key Scene Director rules (from architecture)
 

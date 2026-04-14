@@ -43,9 +43,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Docs/_audits/PHASE_2_AUDIT_2026-04-13.md — full self-audit record
 - Docs/_phases/REMEDIATION_2026-04-13.md — approved remediation spec
 
-### Fixed (Phase 5 Round 2 remediation — closes Codex R2-F1/R2-F2)
+### Fixed (Phase 5 Round 3 direct doc remediation — closes Codex R3-F1/R3-F2)
 
-- **R2-F1** (MEDIUM): master-plan status drift. `Docs/IMPLEMENTATION_PLAN_v7.1.md` updated in four canonical status surfaces (status summary bullet :36, Vision Alignment matrix :74, Architectural Layers table :1450, "What This Plan Does Not Do" :1537) to reflect Phase 5 shipped state. Post-fix grep: zero remaining `Phase 5.*planned` occurrences.
+- **R3-F1** (MEDIUM): completed the remaining Phase 5 master-plan sync inside the live prose surfaces that Round 2 missed. `Docs/IMPLEMENTATION_PLAN_v7.1.md` now marks Scene Director complete in the §2 backend summary and the §8 Scene Director implementation-status block, and rewrites the stale pre-implementation classifier notes to match the shipped `src/starry_lyfe/scene/` surface.
+- **R3-F2** (LOW): corrected the Phase 5 remediation record so it no longer overclaims that Round 2 removed every remaining `Phase 5 planned` / `PLANNED` line. `Docs/_phases/PHASE_5.md` now records the Round 3 direct doc remediation explicitly, and the Round 2 narrative is narrowed to the four named status-surface updates it actually made.
+
+### Fixed (Phase 5 Round 2 remediation — closes Codex R2-F2 and partially closes R2-F1)
+
+- **R2-F1** (MEDIUM): master-plan status drift reduced. `Docs/IMPLEMENTATION_PLAN_v7.1.md` was updated in four canonical status surfaces (status summary bullet :36, Vision Alignment matrix :74, Architectural Layers table :1450, "What This Plan Does Not Do" :1537) to reflect Phase 5 shipped state. The remaining §2 / §8 prose drift was closed in Round 3.
 - **R2-F2** (LOW): `_detect_absent_dyads()` at `src/starry_lyfe/scene/classifier.py` now skips women whose names appear in `present_characters`. Phrases like `"thinking about adelia"` while Adelia is in the room are narrative color, not absent-dyad triggers. `_classify_modifiers()` + `classify_scene()` updated to thread `present_characters` through.
 - 2 new regression tests (Codex's exact live probe + mixed present/absent scene). Test baseline 746 → 748.
 
