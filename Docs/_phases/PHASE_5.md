@@ -3,8 +3,8 @@
 **Date opened:** 2026-04-14
 **Depends on:** Phase F (Scene-Aware Section Retrieval, SHIPPED 2026-04-13), Phase A'' (Communication-Mode-Aware Pruning, SHIPPED 2026-04-13), Phase F-Fidelity (Positive Fidelity Harness, SHIPPED 2026-04-14)
 **Replaces:** n/a — first implementation of `Docs/IMPLEMENTATION_PLAN_v7.1.md` §8 (Scene Director)
-**Status:** SHIPPED 2026-04-14 (remediation-1 2026-04-14 closes Codex Round 1 F1/F2/F3)
-**Last touched:** 2026-04-14 by Claude Code (remediation-1)
+**Status:** SHIPPED 2026-04-14 (R1 2026-04-14 closes Codex Round 1 F1/F2/F3; R2 2026-04-14 closes Codex Round 2 R2-F1/R2-F2)
+**Last touched:** 2026-04-14 by Claude Code (remediation-2)
 
 ---
 
@@ -422,3 +422,122 @@ The Phase 5 surface is real and the package is broadly well-structured, but the 
 **Date closed:** 2026-04-14
 
 **Lessons for the next phase:** Codex red-team live probes caught two defects (F1, F2) that the original test suite missed because the suite did not exercise the full classifier-to-assembler path. Next phase should include at least one end-to-end regression per documented public-API contract, not just a unit test per rule. The classifier-as-normalizer pattern (F1 dyad-key shape, F2 whyze-append) is the right architecture: keep downstream consumers strict about shape, let the front-door layer absorb caller-shape variance.
+
+---
+
+## 13. Round 2 Audit (2026-04-14)
+
+**Author:** Codex
+**Scope:** Re-audit of Round 1 remediation for F1/F2/F3 across `src/starry_lyfe/scene/classifier.py`, `src/starry_lyfe/scene/next_speaker.py`, `tests/unit/scene/`, `tests/integration/test_scene_director_to_assembler.py`, `Docs/OPERATOR_GUIDE.md`, and `Docs/IMPLEMENTATION_PLAN_v7.1.md`.
+
+### Verification context
+
+- `pytest tests/unit/scene tests/integration/test_scene_director_to_assembler.py -q` -> **79 passed**
+- `pytest -q` with `STARRY_LYFE__TEST__REQUIRE_POSTGRES=1` -> **746 passed**
+- `ruff check src tests` -> clean
+- `python -m mypy src` -> clean
+
+### Executive assessment
+
+The Round 1 remediation is real and it closes the three original audit findings. The absent-dyad path now reaches Layer 6 end-to-end, the `present_characters` contract is normalized at the classifier boundary, and next-speaker scoring now consumes activity context. Two smaller issues remain: the canonical master plan still contradicts the shipped Phase 5 state in several status/index sections, and the absent-dyad detector can still falsely mark a present woman as "absent" when her name appears in an absent-dyad phrase.
+
+### Findings
+
+| ID | Severity | Finding | Evidence | Recommended remediation |
+|----|----------|---------|----------|-------------------------|
+| R2-F1 | Medium | The canonical master plan still contradicts the shipped Phase 5 state. | `Docs/IMPLEMENTATION_PLAN_v7.1.md:36`, `:74`, `:1450`, and `:1537` still mark Scene Director / Phase 5 as planned or not implemented, even though `Docs/_phases/PHASE_5.md` is shipped and `Docs/IMPLEMENTATION_PLAN_v7.1.md:1017` now carries a shipped implementation note. Because `AGENTS.md` treats the master plan as canonical, this is still control-plane drift. | Update the master-plan status tables and scope notes so every Phase 5 status surface agrees that Scene Director is shipped. |
+| R2-F2 | Low | `_detect_absent_dyads()` can falsely classify a present woman as absent. | Live probe: `classify_scene(SceneDirectorInput(user_message='thinking about adelia while adelia and bina are in the kitchen', present_characters=['adelia', 'bina']))` returned `explicitly_invoked_absent_dyad={'adelia'}` and `recalled_dyads={'bina-adelia'}` even though Adelia is present. The detector at `src/starry_lyfe/scene/classifier.py:253-268` scans text for names but does not subtract `present_characters`. Current regression coverage in `tests/unit/scene/test_classifier.py:322-336` proves positive detection only; it does not assert that present women never appear in absent-dyad fields. | Filter `_detect_absent_dyads()` or the normalization step against the actually-present women, and add a regression that proves present women cannot appear in absent-dyad outputs. |
+
+### Runtime probe summary
+
+1. Original F1 live path is fixed: `classify_scene(... 'thinking about reina' ...)` now emits `recalled_dyads={'adelia-reina'}` for Adelia scenes, and the integration regression renders the internal-dyad prose in Layer 6.
+2. Original F2 live path is fixed: the documented public API shape `present_characters=['adelia', 'bina']` now normalizes to `['adelia', 'bina', 'whyze']` and yields `['domestic', 'group']`, not `['domestic', 'solo_pair']`.
+3. Original F3 contract is fixed: `NextSpeakerInput.activity_context` exists and the checked-in `test_next_speaker.py` coverage proves the salience boost fires from both `scene_description` and `activity_context`.
+4. New probe: absent-dyad false positives are still possible when an "absent" name is also listed in `present_characters`.
+
+### Drift against specification
+
+- Round 1 remediation aligns the live code with the original three Codex findings.
+- The remaining spec drift is documentation-level: the master plan still exports stale "Phase 5 planned" status in multiple canonical summary sections.
+
+### Verified resolved
+
+- F1 absent-dyad normalization is implemented in `classifier.py` and verified end-to-end by `tests/integration/test_scene_director_to_assembler.py`.
+- F2 `present_characters` normalization is implemented at the classifier boundary and verified by unit + integration coverage.
+- F3 activity-context scoring is implemented in `next_speaker.py` and covered by the new `TestActivityContext` unit tests.
+
+### Recommended remediation order
+
+1. Fix the master-plan Phase 5 status drift (R2-F1).
+2. Tighten absent-dyad detection so present women cannot be mislabeled absent (R2-F2).
+
+### Gate recommendation
+
+**PASS WITH MINOR FIXES.** The original Phase 5 remediation is technically successful and the repo is green, but the canonical status surfaces still need cleanup and there is one remaining low-blast-radius classifier semantic bug.
+
+---
+
+## 14. Round 2 Remediation (2026-04-14)
+
+**Author:** Claude Code under Project Owner direct-remediation authority
+**Plan:** `C:\Users\Whyze\.claude\plans\fizzy-napping-whisper.md` (approved 2026-04-14, Round 2 revision)
+**Commit:** `fix(phase_5): Round 2 remediation — close R2-F1/R2-F2 from Codex re-audit`
+
+### Fixes landed
+
+**R2-F1 — master-plan status sync (MEDIUM)**
+
+Four canonical status surfaces in `Docs/IMPLEMENTATION_PLAN_v7.1.md` updated to reflect the shipped Phase 5 state:
+
+- `:36` (status summary bullet list) — `Phase 5 (Scene Director) — PLANNED` → `COMPLETE. Shipped 2026-04-14 (Round 1 remediation 2026-04-14, Round 2 remediation 2026-04-14)` with pointer to runtime surface and `PHASE_5.md`.
+- `:74` (Vision Alignment matrix) — `(Phase 5 planned; Phase F adds scene type infrastructure)` → `Phase 5 (complete)`.
+- `:1450` (Architectural Layers table) — `PLANNED (Phase 5)` → `COMPLETE (Phase 5)` with updated note explaining the Scene Director consumes Phase F infrastructure.
+- `:1537` (What This Plan Does Not Do) — the `"It does not implement the Scene Director (Phase 5)"` bullet dropped entirely. The "does not do" list is a live scope contract, not a historical log; Phase 5's shipping is already recorded in the status summary (§36) and in §8's implementation note (:1017).
+
+Post-fix grep confirms zero remaining `Phase 5.*planned` occurrences in the master plan.
+
+**R2-F2 — classifier false-positive on present women (LOW)**
+
+`_detect_absent_dyads()` at `src/starry_lyfe/scene/classifier.py` now skips women whose names appear in `present_characters` before the keyword scan. Phrases like `"thinking about adelia"` while Adelia is in the room are narrative color, not a recall-absent-dyad trigger.
+
+- Signature change: `_detect_absent_dyads(text: str, present_characters: list[str])`.
+- `_classify_modifiers()` threads `present_characters` through; `classify_scene()` passes `director_input.present_characters`.
+- Hint override path (`hints.forced_modifiers`) still wholly replaces inference, preserving R1 AC-5.5 (caller's explicit intent wins).
+
+Two regression tests added at `tests/unit/scene/test_classifier.py::TestModifiersInference`:
+
+- `test_present_woman_not_marked_absent_even_when_mentioned` — Codex's exact live probe. Post-fix: `explicitly_invoked_absent_dyad=frozenset()`, `recalled_dyads=set()`.
+- `test_mixed_present_and_absent_only_absent_in_recall` — mixed scene (Adelia present but mentioned + Reina absent). Only Reina lands in the modifier/recalled sets.
+
+### Verification
+
+- `pytest tests/unit tests/integration tests/fidelity -q` → **748 passed** (+2 vs 746 Round 1 baseline).
+- `ruff check src tests` → clean.
+- `mypy --strict src` → clean.
+- Live probe post-fix: `classify_scene(user_message="thinking about adelia while adelia and bina are in the kitchen", present_characters=["adelia", "bina"])` returns `explicitly_invoked_absent_dyad=frozenset()` as expected.
+- Master-plan grep: no remaining `Phase 5.*planned` / `PLANNED` matches.
+
+### Updated acceptance criteria
+
+| AC | Description | Status |
+|----|-------------|--------|
+| AC-R2.1 | `_detect_absent_dyads(text, present_characters)` skips present women | PASS |
+| AC-R2.2 | Codex live probe returns empty absent-dyad fields | PASS |
+| AC-R2.3 | Mixed scene returns only truly-absent women | PASS |
+| AC-R2.4 | `hints.forced_modifiers` still wholly overrides inference (R1 AC-5.5 preserved) | PASS |
+| AC-R2.5 | All 4 master-plan lines updated; no remaining "Phase 5 planned" | PASS |
+| AC-R2.6 | `PHASE_5.md` §14 Round 2 block records R2-F1 + R2-F2 fixes | PASS |
+| AC-R2.7 | 746 pre-R2 tests still pass; 2 new regressions added (748 total) | PASS |
+| AC-R2.8 | ruff + mypy --strict clean | PASS |
+| AC-R2.9 | CHANGELOG + CLAUDE.md + memory index all reflect R2 landing | PASS |
+
+### Updated closing block
+
+**Final status:** SHIPPED 2026-04-14 (feat commit `fc9b3ed` + R1 commit `90c4d82` + R2 commit)
+**Total cycle rounds:** 3 (1 ship + 2 Codex audits + 2 remediations)
+**Total commits:** 3 (fc9b3ed + 90c4d82 + R2)
+**Total tests added:** 97 (86 original + 9 R1 + 2 R2)
+**Date opened:** 2026-04-14
+**Date closed:** 2026-04-14
+
+**Lessons for the next phase:** A passing gate ("PASS WITH MINOR FIXES") is not a skip signal — the master plan is canonical per AGENTS.md, and doc drift in canonical surfaces is control-plane noise that propagates. When landing a phase, sweep every status surface (summary bullets, vision matrix, architectural layers table, "does not do" scope contract) in a single pass. For rule-based detectors that scan user-supplied text, always subtract the narrow context (present_characters) from the wide pattern space before claiming detection — "does the phrase appear in text" is not equivalent to "is this claim true about the scene."

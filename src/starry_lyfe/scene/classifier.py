@@ -158,7 +158,9 @@ def classify_scene(director_input: SceneDirectorInput) -> SceneState:
     scene_type = _classify_scene_type(text, women_present, director_input.hints)
 
     # (4) SceneModifiers
-    modifiers = _classify_modifiers(text, director_input.hints)
+    modifiers = _classify_modifiers(
+        text, director_input.hints, director_input.present_characters
+    )
 
     # (5) scene_description
     scene_description = _synthesize_scene_description(director_input.user_message, director_input.hints)
@@ -236,7 +238,11 @@ def _classify_scene_type(
     return SceneType.DOMESTIC
 
 
-def _classify_modifiers(text: str, hints: SceneDirectorHints) -> SceneModifiers:
+def _classify_modifiers(
+    text: str,
+    hints: SceneDirectorHints,
+    present_characters: list[str],
+) -> SceneModifiers:
     if hints.forced_modifiers is not None:
         # Hints wholly replace inference (never merged). Caller is explicit.
         return hints.forced_modifiers
@@ -245,21 +251,33 @@ def _classify_modifiers(text: str, hints: SceneDirectorHints) -> SceneModifiers:
         flag: any(p in text for p in patterns)
         for flag, patterns in _MODIFIER_KEYWORDS.items()
     }
-    flags["explicitly_invoked_absent_dyad"] = _detect_absent_dyads(text)
+    flags["explicitly_invoked_absent_dyad"] = _detect_absent_dyads(
+        text, present_characters
+    )
 
     return SceneModifiers(**flags)  # type: ignore[arg-type]
 
 
-def _detect_absent_dyads(text: str) -> frozenset[str]:
+def _detect_absent_dyads(
+    text: str, present_characters: list[str]
+) -> frozenset[str]:
     """Scan for named-absent-pair mentions like 'missing reina'.
 
     Returns BARE NAMES of the absent characters (e.g. ``{"reina"}``).
     ``_to_dyad_keys`` below normalizes this to the dyad-key shape
     (``{"adelia-reina"}``) that Layer 6 consumes. The modifier field keeps
     bare names so the semantic "who was invoked" data stays readable.
+
+    R2 remediation (R2-F2): a woman who appears in ``present_characters``
+    is NOT absent. Phrases like "thinking about adelia" while Adelia is
+    in the room are narrative color, not a recall-absent-dyad trigger.
     """
+    present_set = {c.lower() for c in present_characters}
     hits: set[str] = set()
     for name in _CANONICAL_WOMEN:
+        if name in present_set:
+            # Present women cannot be "absent". Skip before keyword scan.
+            continue
         for pattern in _ABSENT_DYAD_PATTERNS:
             needle = pattern.format(name=name)
             if needle in text:

@@ -380,7 +380,7 @@ These corrections override any conflicting content in project files. Apply befor
 
 ## 19. CURRENT PHASE STATUS (2026-04-14)
 
-**Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13), F (2026-04-13), G (2026-04-13), J.1–J.4 (2026-04-13), H (2026-04-13), K (2026-04-13), Phase 4 (Whyze-Byte Validation Pipeline, 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, 2026-04-14), Phase 5 (Scene Director, 2026-04-14; Round 1 remediation 2026-04-14 closes Codex F1/F2/F3). Lettered-phase remediation complete (2026-04-13). Phase doc housekeeping (PHASE_I closure + PHASE_J retrospective + 5 closing blocks finalized) complete (2026-04-14).
+**Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13), F (2026-04-13), G (2026-04-13), J.1–J.4 (2026-04-13), H (2026-04-13), K (2026-04-13), Phase 4 (Whyze-Byte Validation Pipeline, 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, 2026-04-14), Phase 5 (Scene Director, 2026-04-14; R1 2026-04-14 closes Codex F1/F2/F3; R2 2026-04-14 closes Codex R2-F1/R2-F2). Lettered-phase remediation complete (2026-04-13). Phase doc housekeeping (PHASE_I closure + PHASE_J retrospective + 5 closing blocks finalized) complete (2026-04-14).
 **Next phase:** Phase 6 (Dreams Engine).
 
 ### Project-wide Quality Directive (Project Owner, 2026-04-13)
@@ -482,7 +482,7 @@ Removed: `Vision/{Adelia Raye,Alicia Marin,Bina Malek,Reina Torres}.md`, `Docs/_
 
 ### Test baseline
 
-**746 passed, 0 failed** as of 2026-04-14 post-Phase-5 Round 1 remediation (614 unit + 71 scene unit + 8 scene integration + 37 fidelity + 16 absorbed coverage improvements). 9 new regression tests closed Codex F1/F2/F3. ruff clean. mypy `--strict` clean.
+**748 passed, 0 failed** as of 2026-04-14 post-Phase-5 Round 2 remediation (614 unit + 73 scene unit + 8 scene integration + 37 fidelity + 16 absorbed coverage improvements). 9 tests closed Codex F1/F2/F3 in R1; 2 more closed R2-F1/R2-F2 in R2. ruff clean. mypy `--strict` clean.
 
 ### Phase 2 end audit (2026-04-13)
 
@@ -518,7 +518,7 @@ See `Docs/_audits/PHASE_2_AUDIT_2026-04-13.md` and `Docs/_phases/REMEDIATION_202
 **Shipped architectural phases:**
 - Phase 4: Whyze-Byte Validation Pipeline — SHIPPED 2026-04-13 (`src/starry_lyfe/validation/whyze_byte.py`)
 - Phase F-Fidelity: Positive Fidelity Test Harness — SHIPPED 2026-04-14 (`src/starry_lyfe/validation/fidelity.py`, `tests/fidelity/`). Closes Vision V6 (Cognitive Hand-Off Integrity) with positive rubrics per character. 7 rubric dimensions × 4 characters = 28 rubrics; 12 scene YAMLs; 37 parametrized fidelity test cases. Spec: `Docs/_phases/PHASE_F_FIDELITY.md`.
-- Phase 5: Scene Director — SHIPPED 2026-04-14 + Round 1 remediation 2026-04-14 (`src/starry_lyfe/scene/`). Pre-assembly module: rule-based `classify_scene()` builds `SceneState` from caller inputs (auto-appends Whyze to `present_characters`, normalizes `recalled_dyads` to dyad-key shape); `select_next_speaker()` implements Talk-to-Each-Other Mandate scoring with dyad-state fitness via injected `DyadStateProvider` and narrative-salience reading `scene_description` + optional `activity_context`. 6 module files + 79 tests. Spec: `Docs/_phases/PHASE_5.md` (includes Codex Round 1 audit + remediation record).
+- Phase 5: Scene Director — SHIPPED 2026-04-14 + R1 2026-04-14 (closes Codex F1/F2/F3) + R2 2026-04-14 (closes Codex R2-F1/R2-F2). `src/starry_lyfe/scene/`. Pre-assembly module: rule-based `classify_scene()` builds `SceneState` from caller inputs (auto-appends Whyze to `present_characters`, normalizes `recalled_dyads` to dyad-key shape, skips present women in absent-dyad detection); `select_next_speaker()` implements Talk-to-Each-Other Mandate scoring with dyad-state fitness via injected `DyadStateProvider` and narrative-salience reading `scene_description` + optional `activity_context`. 6 module files + 81 tests. Spec: `Docs/_phases/PHASE_5.md` (includes Codex Round 1 + Round 2 audit + remediation records).
 
 **Planned:**
 - Phase 6: Dreams Engine

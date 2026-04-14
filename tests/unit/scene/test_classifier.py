@@ -336,6 +336,45 @@ class TestModifiersInference:
         # For absent={"reina", "bina"}, emit {"adelia-reina", "adelia-bina"}.
         assert state.recalled_dyads == {"adelia-reina", "adelia-bina"}
 
+    def test_present_woman_not_marked_absent_even_when_mentioned(self) -> None:
+        """R2 remediation (R2-F2): a woman listed in present_characters
+        cannot appear in absent-dyad outputs, even when her name matches
+        an absent-dyad phrase.
+
+        Codex live probe: "thinking about adelia while adelia and bina
+        are in the kitchen" with present_characters=["adelia", "bina"]
+        previously returned {"adelia"} as absent. Post-fix: empty set.
+        """
+        state = classify_scene(
+            SceneDirectorInput(
+                user_message="thinking about adelia while adelia and bina are in the kitchen",
+                present_characters=["adelia", "bina"],
+            )
+        )
+        assert state.modifiers.explicitly_invoked_absent_dyad == frozenset()
+        assert state.recalled_dyads == set()
+
+    def test_mixed_present_and_absent_only_absent_in_recall(self) -> None:
+        """R2 remediation (R2-F2): in a mixed scene (some present women
+        mentioned as narrative color, one truly absent woman recalled),
+        only the truly-absent woman lands in the absent-dyad outputs."""
+        state = classify_scene(
+            SceneDirectorInput(
+                user_message=(
+                    "adelia is in the kitchen, thinking about adelia, "
+                    "missing reina who's at court"
+                ),
+                present_characters=["adelia"],
+            )
+        )
+        # Adelia is present → not absent, even though "thinking about
+        # adelia" matches the pattern.
+        assert "adelia" not in state.modifiers.explicitly_invoked_absent_dyad
+        # Reina is truly absent → she lands in the set.
+        assert state.modifiers.explicitly_invoked_absent_dyad == frozenset({"reina"})
+        # Dyad-key normalization against present women (just Adelia).
+        assert state.recalled_dyads == {"adelia-reina"}
+
     def test_hint_forced_modifiers_wholly_replaces(self) -> None:
         """hints.forced_modifiers wholly replaces inference — never merged."""
         forced = SceneModifiers(silent_register_active=True)

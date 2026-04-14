@@ -33,7 +33,7 @@ As of 2026-04-13, the backend is substantially implemented:
 - **Phase 2 (Memory Service) — COMPLETE.** Seven memory tiers in PostgreSQL schema `starry_lyfe`, pgvector HNSW for episodic memories, exponential decay for Tier 7, Alicia-orbital dyad persistence logic.
 - **Phase 3 (Context Assembly) — COMPLETE.** All execution phases shipped: Phase 0 (canon verification), A (structure-preserving compilation), A' (runtime correctness), A'' (communication-mode pruning), B (budget elevation), I (authority split), C (soul cards), D (live pair data), E (voice exemplar restoration), F (scene-aware section retrieval + dormant VoiceMode closure), G (dramaturgical prose rendering), J.1-J.4 (per-character remediation), H (soul regression tests), K (subjective success proxies). Runtime surface: `kernel_loader.py`, `layers.py`, `assembler.py`, `budgets.py`, `constraints.py`, `prose.py`. Test suite at 556 passing as of commit `583a68e` (2026-04-13). See `Docs/OPERATOR_GUIDE.md` for the runtime pipeline walkthrough.
 - **Phase 4 (Whyze-Byte Validation Pipeline) — COMPLETE.** Implementation at `src/starry_lyfe/validation/whyze_byte.py` with test suite at `tests/unit/test_whyze_byte.py`. Shipped 2026-04-13.
-- **Phase 5 (Scene Director) — PLANNED.** Architecture defined in §8. Phase F scene type infrastructure (`SceneType` enum, `SceneModifiers` dataclass, `scene_type_to_promoted_sections()`) is ready for the Scene Director to consume. This is the next phase.
+- **Phase 5 (Scene Director) — COMPLETE.** Shipped 2026-04-14 (Round 1 remediation 2026-04-14, Round 2 remediation 2026-04-14) at `src/starry_lyfe/scene/`. Classifier (`classify_scene`) + next-speaker scoring (`select_next_speaker`) fully wired against Phase F scene-type infrastructure. See `Docs/_phases/PHASE_5.md` for the full spec, Codex audit, and remediation record.
 - **Phase 6 (Dreams Engine) — PLANNED.** Architecture defined in §9.
 - **Phase 7 (HTTP service on port 8001) — PLANNED.** Service surface defined in §2.
 
@@ -71,7 +71,7 @@ Every architectural section and every execution phase in this plan must be trace
 | §5 Memory Service | (Phase 1+2 complete) | §6 Relationship Architecture, §7 Behavioral Thesis |
 | §6 Inference Layer | (resolved) | §8 System Architecture |
 | §7 Whyze-Byte Pipeline | Phase 4 (complete) | §7 Behavioral Thesis (cognitive hand-off contract) |
-| §8 Scene Director | (Phase 5 planned; Phase F adds scene type infrastructure) | §6 Relationship Architecture (Rule of One, Talk-to-Each-Other) |
+| §8 Scene Director | Phase 5 (complete) | §6 Relationship Architecture (Rule of One, Talk-to-Each-Other) |
 | §9 Dreams Engine | (Phase 6 planned) | §6 Relationship Architecture (decentralized narrative weight) |
 | §10 End-to-End Request Flow | (synthesis of all subsystems) | §8 System Architecture |
 | §11 Per-Character Remediation | Phase J (J.1, J.2, J.3, J.4) | §5 Chosen Family (non-redundancy guarantee) |
@@ -1447,7 +1447,7 @@ Layered top-down, the backend looks like this:
 | **Context assembly layer** | Seven-layer prompt builder with terminal constraint anchoring | COMPLETE | **Phase A, A', A'', B, D, E, F, G — eight phases, the bulk of the soul preservation work** |
 | **Routing layer** | Claude (Sonnet/Opus) via OpenRouter with per-character inference parameters | DEFINED | (Alicia parameters resolved; no execution phase) |
 | **Validation layer** | Two-tier Whyze-Byte pipeline with sequential multi-speaker gating | COMPLETE (Phase 4) | Phase A'' communication-mode constraints are part of the validator contract |
-| **Orchestration layer** | Scene Director for next-speaker selection in Crew mode | PLANNED (Phase 5) | Phase F adds scene type infrastructure that the Scene Director will consume |
+| **Orchestration layer** | Scene Director for next-speaker selection in Crew mode | COMPLETE (Phase 5) | Consumes Phase F scene type infrastructure; rule-based classifier + Talk-to-Each-Other scoring |
 | **Simulation layer** | Nightly Dreams batch process for life continuity | PLANNED (Phase 6) | Phase G, A'', H apply retroactively when Dreams is implemented |
 | **Service surface** | HTTP service on port 8001, consumed by Msty | PLANNED (Phase 7) | Phase I (authority split: Msty system prompts blank in production) |
 | **Per-character remediation** | Soul cards, voice mode coverage, regression bundles | NEW | **Phase J.1, J.2, J.3, J.4** |
@@ -1534,7 +1534,6 @@ If a character kernel and the Vision disagree, the kernel wins (it is closer to 
 
 This plan is explicit about its scope to prevent scope creep:
 
-- **It does not implement the Scene Director (Phase 5).** Architecture is defined at §8. Phase F adds the scene type infrastructure the Scene Director will consume.
 - **It does not implement the Dreams engine (Phase 6).** Architecture is defined at §9. Phases G, A'', H apply retroactively when Dreams ships.
 - **It does not implement the HTTP service on port 8001 (Phase 7).** Service surface is defined at §2.
 - **It does not author the soul card content.** Phase C ships placeholder soul cards that fail validation tests; the 500-700 token distillations are human authoring work for the project owner. Validation tests will fail until the content is authored.

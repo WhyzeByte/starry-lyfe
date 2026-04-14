@@ -43,6 +43,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Docs/_audits/PHASE_2_AUDIT_2026-04-13.md — full self-audit record
 - Docs/_phases/REMEDIATION_2026-04-13.md — approved remediation spec
 
+### Fixed (Phase 5 Round 2 remediation — closes Codex R2-F1/R2-F2)
+
+- **R2-F1** (MEDIUM): master-plan status drift. `Docs/IMPLEMENTATION_PLAN_v7.1.md` updated in four canonical status surfaces (status summary bullet :36, Vision Alignment matrix :74, Architectural Layers table :1450, "What This Plan Does Not Do" :1537) to reflect Phase 5 shipped state. Post-fix grep: zero remaining `Phase 5.*planned` occurrences.
+- **R2-F2** (LOW): `_detect_absent_dyads()` at `src/starry_lyfe/scene/classifier.py` now skips women whose names appear in `present_characters`. Phrases like `"thinking about adelia"` while Adelia is in the room are narrative color, not absent-dyad triggers. `_classify_modifiers()` + `classify_scene()` updated to thread `present_characters` through.
+- 2 new regression tests (Codex's exact live probe + mixed present/absent scene). Test baseline 746 → 748.
+
 ### Fixed (Phase 5 Round 1 remediation — closes Codex F1/F2/F3)
 
 - **F1** (HIGH): classifier-inferred absent dyads now normalize to `"<W>-<N>"` dyad-key shape (via `_to_dyad_keys()` in `classifier.py`) so `layers.format_scene_blocks()` actually renders the internal-dyad prose in Layer 6. Pre-remediation: classifier emitted bare names that Layer 6's string-equality check could not match.
