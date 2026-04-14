@@ -1,6 +1,6 @@
 """R-2.2 remediation: decay_config must be complete or raise.
 
-Spec: Docs/REMEDIATION_2026-04-13.md §2.R-2.2.
+Spec: Docs/_phases/REMEDIATION_2026-04-13.md §2.R-2.2.
 
 The fetch_decayed_somatic_state retrieval path previously used
 dict.get(key, default) fallbacks, which silently served default decay

@@ -378,9 +378,9 @@ These corrections override any conflicting content in project files. Apply befor
 
 ---
 
-## 19. CURRENT PHASE STATUS (2026-04-12)
+## 19. CURRENT PHASE STATUS (2026-04-14)
 
-**Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13), F (2026-04-13), G (2026-04-13), J.1–J.4 (2026-04-13), H (2026-04-13), K (2026-04-13), Phase 4/Whyze-Byte (2026-04-13). Lettered-phase remediation complete (2026-04-13).
+**Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13), F (2026-04-13), G (2026-04-13), J.1–J.4 (2026-04-13), H (2026-04-13), K (2026-04-13), Phase 4 (Whyze-Byte Validation Pipeline, 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, 2026-04-14). Lettered-phase remediation complete (2026-04-13). Phase doc housekeeping (PHASE_I closure + PHASE_J retrospective + 5 closing blocks finalized) complete (2026-04-14).
 **Next phase:** Phase 5 (Scene Director).
 
 ### Project-wide Quality Directive (Project Owner, 2026-04-13)
@@ -482,7 +482,7 @@ Removed: `Vision/{Adelia Raye,Alicia Marin,Bina Malek,Reina Torres}.md`, `Docs/_
 
 ### Test baseline
 
-**556 passed, 0 failed** as of 2026-04-13 post-Phase-2 audit remediation (541 pre-audit + 15 new tests covering C1-C4 fixes and new prose/whyze_byte modules). ruff clean. mypy `--strict` clean.
+**651 passed, 0 failed** as of 2026-04-14 post-Phase-F-Fidelity ship (614 unit + 37 parametrized fidelity cases across 4 characters × 12 scenes × 7 rubric dimensions). ruff clean. mypy `--strict` clean.
 
 ### Phase 2 end audit (2026-04-13)
 
@@ -494,7 +494,11 @@ Full audit report: `Docs/_audits/PHASE_2_AUDIT_2026-04-13.md`. Drift audit of 4 
 - **C3** — `load_all_canon(validate=True)` by default. Validator refactored to accept a `Canon` parameter for recursion safety. Invalid canon now fails loud at startup.
 - **C4** — `assert_complete_character_coverage()` helper (in `canon/schemas/enums.py`) wired at module load in 6 locations: `budgets.py`, `kernel_loader.py`, `pairs_loader.py`, `prose.py`, `constraints.py`, `soul_essence.py`. `canonical_women` in constraints.py now derived from `CharacterID` enum.
 
-**Deferred findings (not blocking):** H1-H5 (silent fallback cleanup), M1-M4 (doc/type polish), L1-L2 (dead branches). See audit report.
+**Tier 2 (High) findings — all SHIPPED 2026-04-13/14:** H1-H5 silent-fallback cleanup (custom exceptions `SoulEssenceNotFoundError`, `CanonValidationError`, `DecayConfigIncompleteError`, `CharacterNotFoundError` replace silent fallbacks / generic `ValueError`).
+
+**Tier 4 (Polish) findings — all SHIPPED 2026-04-13/14:** M1-M4 (doc/type polish) and L1 (dead-branch removal). **L2 deferred only** pending a follow-up review of dead-branch detection in `prose.py` (non-blocking for Phase 5).
+
+See `Docs/_audits/PHASE_2_AUDIT_2026-04-13.md` and `Docs/_phases/REMEDIATION_2026-04-13.md` for full remediation record.
 
 ### Operator guide
 
@@ -513,6 +517,7 @@ Full audit report: `Docs/_audits/PHASE_2_AUDIT_2026-04-13.md`. Drift audit of 4 
 
 **Shipped architectural phases:**
 - Phase 4: Whyze-Byte Validation Pipeline — SHIPPED 2026-04-13 (`src/starry_lyfe/validation/whyze_byte.py`)
+- Phase F-Fidelity: Positive Fidelity Test Harness — SHIPPED 2026-04-14 (`src/starry_lyfe/validation/fidelity.py`, `tests/fidelity/`). Closes Vision V6 (Cognitive Hand-Off Integrity) with positive rubrics per character. 7 rubric dimensions × 4 characters = 28 rubrics; 12 scene YAMLs; 37 parametrized fidelity test cases. Spec: `Docs/_phases/PHASE_F_FIDELITY.md`.
 
 **Planned:**
 - Phase 5: Scene Director — consumes Phase F scene type infrastructure

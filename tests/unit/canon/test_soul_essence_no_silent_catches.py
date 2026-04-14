@@ -1,6 +1,6 @@
 """Regression: SoulEssenceNotFoundError must never be silently caught.
 
-Spec: Docs/REMEDIATION_2026-04-13.md §1.R-1.1 acceptance criterion:
+Spec: Docs/_phases/REMEDIATION_2026-04-13.md §1.R-1.1 acceptance criterion:
   "grep the codebase for `except SoulEssenceNotFoundError` and assert
   every match is annotated with a rationale comment."
 

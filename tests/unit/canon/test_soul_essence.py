@@ -1,6 +1,6 @@
 """Tests for soul essence formatting and validation (R-1.1 remediation).
 
-Spec: Docs/REMEDIATION_2026-04-13.md §1.R-1.1.
+Spec: Docs/_phases/REMEDIATION_2026-04-13.md §1.R-1.1.
 Canonical location per spec acceptance criteria.
 """
 

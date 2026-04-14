@@ -41,7 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `_assert_complete_character_keys()` helper wired at module-load in 6 modules (budgets, kernel_loader, pairs_loader, prose, constraints, soul_essence)
 - Post-assembly Layer 1 / Layer 6 budget reconciliation warnings
 - Docs/_audits/PHASE_2_AUDIT_2026-04-13.md — full self-audit record
-- Docs/REMEDIATION_2026-04-13.md — approved remediation spec
+- Docs/_phases/REMEDIATION_2026-04-13.md — approved remediation spec
 
 ### Added (Phase F-Fidelity: Positive Fidelity Test Harness)
 

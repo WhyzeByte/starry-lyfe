@@ -189,7 +189,7 @@ This confirms the rubric correctly flags pair-name drift (e.g., "Entangled Pair"
 **Lessons for the next phase:** The rubric YAML pattern (per-character canonical markers + anti-patterns + required structural) is reusable for future fidelity expansions — dynamic LLM-output scoring (deferred per spec §8) can layer on the same rubric data, swapping the prompt-text input for model output. The static-only scope kept the phase shippable in a single commit; deferring dynamic scoring was the right call to avoid scope creep into LLM judgment.
 
 **Cross-references:**
-- Spec source: `Docs/REMEDIATION_2026-04-13.md` §5.R-5.1
+- Spec source: `Docs/_phases/REMEDIATION_2026-04-13.md` §5.R-5.1
 - Original Phase F: `Docs/_phases/PHASE_F.md` (Scene-Aware Section Retrieval, distinct work)
 - Negative-filter complement: `src/starry_lyfe/validation/whyze_byte.py`
 - Vision invariant V6 mapping: §7 above

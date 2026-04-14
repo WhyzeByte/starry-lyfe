@@ -1,6 +1,6 @@
 """R-1.1 integration acceptance: unknown character propagates SoulEssenceNotFoundError.
 
-Spec: Docs/REMEDIATION_2026-04-13.md §1.R-1.1 acceptance:
+Spec: Docs/_phases/REMEDIATION_2026-04-13.md §1.R-1.1 acceptance:
   "New integration test: context assembly for an unregistered character
   fails loudly, does not emit a prompt."
 

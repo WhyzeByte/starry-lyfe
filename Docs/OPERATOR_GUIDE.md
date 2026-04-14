@@ -107,13 +107,13 @@ The structural check is literal: the final prompt must end with `</CONSTRAINTS>`
 
 ### 4.1 Loading
 
-`KERNEL_PATHS` in [kernel_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:14) maps each character ID to candidate kernel paths. `_load_raw_kernel()` at [line 290](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:290) resolves the first existing path and reads it as UTF-8.
+`KERNEL_PATHS` in [kernel_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:18) maps each character ID to candidate kernel paths. `_load_raw_kernel()` at [line 295](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:295) resolves the first existing path and reads it as UTF-8.
 
-`_sanitize_kernel_text()` at [line 110](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:110) removes frontend-only scaffolding such as `# SYSTEM_ROLE:`, `**Version:**`, and `**Target:**`.
+`_sanitize_kernel_text()` at [line 117](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:117) removes frontend-only scaffolding such as `# SYSTEM_ROLE:`, `**Version:**`, and `**Target:**`.
 
 ### 4.2 Section Parsing
 
-`_parse_kernel_sections()` at [line 127](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:127) splits on `^## (\d+)\.` and returns `(section_number, section_text)` tuples.
+`_parse_kernel_sections()` at [line 134](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:134) splits on `^## (\d+)\.` and returns `(section_number, section_text)` tuples.
 
 All four current kernels use 11 numbered sections:
 
@@ -133,7 +133,7 @@ All four current kernels use 11 numbered sections:
 
 ### 4.3 Section Budgets and Orders
 
-Baseline section budgets live in `SECTION_TOKEN_TARGETS` at [kernel_loader.py:55](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:55):
+Baseline section budgets live in `SECTION_TOKEN_TARGETS` at [kernel_loader.py:62](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:62):
 
 | Section | Target Tokens |
 |---------|---------------|
@@ -145,7 +145,7 @@ Baseline section budgets live in `SECTION_TOKEN_TARGETS` at [kernel_loader.py:55
 | 7 | 550 |
 | 6 | 300 |
 
-Assembly orders live at [kernel_loader.py:65-67](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:65):
+Assembly orders live at [kernel_loader.py:72-74](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:72):
 
 - `PRIMARY_SECTION_ORDER = [1, 2, 3, 4, 5, 7, 6]`
 - `EXPANSION_SECTION_ORDER = [2, 3, 5, 7, 6, 8, 9, 10, 11]`
@@ -153,7 +153,7 @@ Assembly orders live at [kernel_loader.py:65-67](/C:/Users/Whyze/OneDrive/Cosmol
 
 ### 4.4 Scene-Aware Section Promotion
 
-`scene_type_to_promoted_sections()` at [kernel_loader.py:85](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:85) maps `SceneType` to promoted sections:
+`scene_type_to_promoted_sections()` at [kernel_loader.py:92](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:92) maps `SceneType` to promoted sections:
 
 | SceneType | Promoted Sections |
 |-----------|-------------------|
@@ -170,13 +170,13 @@ Sections already in the primary set stay primary; promotion only changes behavio
 
 ### 4.5 Compilation
 
-`compile_kernel()` at [kernel_loader.py:153](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:153) runs three stages:
+`compile_kernel()` at [kernel_loader.py:160](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:160) runs three stages:
 
 1. Baseline allocation to primary sections.
 2. Expansion into higher-priority sections while budget remains.
 3. Final assembly with strict trimming for original primary sections and permissive trimming for promoted fill-tier sections.
 
-`load_kernel()` at [kernel_loader.py:303](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:303) caches by `(character_id, budget, promote_sections)`.
+`load_kernel()` at [kernel_loader.py:308](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:308) caches by `(character_id, budget, profile_name, promote_sections)`.
 
 ---
 
@@ -193,7 +193,7 @@ The `SoulEssence` dataclass supports four block families:
 - `behavioral`
 - `intimacy`
 
-`compile_kernel_with_soul()` at [kernel_loader.py:267](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:267) prepends this content to the compiled kernel body.
+`compile_kernel_with_soul()` at [kernel_loader.py:274](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:274) prepends this content to the compiled kernel body.
 
 Important current-state note:
 
@@ -201,7 +201,7 @@ Important current-state note:
 - The checked-in essences currently populate `identity` and `pair`.
 - `behavioral` and `intimacy` are defined in the type but are presently empty in the concrete registry, so `format_soul_essence()` currently emits only the non-empty sections for each character.
 
-See [format_soul_essence()](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/soul_essence.py:842).
+See [format_soul_essence()](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/soul_essence.py:865).
 
 ### 5.2 Soul Cards
 
@@ -212,7 +212,7 @@ Current directories:
 - `pair/` contains one always-on card per character
 - `knowledge/` contains scene-conditional cards
 
-Loader and activation code lives in [soul_cards.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/soul_cards.py:43).
+Loader and activation code lives in [soul_cards.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/soul_cards.py:65).
 
 Supported activation rules:
 
@@ -533,42 +533,49 @@ Runtime sequence:
 
 | Concern | File | Symbol | Line |
 |---------|------|--------|------|
-| Kernel paths | `src/starry_lyfe/context/kernel_loader.py` | `KERNEL_PATHS` | 14 |
-| Voice paths | `src/starry_lyfe/context/kernel_loader.py` | `VOICE_PATHS` | 33 |
-| Section budgets | `src/starry_lyfe/context/kernel_loader.py` | `SECTION_TOKEN_TARGETS` | 55 |
-| Section orders | `src/starry_lyfe/context/kernel_loader.py` | `PRIMARY_SECTION_ORDER` / `EXPANSION_SECTION_ORDER` / `FILL_SECTION_ORDER` | 65-67 |
-| Scene promotion map | `src/starry_lyfe/context/kernel_loader.py` | `scene_type_to_promoted_sections()` | 85 |
-| Kernel compilation | `src/starry_lyfe/context/kernel_loader.py` | `compile_kernel()` | 153 |
-| Soul-wrapped kernel | `src/starry_lyfe/context/kernel_loader.py` | `compile_kernel_with_soul()` | 267 |
-| Kernel cache entry | `src/starry_lyfe/context/kernel_loader.py` | `load_kernel()` | 303 |
-| Legacy voice-guidance parse | `src/starry_lyfe/context/kernel_loader.py` | `load_voice_guidance()` | 399 |
-| Structured voice-example parse | `src/starry_lyfe/context/kernel_loader.py` | `_extract_voice_examples()` | 463 |
-| Voice-example cache | `src/starry_lyfe/context/kernel_loader.py` | `load_voice_examples()` | 568 |
-| Soul essence formatter | `src/starry_lyfe/canon/soul_essence.py` | `format_soul_essence()` | 842 |
-| Soul essence estimate | `src/starry_lyfe/canon/soul_essence.py` | `soul_essence_token_estimate()` | 874 |
-| Pair metadata load | `src/starry_lyfe/canon/pairs_loader.py` | `get_pair_metadata()` | 76 |
-| Pair metadata format | `src/starry_lyfe/canon/pairs_loader.py` | `format_pair_metadata()` | 87 |
-| Soul-card load | `src/starry_lyfe/context/soul_cards.py` | `load_soul_card()` | 43 |
-| Soul-card activation | `src/starry_lyfe/context/soul_cards.py` | `find_activated_cards()` | 75 |
-| Soul-card format | `src/starry_lyfe/context/soul_cards.py` | `format_soul_cards()` | 115 |
-| Voice-mode derivation | `src/starry_lyfe/context/layers.py` | `derive_active_voice_modes()` | 90 |
-| Exemplar ranking | `src/starry_lyfe/context/layers.py` | `_select_voice_exemplars()` | 130 |
-| Layer 1 formatter | `src/starry_lyfe/context/layers.py` | `format_kernel()` | 230 |
-| Layer 5 formatter | `src/starry_lyfe/context/layers.py` | `format_voice_directives()` | 337 |
-| Layer 6 formatter | `src/starry_lyfe/context/layers.py` | `format_scene_blocks()` | 448 |
-| Layer 7 builder | `src/starry_lyfe/context/constraints.py` | `build_constraint_block()` | 102 |
-| Layer markers | `src/starry_lyfe/context/assembler.py` | `LAYER_MARKERS` | 30 |
-| Assembler entry | `src/starry_lyfe/context/assembler.py` | `assemble_context()` | 51 |
+| Kernel paths | `src/starry_lyfe/context/kernel_loader.py` | `KERNEL_PATHS` | 18 |
+| Voice paths | `src/starry_lyfe/context/kernel_loader.py` | `VOICE_PATHS` | 37 |
+| Section budgets | `src/starry_lyfe/context/kernel_loader.py` | `SECTION_TOKEN_TARGETS` | 62 |
+| Section orders | `src/starry_lyfe/context/kernel_loader.py` | `PRIMARY_SECTION_ORDER` / `EXPANSION_SECTION_ORDER` / `FILL_SECTION_ORDER` | 72-74 |
+| Scene promotion map | `src/starry_lyfe/context/kernel_loader.py` | `scene_type_to_promoted_sections()` | 92 |
+| Kernel compilation | `src/starry_lyfe/context/kernel_loader.py` | `compile_kernel()` | 160 |
+| Soul-wrapped kernel | `src/starry_lyfe/context/kernel_loader.py` | `compile_kernel_with_soul()` | 274 |
+| Kernel cache entry | `src/starry_lyfe/context/kernel_loader.py` | `load_kernel()` | 308 |
+| Legacy voice-guidance parse | `src/starry_lyfe/context/kernel_loader.py` | `load_voice_guidance()` | 409 |
+| Structured voice-example parse | `src/starry_lyfe/context/kernel_loader.py` | `_extract_voice_examples()` | 487 |
+| Voice-example cache | `src/starry_lyfe/context/kernel_loader.py` | `load_voice_examples()` | 592 |
+| Soul essence formatter | `src/starry_lyfe/canon/soul_essence.py` | `format_soul_essence()` | 865 |
+| Soul essence estimate | `src/starry_lyfe/canon/soul_essence.py` | `soul_essence_token_estimate()` | 905 |
+| Pair metadata load | `src/starry_lyfe/canon/pairs_loader.py` | `get_pair_metadata()` | 91 |
+| Pair metadata format | `src/starry_lyfe/canon/pairs_loader.py` | `format_pair_metadata()` | 102 |
+| Soul-card load | `src/starry_lyfe/context/soul_cards.py` | `load_soul_card()` | 65 |
+| Soul-card activation | `src/starry_lyfe/context/soul_cards.py` | `find_activated_cards()` | 100 |
+| Soul-card format | `src/starry_lyfe/context/soul_cards.py` | `format_soul_cards()` | 142 |
+| Voice-mode derivation | `src/starry_lyfe/context/layers.py` | `derive_active_voice_modes()` | 101 |
+| Exemplar ranking | `src/starry_lyfe/context/layers.py` | `_select_voice_exemplars()` | 141 |
+| Layer 1 formatter | `src/starry_lyfe/context/layers.py` | `format_kernel()` | 284 |
+| Layer 5 formatter | `src/starry_lyfe/context/layers.py` | `format_voice_directives()` | 397 |
+| Layer 6 formatter | `src/starry_lyfe/context/layers.py` | `format_scene_blocks()` | 508 |
+| Layer 7 builder | `src/starry_lyfe/context/constraints.py` | `build_constraint_block()` | 104 |
+| Layer markers | `src/starry_lyfe/context/assembler.py` | `LAYER_MARKERS` | 35 |
+| Assembler entry | `src/starry_lyfe/context/assembler.py` | `assemble_context()` | 56 |
 | Communication mode enum | `src/starry_lyfe/context/types.py` | `CommunicationMode` | 9 |
 | Scene type enum | `src/starry_lyfe/context/types.py` | `SceneType` | 18 |
-| Scene modifiers | `src/starry_lyfe/context/types.py` | `SceneModifiers` | 36 |
+| Scene modifiers | `src/starry_lyfe/context/types.py` | `SceneModifiers` | 37 |
 | Voice modes | `src/starry_lyfe/context/types.py` | `VoiceMode` | 55 |
-| Scene state | `src/starry_lyfe/context/types.py` | `SceneState` | 92 |
+| Scene state | `src/starry_lyfe/context/types.py` | `SceneState` | 93 |
 | Terminal-anchor check | `src/starry_lyfe/context/types.py` | `AssembledPrompt.is_terminally_anchored` | 132 |
-| Default budgets | `src/starry_lyfe/context/budgets.py` | `DEFAULT_BUDGETS` | 56 |
-| Per-character scaling | `src/starry_lyfe/context/budgets.py` | `resolve_kernel_budget()` | 66 |
-| Scene profiles | `src/starry_lyfe/context/budgets.py` | `SCENE_PROFILES` | 90 |
-| Budget trimmer | `src/starry_lyfe/context/budgets.py` | `trim_text_to_budget()` | 406 |
+| Default budgets | `src/starry_lyfe/context/budgets.py` | `DEFAULT_BUDGETS` | 61 |
+| Per-character scaling | `src/starry_lyfe/context/budgets.py` | `resolve_kernel_budget()` | 74 |
+| Scene profiles | `src/starry_lyfe/context/budgets.py` | `SCENE_PROFILES` | 98 |
+| Budget trimmer | `src/starry_lyfe/context/budgets.py` | `trim_text_to_budget()` | 414 |
+| Soul essence raise | `src/starry_lyfe/canon/soul_essence.py` | `SoulEssenceNotFoundError` | 27 |
+| Canon validation raise | `src/starry_lyfe/canon/loader.py` | `CanonValidationError` | 81 |
+| Canonical character ID | `src/starry_lyfe/canon/schemas/enums.py` | `CharacterID` | 21 |
+| Character lookup raise | `src/starry_lyfe/canon/schemas/enums.py` | `CharacterNotFoundError` | 7 |
+| Coverage assertion helper | `src/starry_lyfe/canon/schemas/enums.py` | `_assert_complete_character_keys()` | 41 |
+| Fidelity rubric type | `src/starry_lyfe/validation/fidelity.py` | `FidelityRubric` | 41 |
+| Fidelity scoring entry | `src/starry_lyfe/validation/fidelity.py` | `score_rubric()` | 152 |
 
 ---
 
