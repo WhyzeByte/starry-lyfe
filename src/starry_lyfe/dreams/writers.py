@@ -36,7 +36,7 @@ _NEW_LOOP_DEFAULT_TTL_HOURS: int = 168
 # We write a zero vector by default; real embedding could be wired via
 # EmbeddingService in a follow-up commit. The zero vector is inert for
 # similarity search (cosine distance will rank lower than real embeddings).
-_ZERO_EMBEDDING: str = "[" + ",".join("0.0" for _ in range(EMBEDDING_DIMENSION)) + "]"
+_ZERO_EMBEDDING: list[float] = [0.0] * EMBEDDING_DIMENSION
 
 
 async def write_diary_entry(

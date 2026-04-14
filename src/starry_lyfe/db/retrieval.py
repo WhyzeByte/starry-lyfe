@@ -10,11 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .decay import apply_decay
 from .embed import EmbeddingService
+from .models.activity import Activity
 from .models.canon_facts import CanonFact
 from .models.character_baseline import CharacterBaseline
 from .models.dyad_state_internal import DyadStateInternal
 from .models.dyad_state_whyze import DyadStateWhyze
 from .models.episodic_memory import EpisodicMemory
+from .models.life_state import LifeState
 from .models.open_loop import OpenLoop
 from .models.transient_somatic import TransientSomaticState
 
@@ -47,7 +49,12 @@ class DecayedSomaticState:
 
 @dataclass
 class MemoryBundle:
-    """All retrieved memories for a character in a scene, grouped by tier."""
+    """All retrieved memories for a character in a scene, grouped by tier.
+
+    Phase 6 R6 extension: ``activities`` and ``life_state`` expose the
+    Tier 8 Dreams-populated state so the runtime assembler can consume
+    yesterday's Dreams output on the next turn.
+    """
 
     canon_facts: list[CanonFact] = field(default_factory=list)
     character_baseline: CharacterBaseline | None = None
@@ -56,6 +63,9 @@ class MemoryBundle:
     episodic_memories: list[EpisodicMemory] = field(default_factory=list)
     open_loops: list[OpenLoop] = field(default_factory=list)
     somatic_state: DecayedSomaticState | None = None
+    # Tier 8 (Dreams-populated):
+    activities: list[Activity] = field(default_factory=list)
+    life_state: LifeState | None = None
 
 
 async def _retrieve_canon_facts(session: AsyncSession, character_id: str) -> list[CanonFact]:
@@ -188,6 +198,37 @@ async def _retrieve_somatic(session: AsyncSession, character_id: str) -> Decayed
     )
 
 
+async def _retrieve_activities(
+    session: AsyncSession, character_id: str
+) -> list[Activity]:
+    """Tier 8: Load Dreams-generated activities that have not expired.
+
+    Returns most-recent-first within the unexpired window. The
+    assembler can use the top entry as tomorrow's (or today's) scene
+    opener, or ignore when empty.
+    """
+    now = datetime.now(UTC)
+    result = await session.execute(
+        select(Activity)
+        .where(Activity.character_id == character_id, Activity.expires_at > now)
+        .order_by(Activity.created_at.desc())
+    )
+    return list(result.scalars().all())
+
+
+async def _retrieve_life_state(
+    session: AsyncSession, character_id: str
+) -> LifeState | None:
+    """Tier 8: Load the current LifeState row for this character.
+
+    May be None if Dreams has not run for this character yet.
+    """
+    result = await session.execute(
+        select(LifeState).where(LifeState.character_id == character_id)
+    )
+    return result.scalars().first()
+
+
 async def retrieve_memories(
     session: AsyncSession,
     embedding_service: EmbeddingService,
@@ -210,4 +251,7 @@ async def retrieve_memories(
     )
     bundle.open_loops = await _retrieve_open_loops(session, character_id)
     bundle.somatic_state = await _retrieve_somatic(session, character_id)
+    # Tier 8 (Dreams-populated): activities + life_state
+    bundle.activities = await _retrieve_activities(session, character_id)
+    bundle.life_state = await _retrieve_life_state(session, character_id)
     return bundle
