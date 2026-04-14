@@ -5,6 +5,7 @@ from .dyads import CanonDyads
 from .interlocks import CanonInterlocks
 from .pairs import CanonPairs
 from .protocols import CanonProtocols
+from .routines import CanonRoutines
 from .voice_parameters import CanonVoiceParameters
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     "CanonInterlocks",
     "CanonPairs",
     "CanonProtocols",
+    "CanonRoutines",
     "CanonVoiceParameters",
 ]

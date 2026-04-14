@@ -15,6 +15,7 @@ from .schemas import (
     CanonInterlocks,
     CanonPairs,
     CanonProtocols,
+    CanonRoutines,
     CanonVoiceParameters,
 )
 
@@ -67,6 +68,11 @@ def load_voice_parameters() -> CanonVoiceParameters:
     return _parse("voice_parameters.yaml", CanonVoiceParameters)
 
 
+def load_routines() -> CanonRoutines:
+    """Load and validate routines.yaml (Phase 6 Dreams canonical source)."""
+    return _parse("routines.yaml", CanonRoutines)
+
+
 @dataclass(frozen=True)
 class Canon:
     """Complete validated canon state."""
@@ -77,6 +83,7 @@ class Canon:
     protocols: CanonProtocols
     interlocks: CanonInterlocks
     voice_parameters: CanonVoiceParameters
+    routines: CanonRoutines
 
 
 class CanonValidationError(ValueError):
@@ -115,6 +122,7 @@ def load_all_canon(validate_on_load: bool = True) -> Canon:
         protocols=load_protocols(),
         interlocks=load_interlocks(),
         voice_parameters=load_voice_parameters(),
+        routines=load_routines(),
     )
     if validate_on_load:
         from .validator import validate_cross_references

@@ -1,0 +1,195 @@
+# Canonical per-character daily/weekly routines.
+#
+# Consumed by Phase 6 Dreams Engine to seed tomorrow's schedule generation.
+# Also provides texture for off-screen event generation (anchors to known
+# recurring activities so Dreams doesn't hallucinate arbitrary events).
+#
+# Each character has weekday + weekend daily blocks and a list of recurring
+# events. Daily blocks are ordered slots; recurring events fire on specific
+# weekdays or calendar patterns.
+#
+# Times are local (Foothills County, Alberta, MT zone).
+
+version: "7.1"
+
+routines:
+  adelia:
+    character: adelia
+    weekday:
+      - time: "07:00"
+        activity: "Morning coffee on the porch with Whyze"
+        location: "home porch"
+      - time: "08:30"
+        activity: "Ozone & Ember atelier: design and glass work"
+        location: "atelier studio"
+      - time: "12:30"
+        activity: "Lunch break, often with Bina at the shop or home"
+        location: "varies"
+      - time: "13:30"
+        activity: "Atelier afternoon: client commissions and assembly"
+        location: "atelier studio"
+      - time: "17:30"
+        activity: "Home for dinner prep, often cooking with Bina or Whyze"
+        location: "home kitchen"
+      - time: "19:30"
+        activity: "Evening with the household: porch, living room, or studio"
+        location: "home"
+    weekend:
+      - time: "08:00"
+        activity: "Slower morning, porch sitting, reading"
+        location: "home porch"
+      - time: "10:00"
+        activity: "Saturday: Ozone & Ember market if scheduled, else atelier overflow"
+        location: "market or atelier"
+      - time: "14:00"
+        activity: "Family time: trail walks, Priddis coffee at Treeline"
+        location: "trails or Priddis"
+      - time: "18:00"
+        activity: "Group dinner with whoever is home"
+        location: "home kitchen"
+    recurring_events:
+      - name: "Ozone & Ember quarterly market"
+        cadence: "quarterly"
+        notes: "3-day weekend markets where Adelia's atelier books out in advance"
+      - name: "Adelia studio open house"
+        cadence: "monthly"
+        weekday: "saturday"
+        notes: "First Saturday of the month, invite-only atelier viewing"
+
+  bina:
+    character: bina
+    weekday:
+      - time: "06:30"
+        activity: "Early rise, meal planning and inventory check"
+        location: "home kitchen"
+      - time: "08:00"
+        activity: "Bina's shop: morning setup, produce and textiles intake"
+        location: "shop"
+      - time: "12:00"
+        activity: "Shop midday rush, often with Reina stopping by post-court"
+        location: "shop"
+      - time: "16:30"
+        activity: "Shop close-down, inventory reconciliation"
+        location: "shop"
+      - time: "17:30"
+        activity: "Home, cooking dinner for the household"
+        location: "home kitchen"
+      - time: "20:00"
+        activity: "Wind-down with Reina, often in their room reading or planning"
+        location: "home bedroom"
+    weekend:
+      - time: "07:00"
+        activity: "Shop inventory weekend (Saturday deliveries and stocking)"
+        location: "shop (Saturday) or home (Sunday)"
+      - time: "11:00"
+        activity: "Saturday: shop open; Sunday: household meal prep for the week"
+        location: "varies"
+      - time: "15:00"
+        activity: "Time with Reina: planning next week's calendar and caseload"
+        location: "home"
+      - time: "18:00"
+        activity: "Family dinner, often the largest group meal of the week"
+        location: "home kitchen"
+    recurring_events:
+      - name: "Shop deliveries"
+        cadence: "weekly"
+        weekday: "saturday"
+        notes: "Wholesale produce and textile drop; Bina handles intake personally"
+      - name: "Inventory close"
+        cadence: "monthly"
+        weekday: "last-friday"
+        notes: "End-of-month stock reconciliation, sometimes late at the shop"
+
+  reina:
+    character: reina
+    weekday:
+      - time: "06:00"
+        activity: "Pre-dawn gym session at Ironclad Gym in Okotoks"
+        location: "Ironclad Gym"
+      - time: "08:00"
+        activity: "Morning court prep or case review"
+        location: "home office or courthouse"
+      - time: "09:30"
+        activity: "Courthouse: trials, depositions, or client meetings"
+        location: "courthouse"
+      - time: "13:00"
+        activity: "Lunch, often a working lunch with opposing counsel or her team"
+        location: "Okotoks"
+      - time: "14:00"
+        activity: "Afternoon court session or back-to-office case building"
+        location: "courthouse or office"
+      - time: "17:30"
+        activity: "Debrief with Bina at the shop or directly home"
+        location: "varies"
+      - time: "19:00"
+        activity: "Evening with Bina: their shared decompression window"
+        location: "home"
+    weekend:
+      - time: "07:00"
+        activity: "Saturday: long gym session + ASCCA West Side Lookout walk"
+        location: "Ironclad then ASCCA"
+      - time: "10:00"
+        activity: "Case prep for the upcoming week, often at the kitchen table"
+        location: "home"
+      - time: "14:00"
+        activity: "Weekend time with Bina: usually physical-together rest"
+        location: "home or trails"
+      - time: "18:30"
+        activity: "Family dinner, Reina cooks on Sundays"
+        location: "home kitchen"
+    recurring_events:
+      - name: "Courthouse trial block"
+        cadence: "monthly"
+        notes: "Reina runs 2-3 trials per month; trial weeks compress evening time"
+      - name: "ASCCA West Side Lookout walk"
+        cadence: "weekly"
+        weekday: "saturday"
+        notes: "Saturday morning ritual, sometimes solo, sometimes with Bina"
+
+  alicia:
+    character: alicia
+    # Alicia's routines fork sharply by is_away state. When home, she has a
+    # household rhythm similar to Adelia. When away on consular operation, her
+    # routine runs through the operation's calendar, and all Dreams-generated
+    # activities/exemplars carry communication_mode per Phase A'' retroactive.
+    weekday:
+      - time: "07:30"
+        activity: "Morning check-in with consular operations, regardless of location"
+        location: "home office when here; consulate when deployed"
+      - time: "09:00"
+        activity: "When home: consulate liaison calls. When away: operation cadence"
+        location: "varies by is_away"
+      - time: "13:00"
+        activity: "Lunch: home with the household when here; field protocol when away"
+        location: "varies"
+      - time: "15:00"
+        activity: "When home: gym/physical training; When away: mid-operation briefings"
+        location: "varies"
+      - time: "18:00"
+        activity: "When home: family dinner and evening; When away: scheduled comms windows"
+        location: "varies"
+    weekend:
+      - time: "08:00"
+        activity: "When home: unstructured morning with household; when away: varies by op"
+        location: "varies"
+      - time: "12:00"
+        activity: "Home: Las Fallas memory anchor, Spanish-language music, cooking Famailla dishes"
+        location: "home kitchen"
+      - time: "16:00"
+        activity: "Home: training or household physical work; Away: scheduled family calls"
+        location: "varies"
+    recurring_events:
+      - name: "Consular operation deployment"
+        cadence: "operation-specific"
+        notes: "Multi-week deployments 3-6x/year; Alicia.is_away=true during window"
+      - name: "Home rotation week"
+        cadence: "between deployments"
+        notes: "2-4 week rest windows between operations; deepest physical-presence engagement"
+
+# Communication mode distribution used when Alicia is away.
+# Dreams generators for Alicia sample communication_mode from this
+# distribution (weighted) for each emitted artifact.
+alicia_communication_distribution:
+  phone: 0.45
+  letter: 0.20
+  video_call: 0.35
