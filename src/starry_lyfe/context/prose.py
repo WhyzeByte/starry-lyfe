@@ -533,3 +533,104 @@ def render_diary_prose(character_id: str, raw_content: str) -> str:
     closer = _DIARY_CLOSERS.get(character_id, _DIARY_CLOSERS["bina"])
     body = raw_content.strip() or "[no reflection today]"
     return f"{opener}\n\n{body}\n\n{closer}"
+
+
+# ---------------------------------------------------------------------------
+# Phase G retroactive (Phase 6 R3/R4/R5): off_screen / open_loop / activity
+# prose renderers. Each has its own per-character opener/closer bank and a
+# public ``render_*_prose`` helper that wraps raw generator output in the
+# character's voice register before DB write.
+# ---------------------------------------------------------------------------
+
+
+_OFF_SCREEN_OPENERS: dict[str, str] = {
+    "adelia": "The overnight chemistry kept running. Here is what the reaction produced:",
+    "bina": "Overnight log, events recorded:",
+    "reina": "Overnight event log, filed for the record:",
+    "alicia": "The body moved through the night and kept notes. What happened:",
+}
+_assert_complete_character_keys(_OFF_SCREEN_OPENERS, "_OFF_SCREEN_OPENERS")
+
+_OFF_SCREEN_CLOSERS: dict[str, str] = {
+    "adelia": "Fuel in the tank for the day's reactions.",
+    "bina": "End of overnight log. Systems stable.",
+    "reina": "End of overnight record. Ready for the day's motions.",
+    "alicia": "The body carried the night. The day begins.",
+}
+_assert_complete_character_keys(_OFF_SCREEN_CLOSERS, "_OFF_SCREEN_CLOSERS")
+
+
+def render_off_screen_prose(character_id: str, events: list[dict[str, object]]) -> str:
+    """Wrap a list of off-screen event dicts in per-character Phase G frame.
+
+    Each event dict must have a ``summary`` string. Other fields are
+    preserved but not rendered. Empty events list → placeholder body.
+    """
+    opener = _OFF_SCREEN_OPENERS.get(character_id, _OFF_SCREEN_OPENERS["bina"])
+    closer = _OFF_SCREEN_CLOSERS.get(character_id, _OFF_SCREEN_CLOSERS["bina"])
+    if not events:
+        body = "[no off-screen events recorded]"
+    else:
+        body = "\n".join(f"  - {e.get('summary', '')}" for e in events if e.get("summary"))
+        if not body:
+            body = "[no off-screen events recorded]"
+    return f"{opener}\n\n{body}\n\n{closer}"
+
+
+_OPEN_LOOP_OPENERS: dict[str, str] = {
+    "adelia": "Threads still hanging in the air, waiting for the next spark:",
+    "bina": "Unresolved items, carried forward to the next log entry:",
+    "reina": "Open threads, filed pending admissible follow-up:",
+    "alicia": "Still carrying this in the body. Not yet resolved:",
+}
+_assert_complete_character_keys(_OPEN_LOOP_OPENERS, "_OPEN_LOOP_OPENERS")
+
+_OPEN_LOOP_CLOSERS: dict[str, str] = {
+    "adelia": "These reactions are still running.",
+    "bina": "Marked pending. Will be addressed in a subsequent session.",
+    "reina": "Motion pending. Case stays open.",
+    "alicia": "The body is holding them until we can speak in person.",
+}
+_assert_complete_character_keys(_OPEN_LOOP_CLOSERS, "_OPEN_LOOP_CLOSERS")
+
+
+def render_open_loop_prose(character_id: str, loops: list[dict[str, object]]) -> str:
+    """Wrap a list of open-loop dicts in per-character Phase G frame."""
+    opener = _OPEN_LOOP_OPENERS.get(character_id, _OPEN_LOOP_OPENERS["bina"])
+    closer = _OPEN_LOOP_CLOSERS.get(character_id, _OPEN_LOOP_CLOSERS["bina"])
+    if not loops:
+        body = "[no new open loops]"
+    else:
+        lines: list[str] = []
+        for loop in loops:
+            summary = loop.get("summary", "")
+            urgency = loop.get("urgency", "medium")
+            if summary:
+                lines.append(f"  [{urgency}] {summary}")
+        body = "\n".join(lines) or "[no new open loops]"
+    return f"{opener}\n\n{body}\n\n{closer}"
+
+
+_ACTIVITY_OPENERS: dict[str, str] = {
+    "adelia": "Tomorrow's opener, calibrated for maximum reaction:",
+    "bina": "Tomorrow's scene specification, as designed:",
+    "reina": "Tomorrow's scene brief, opening motion prepared:",
+    "alicia": "Tomorrow's opening, body-first. The scene is:",
+}
+_assert_complete_character_keys(_ACTIVITY_OPENERS, "_ACTIVITY_OPENERS")
+
+_ACTIVITY_CLOSERS: dict[str, str] = {
+    "adelia": "The compound is ready. Light the match in the morning.",
+    "bina": "Scene provisioned. Systems green for tomorrow.",
+    "reina": "Scene prepared. Ready to open tomorrow.",
+    "alicia": "The scene is in the body. Ready to move into it.",
+}
+_assert_complete_character_keys(_ACTIVITY_CLOSERS, "_ACTIVITY_CLOSERS")
+
+
+def render_activity_prose(character_id: str, narrator_script: str) -> str:
+    """Wrap a narrator script in per-character Phase G frame."""
+    opener = _ACTIVITY_OPENERS.get(character_id, _ACTIVITY_OPENERS["bina"])
+    closer = _ACTIVITY_CLOSERS.get(character_id, _ACTIVITY_CLOSERS["bina"])
+    body = narrator_script.strip() or "[no activity designed]"
+    return f"{opener}\n\n{body}\n\n{closer}"
