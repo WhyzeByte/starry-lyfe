@@ -33,6 +33,29 @@ from starry_lyfe.dreams import (
 )
 
 
+class _StubResult:
+    def scalars(self) -> _StubResult:
+        return self
+
+    def all(self) -> list[Any]:
+        return []
+
+    def first(self) -> Any | None:
+        return None
+
+    @property
+    def rowcount(self) -> int:
+        return 0
+
+
+class _StubBeginCtx:
+    async def __aenter__(self) -> _StubBeginCtx:
+        return self
+
+    async def __aexit__(self, *args: Any) -> None:
+        return None
+
+
 class _StubSession:
     async def __aenter__(self) -> _StubSession:
         return self
@@ -40,9 +63,39 @@ class _StubSession:
     async def __aexit__(self, *args: Any) -> None:
         return None
 
+    def begin(self) -> _StubBeginCtx:
+        return _StubBeginCtx()
+
+    async def execute(self, *args: Any, **kwargs: Any) -> _StubResult:
+        return _StubResult()
+
+    def add(self, obj: Any) -> None:
+        if getattr(obj, "id", None) is None:
+            import contextlib
+            import uuid as _uuid
+
+            with contextlib.suppress(AttributeError):
+                obj.id = _uuid.uuid4()
+
+    async def flush(self) -> None:
+        return None
+
 
 def _stub_session_factory() -> _StubSession:
     return _StubSession()
+
+
+async def _empty_snapshot_loader(
+    session: Any, character_id: str, now: Any
+) -> Any:
+    import types as _types
+
+    from starry_lyfe.dreams import SessionSnapshot
+
+    return SessionSnapshot(
+        character_id=character_id,
+        life_state=_types.SimpleNamespace(is_away=False),
+    )
 
 
 @pytest.fixture(scope="module")
@@ -54,6 +107,7 @@ async def test_dreams_pass_processes_all_four_characters(canon: Any) -> None:
     """AC-6.2: CharacterID coverage invariant across a full pass."""
     result = await run_dreams_pass(
         session_factory=_stub_session_factory,  # type: ignore[arg-type]
+        snapshot_loader=_empty_snapshot_loader,
         llm_client=StubBDOne(default_text="end-of-day reflection."),
         canon=canon,
         now=datetime(2026, 4, 14, 3, 30, tzinfo=UTC),
@@ -99,6 +153,7 @@ async def test_schedule_generator_fires_for_every_character(canon: Any) -> None:
     generator this commit; every character must get one per pass."""
     result = await run_dreams_pass(
         session_factory=_stub_session_factory,  # type: ignore[arg-type]
+        snapshot_loader=_empty_snapshot_loader,
         llm_client=StubBDOne(),
         canon=canon,
         now=datetime(2026, 4, 14, 3, 30, tzinfo=UTC),
@@ -111,6 +166,7 @@ async def test_warnings_aggregate_from_stub_generators(canon: Any) -> None:
     """Placeholder generators emit warnings that must reach the pass result."""
     result = await run_dreams_pass(
         session_factory=_stub_session_factory,  # type: ignore[arg-type]
+        snapshot_loader=_empty_snapshot_loader,
         llm_client=StubBDOne(),
         canon=canon,
         now=datetime(2026, 4, 14, 3, 30, tzinfo=UTC),
@@ -146,6 +202,7 @@ async def test_cross_character_contamination_negative(canon: Any) -> None:
     # (Runner-level pass guarantees every character is exercised.)
     await run_dreams_pass(
         session_factory=_stub_session_factory,  # type: ignore[arg-type]
+        snapshot_loader=_empty_snapshot_loader,
         llm_client=stub,
         canon=canon,
         now=datetime(2026, 4, 14, 22, 0, tzinfo=UTC),
@@ -176,12 +233,14 @@ async def test_cross_character_contamination_negative(canon: Any) -> None:
 async def test_run_id_unique_across_passes(canon: Any) -> None:
     a = await run_dreams_pass(
         session_factory=_stub_session_factory,  # type: ignore[arg-type]
+        snapshot_loader=_empty_snapshot_loader,
         llm_client=StubBDOne(),
         canon=canon,
         now=datetime(2026, 4, 14, 3, 30, tzinfo=UTC),
     )
     b = await run_dreams_pass(
         session_factory=_stub_session_factory,  # type: ignore[arg-type]
+        snapshot_loader=_empty_snapshot_loader,
         llm_client=StubBDOne(),
         canon=canon,
         now=datetime(2026, 4, 14, 3, 30, tzinfo=UTC),
@@ -193,6 +252,7 @@ async def test_token_counts_aggregate(canon: Any) -> None:
     """Token counts sum across characters for observability / cost tracking."""
     result = await run_dreams_pass(
         session_factory=_stub_session_factory,  # type: ignore[arg-type]
+        snapshot_loader=_empty_snapshot_loader,
         llm_client=StubBDOne(default_text="reflective paragraph"),
         canon=canon,
         now=datetime(2026, 4, 14, 22, 0, tzinfo=UTC),
