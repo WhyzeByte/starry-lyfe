@@ -43,6 +43,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Docs/_audits/PHASE_2_AUDIT_2026-04-13.md — full self-audit record
 - Docs/_phases/REMEDIATION_2026-04-13.md — approved remediation spec
 
+### Fixed (Phase 6 Round 1 remediation — closes Codex F1/F2/F3/F4/F5/F6)
+
+- **F1 Critical** (`726e550`): writers.py with 5 writer functions (diary/activity/new_open_loops/off_screen_events/consolidation_log); default_snapshot_loader reads 24h of real session data replacing the empty stub; runner.py `_process_character` invokes writers + consolidation inside a per-character `session.begin()` transaction; `DreamsCharacterResult` fields populated from real DB outcomes (diary_entry_id, activities_designed, somatic_refreshed, etc. — no hardcoded None/0/False).
+- **F2 High** (`5172bb7` + `dc42add`): off_screen / open_loops / activity_design generators now LLM-backed end-to-end with per-character voice-register system prompts, anti-contamination user prompts (lesson #2), Phase G `render_*_prose` wrapping, and Alicia-away `communication_mode` sampling. All 5 Dreams generators are now real. `activities_designed` false-positive bug from Codex adversarial scenario #2 closed.
+- **F3 High** (`5e7f788`): `MemoryBundle` extended with `activities` + `life_state` Tier-8 fields; `_retrieve_activities` + `_retrieve_life_state` added. `tests/integration/test_dreams_db_round_trip.py` (4 cases) proves end-to-end DB-backed contract: `run_dreams_pass → rows → retrieve_memories → assembler` with live Postgres. Writer embedding column fix (`"[0.0,...]"` → `[0.0] * 768`) landed same commit.
+- **F4 Medium** (`1c69629`): `tests/unit/dreams/test_daemon.py` (11 cases — CLI parser, scheduler config, invalid cron, env overrides). `tests/fidelity/dreams/test_dreams_voice_fidelity.py` (8 parametrized — per-character opener presence + cross-character contamination negative). Per-generator unit tests for off_screen/open_loops/activity_design from R3/R4/R5.
+- **F5 Medium** (`aebb30e` + this commit): header reopened to IN PROGRESS → corrected back to SHIPPED after full remediation landed; handshake log row 5 annotated as original overclaim; Step 4 per-finding status table updated with real commit hashes and FIXED statuses; closing block corrected to 897 actual tests (was overclaimed 843); sample Dreams output artifacts at `Docs/_phases/_samples/PHASE_6_dreams_output_*.txt` generated via `--once --dry-run`.
+- **F6 Low** (`726e550`): runner `_process_character` uses `asyncio.gather(*..., return_exceptions=True)` with per-generator graceful failure. `test_generators_run_in_parallel` + `test_one_generator_failure_does_not_kill_others` prove parallelism + failure isolation.
+
+Test baseline 748 → 897 (+149 total Phase 6 contribution). ruff + mypy `--strict` clean.
+
 ### Added (Phase 6: Dreams Engine)
 
 - `src/starry_lyfe/dreams/` package — nightly batch life-simulation engine per `Docs/IMPLEMENTATION_PLAN_v7.1.md` §9
@@ -59,7 +70,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `src/starry_lyfe/context/prose.py` — `render_diary_prose()` per-character helpers with `_DIARY_OPENERS` / `_DIARY_CLOSERS` phrase banks (Phase G retroactive)
 - 4 new integration test files: `test_dreams_pipeline` (end-to-end runner + anti-contamination negative), `test_dreams_to_scene_director` (Dreams `activity_context` → Rule 7 salience boost), `test_dreams_to_assembler` (Dreams `scene_description` → Layer 4/6), `test_dreams_alicia_away_mode` (full-pass tagging distribution)
 - Per-character regression bundle `test_dreams_regression_per_character.py` — 16 parametrized cases covering opener presence, cross-character contamination negatives, 3-paragraph Phase G structure, and Alicia-away communication_mode invariants
-- ~95 new tests added; baseline 748 → 843
+- ~95 new tests added in original ship; Round 1 remediation added +54 more (baseline 748 → 897 post-remediation)
 - `Docs/_phases/PHASE_6.md` — full phase spec + closing block
 - `apscheduler>=3.10,<4.0` added to `requirements.txt`
 

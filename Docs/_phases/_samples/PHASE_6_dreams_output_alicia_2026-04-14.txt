@@ -1,0 +1,42 @@
+=== PHASE 6 DREAMS OUTPUT: ALICIA ===
+Generated 2026-04-14 via python -m starry_lyfe.dreams --once --dry-run (StubBDOne).
+
+--- SCHEDULE ---
+Tomorrow's schedule (wednesday):
+  07:30: Morning check-in with consular operations, regardless of location (home office when here; consulate when deployed)
+  09:00: When home: consulate liaison calls. When away: operation cadence (varies by is_away)
+  13:00: Lunch: home with the household when here; field protocol when away (varies)
+  15:00: When home: gym/physical training; When away: mid-operation briefings (varies)
+  18:00: When home: family dinner and evening; When away: scheduled comms windows (varies)
+
+--- DIARY (Phase G wrapped) ---
+The body is still and the house is quiet. The day is in me.
+
+End-of-day reflection about the work.
+NEW: follow up tomorrow.
+Branch: option one. [4f5ebe4b]
+
+The body sleeps. The body remembers.
+
+--- OFF-SCREEN EVENTS ---
+The body moved through the night and kept notes. What happened:
+
+  - End-of-day reflection about the work.
+  - NEW: follow up tomorrow.
+  - Branch: option one. [055b58b8]
+
+The body carried the night. The day begins.
+
+--- OPEN LOOPS ---
+Still carrying this in the body. Not yet resolved:
+
+  [medium] follow up tomorrow.
+
+The body is holding them until we can speak in person.
+
+--- ACTIVITY DESIGN ---
+Tomorrow's opening, body-first. The scene is:
+
+End-of-day reflection about the work. NEW: follow up tomorrow.
+
+The scene is in the body. Ready to move into it.

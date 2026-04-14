@@ -1,0 +1,44 @@
+=== PHASE 6 DREAMS OUTPUT: REINA ===
+Generated 2026-04-14 via python -m starry_lyfe.dreams --once --dry-run (StubBDOne).
+
+--- SCHEDULE ---
+Tomorrow's schedule (wednesday):
+  06:00: Pre-dawn gym session at Ironclad Gym in Okotoks (Ironclad Gym)
+  08:00: Morning court prep or case review (home office or courthouse)
+  09:30: Courthouse: trials, depositions, or client meetings (courthouse)
+  13:00: Lunch, often a working lunch with opposing counsel or her team (Okotoks)
+  14:00: Afternoon court session or back-to-office case building (courthouse or office)
+  17:30: Debrief with Bina at the shop or directly home (varies)
+  19:00: Evening with Bina: their shared decompression window (home)
+
+--- DIARY (Phase G wrapped) ---
+Entry for the record, end of day. The evidence has been filed.
+
+End-of-day reflection about the work.
+NEW: follow up tomorrow.
+Branch: option one. [d0a55ffe]
+
+Motion to rest. The court is in recess until tomorrow.
+
+--- OFF-SCREEN EVENTS ---
+Overnight event log, filed for the record:
+
+  - End-of-day reflection about the work.
+  - NEW: follow up tomorrow.
+  - Branch: option one. [c145b0ed]
+
+End of overnight record. Ready for the day's motions.
+
+--- OPEN LOOPS ---
+Open threads, filed pending admissible follow-up:
+
+  [medium] follow up tomorrow.
+
+Motion pending. Case stays open.
+
+--- ACTIVITY DESIGN ---
+Tomorrow's scene brief, opening motion prepared:
+
+End-of-day reflection about the work. NEW: follow up tomorrow.
+
+Scene prepared. Ready to open tomorrow.

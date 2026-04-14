@@ -1,0 +1,43 @@
+=== PHASE 6 DREAMS OUTPUT: ADELIA ===
+Generated 2026-04-14 via python -m starry_lyfe.dreams --once --dry-run (StubBDOne).
+
+--- SCHEDULE ---
+Tomorrow's schedule (wednesday):
+  07:00: Morning coffee on the porch with Whyze (home porch)
+  08:30: Ozone & Ember atelier: design and glass work (atelier studio)
+  12:30: Lunch break, often with Bina at the shop or home (varies)
+  13:30: Atelier afternoon: client commissions and assembly (atelier studio)
+  17:30: Home for dinner prep, often cooking with Bina or Whyze (home kitchen)
+  19:30: Evening with the household: porch, living room, or studio (home)
+
+--- DIARY (Phase G wrapped) ---
+The evening cooled off and the day had time to settle into shape.
+
+End-of-day reflection about the work.
+NEW: follow up tomorrow.
+Branch: option one. [ffba91d1]
+
+Tomorrow's reactions are already catalyzing.
+
+--- OFF-SCREEN EVENTS ---
+The overnight chemistry kept running. Here is what the reaction produced:
+
+  - End-of-day reflection about the work.
+  - NEW: follow up tomorrow.
+  - Branch: option one. [34d9f67d]
+
+Fuel in the tank for the day's reactions.
+
+--- OPEN LOOPS ---
+Threads still hanging in the air, waiting for the next spark:
+
+  [medium] follow up tomorrow.
+
+These reactions are still running.
+
+--- ACTIVITY DESIGN ---
+Tomorrow's opener, calibrated for maximum reaction:
+
+End-of-day reflection about the work. NEW: follow up tomorrow.
+
+The compound is ready. Light the match in the morning.

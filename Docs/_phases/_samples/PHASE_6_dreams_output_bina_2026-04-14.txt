@@ -1,0 +1,43 @@
+=== PHASE 6 DREAMS OUTPUT: BINA ===
+Generated 2026-04-14 via python -m starry_lyfe.dreams --once --dry-run (StubBDOne).
+
+--- SCHEDULE ---
+Tomorrow's schedule (wednesday):
+  06:30: Early rise, meal planning and inventory check (home kitchen)
+  08:00: Bina's shop: morning setup, produce and textiles intake (shop)
+  12:00: Shop midday rush, often with Reina stopping by post-court (shop)
+  16:30: Shop close-down, inventory reconciliation (shop)
+  17:30: Home, cooking dinner for the household (home kitchen)
+  20:00: Wind-down with Reina, often in their room reading or planning (home bedroom)
+
+--- DIARY (Phase G wrapped) ---
+The log for today, recorded before sleep. The day has been reconciled.
+
+End-of-day reflection about the work.
+NEW: follow up tomorrow.
+Branch: option one. [7f40557f]
+
+End of log. Tomorrow's systems are provisioned.
+
+--- OFF-SCREEN EVENTS ---
+Overnight log, events recorded:
+
+  - End-of-day reflection about the work.
+  - NEW: follow up tomorrow.
+  - Branch: option one. [005d0761]
+
+End of overnight log. Systems stable.
+
+--- OPEN LOOPS ---
+Unresolved items, carried forward to the next log entry:
+
+  [medium] follow up tomorrow.
+
+Marked pending. Will be addressed in a subsequent session.
+
+--- ACTIVITY DESIGN ---
+Tomorrow's scene specification, as designed:
+
+End-of-day reflection about the work. NEW: follow up tomorrow.
+
+Scene provisioned. Systems green for tomorrow.
