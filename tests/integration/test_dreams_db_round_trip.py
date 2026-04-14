@@ -286,21 +286,35 @@ async def test_alicia_away_activity_carries_communication_mode_in_db(
         snapshot_loader=_alicia_away_snapshot,
     )
 
-    session = dreams_session_factory()
+    session = dreams_session_factory()._session  # type: ignore[attr-defined]
+    # R3-F1 fix: filter to rows written by THIS Dreams run using the
+    # injected `now` as a created_at watermark. Previously this query
+    # ordered nothing and assertion[0] could pick a pre-existing seeded
+    # row with communication_mode=None, producing a false regression.
+    now_utc = now.astimezone(UTC).replace(tzinfo=UTC)
     acts = await session.execute(
-        select(Activity).where(Activity.character_id == "alicia")
+        select(Activity)
+        .where(
+            Activity.character_id == "alicia",
+            Activity.created_at >= now_utc,
+        )
+        .order_by(Activity.created_at.desc())
     )
     alicia_acts = list(acts.scalars().all())
-    assert alicia_acts, "no activity row for alicia"
+    assert alicia_acts, "no activity row for alicia written by this run"
     assert alicia_acts[0].communication_mode in {"phone", "letter", "video_call"}, (
         f"Alicia-away activity carries no communication_mode tag; "
         f"got {alicia_acts[0].communication_mode!r}"
     )
 
     # Non-Alicia characters should not carry a comm-mode tag (defensive).
+    # Same R3-F1 fix: filter to this run only.
     for char in ("adelia", "bina", "reina"):
         rows = await session.execute(
-            select(Activity).where(Activity.character_id == char)
+            select(Activity).where(
+                Activity.character_id == char,
+                Activity.created_at >= now_utc,
+            )
         )
         for row in rows.scalars().all():
             assert row.communication_mode is None, (
@@ -309,3 +323,61 @@ async def test_alicia_away_activity_carries_communication_mode_in_db(
             )
 
     # fixture owns close
+
+
+async def test_dreams_activity_surfaces_into_assembler_layer_6(
+    dreams_session_factory: Any, canon: Any
+) -> None:
+    """R3-F2 closure: Dreams-written Activity row reaches Layer 6 via retrieval.
+
+    End-to-end proof that the Phase 6 -> Phase 3 consumer handoff is
+    not seam-only: run Dreams, then call assemble_context() with the
+    same session and verify the activity's narrator_script appears in
+    the assembled prompt body.
+    """
+    from typing import cast as _cast
+
+    from sqlalchemy.ext.asyncio import AsyncSession as _AsyncSession
+
+    from starry_lyfe.context.assembler import assemble_context
+    from starry_lyfe.context.types import CommunicationMode, SceneState
+
+    stub = StubBDOne(
+        default_text=(
+            "Morning in the atelier, the light falling across the bench.\n"
+            "Branch: Adelia starts with the kiln test.\n"
+            "Branch: Adelia opens the order book first."
+        )
+    )
+    now = datetime(2026, 4, 14, 3, 30, tzinfo=UTC)
+
+    await run_dreams_pass(
+        session_factory=dreams_session_factory,
+        llm_client=stub,
+        canon=canon,
+        now=now,
+    )
+
+    session = dreams_session_factory()._session  # type: ignore[attr-defined]
+
+    scene = SceneState(
+        present_characters=["adelia", "whyze"],
+        scene_description="morning in the atelier",
+        communication_mode=CommunicationMode.IN_PERSON,
+    )
+    prompt = await assemble_context(
+        character_id="adelia",
+        scene_context="morning in the atelier",
+        scene_state=scene,
+        session=_cast(_AsyncSession, session),
+        embedding_service=_StubEmbeddingService(),  # type: ignore[arg-type]
+    )
+
+    assert prompt.is_terminally_anchored
+    # The Dreams activity's narrator script should surface in Layer 6's
+    # new Dreams-opener section. Content is LLM-generated (StubBDOne),
+    # so we assert on the stable header marker.
+    assert "Today's Dreams scene opener" in prompt.prompt, (
+        "Dreams-written Activity did not reach the assembled prompt via "
+        "retrieval -> Layer 6. R3-F2 contract not met."
+    )

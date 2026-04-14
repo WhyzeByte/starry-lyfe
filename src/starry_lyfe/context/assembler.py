@@ -138,6 +138,10 @@ async def assemble_context(
         communication_mode=scene_state.communication_mode,
         scene_state=scene_state,
     )
+    # Phase 6 R3-F2: surface Dreams-written activities into Layer 6.
+    # MemoryBundle.activities is Tier 8 (Dreams-populated) and may be
+    # empty on fresh DBs. format_scene_blocks renders only the most
+    # recent entry's narrator_script when present.
     layer_6 = format_scene_blocks(
         character_id,
         memories.dyad_states_whyze,
@@ -148,6 +152,7 @@ async def assemble_context(
         budget=max(1, profile.scene - reserved_scene_tokens),
         recalled_dyads=scene_state.recalled_dyads,
         explicitly_invoked_absent_dyad=scene_state.modifiers.explicitly_invoked_absent_dyad or None,
+        dreams_activities=getattr(memories, "activities", None),
     )
 
     if pair_text:

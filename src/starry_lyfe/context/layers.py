@@ -515,12 +515,30 @@ def format_scene_blocks(
     budget: int = DEFAULT_BUDGETS.scene,
     recalled_dyads: set[str] | None = None,
     explicitly_invoked_absent_dyad: frozenset[str] | None = None,
+    dreams_activities: list[Any] | None = None,
 ) -> LayerContent:
-    """Layer 6: Format relationship state and scene context in per-character prose (Phase G)."""
+    """Layer 6: Format relationship state and scene context in per-character prose (Phase G).
+
+    Phase 6 R3-F2: when ``dreams_activities`` contains Dreams-written
+    Activity rows, the most recent row's narrator_script is prepended
+    to the layer as "Today's Dreams scene opener:". This closes the
+    Dreams -> assembler consumer path: retrieval surfaces the Tier 8
+    data, and Layer 6 renders it so the model sees Dreams output on
+    the next turn.
+    """
     sections: list[str] = []
 
     if scene_description:
         sections.append(f"Current activity: {scene_description}")
+
+    # Phase 6 R3-F2: inject Dreams-generated activity narrator script
+    # when present. The retrieval layer supplies dreams_activities
+    # sorted most-recent-first; we render only the top entry.
+    if dreams_activities:
+        top = dreams_activities[0]
+        narrator = getattr(top, "narrator_script", None)
+        if narrator:
+            sections.append(f"Today's Dreams scene opener:\n{narrator}")
 
     # Phase G: character-voiced dyad prose + numeric block
     for wd in dyads_whyze:
