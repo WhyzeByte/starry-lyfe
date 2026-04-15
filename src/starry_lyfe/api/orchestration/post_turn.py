@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from starry_lyfe.dreams.llm import BDOne, StubBDOne
 
+from .internal_relationship import evaluate_and_update_internal
 from .memory_extraction import extract_episodic
 from .relationship import evaluate_and_update
 
@@ -95,6 +96,25 @@ def schedule_post_turn_tasks(
     )
     relationship_task.add_done_callback(_log_task_outcome)
     tasks.append(relationship_task)
+
+    # Phase 9 AC-9.1 (2026-04-15): inter-woman (internal) relationship
+    # evaluator — one fire-and-forget task per character turn. The
+    # evaluator iterates the focal character's ACTIVE inter-woman dyads
+    # internally and fans out; Alicia-orbital dormant dyads are
+    # filtered at the DB boundary (AC-9.11) so they never consume LLM
+    # budget. Fire-and-forget contract identical to Phase 8.
+    internal_task = asyncio.create_task(
+        evaluate_and_update_internal(
+            session_factory,
+            character_id=character_id,
+            response_text=full_response_text,
+            llm_client=llm_client,
+            settings=settings,
+        ),
+        name=f"post_turn_evaluate_and_update_internal[{character_id}]",
+    )
+    internal_task.add_done_callback(_log_task_outcome)
+    tasks.append(internal_task)
 
     return tasks
 

@@ -135,7 +135,10 @@ class TestExtractEpisodic:
 
 
 class TestSchedulePostTurnTasks:
-    async def test_returns_two_running_tasks(self) -> None:
+    async def test_returns_three_running_tasks(self) -> None:
+        """Phase 9 (2026-04-15): three fire-and-forget tasks per turn —
+        extract_episodic + evaluate_and_update (Whyze-dyad) +
+        evaluate_and_update_internal (inter-woman dyads)."""
         factory = _RecordingFactory()
         stub = StubBDOne(default_text="reflective summary line.")
         tasks = schedule_post_turn_tasks(
@@ -146,10 +149,15 @@ class TestSchedulePostTurnTasks:
             chat_session_id=uuid.uuid4(),
             llm_client=stub,
         )
-        assert len(tasks) == 2
-        # Both tasks have descriptive names for log correlation.
+        assert len(tasks) == 3
+        # All three tasks have descriptive names for log correlation.
         assert any("extract_episodic" in t.get_name() for t in tasks)
-        assert any("evaluate_and_update" in t.get_name() for t in tasks)
+        assert any(
+            "evaluate_and_update[" in t.get_name() for t in tasks
+        ), "whyze evaluator task missing"
+        assert any(
+            "evaluate_and_update_internal" in t.get_name() for t in tasks
+        ), "inter-woman evaluator task missing"
         # Drain so pytest doesn't warn about unawaited tasks.
         await await_post_turn_tasks(tasks)
 
