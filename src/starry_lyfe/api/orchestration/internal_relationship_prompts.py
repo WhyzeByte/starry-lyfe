@@ -389,13 +389,21 @@ def build_internal_eval_prompt(
     member_a: str,
     member_b: str,
     response_text: str,
+    *,
+    speaker_id: str,
 ) -> str:
     """Build the user-turn message for an inter-woman dyad evaluation call.
 
     The system prompt (``INTERNAL_RELATIONSHIP_EVAL_SYSTEM``) carries all
     per-pair register notes. This user turn supplies the runtime values
     the evaluator needs: which dyad is being evaluated, which two women
-    are members, and what the speaker said.
+    are members, who actually spoke this turn, and what was said.
+
+    R1-F1 closure (2026-04-15): ``speaker_id`` is required so the LLM can
+    resolve directional pair signals (who left the hall light on, who
+    delivered the structural veto, who called the other "the witness").
+    Without it the same text against ``bina_reina`` produced identical
+    prompts whether the focal speaker was Bina or Reina.
 
     Delimiter injection defense (R1-F3 lesson from Phase 8, proactively
     applied per AC-9.9): the response text is ``html.escape``'d before
@@ -407,6 +415,10 @@ def build_internal_eval_prompt(
         member_a: First woman in the dyad (canonical lowercase ID).
         member_b: Second woman in the dyad (canonical lowercase ID).
         response_text: The speaker's full response text from this turn.
+        speaker_id: Canonical lowercase ID of the woman who spoke this
+            turn. Should be one of ``member_a`` or ``member_b``; the
+            evaluator's SQL filter already enforces membership, so this
+            layer accepts the value without re-validation.
 
     Returns:
         A single string ready to send as the ``user`` role message.
@@ -414,10 +426,12 @@ def build_internal_eval_prompt(
     dkey = dyad_key.lower().strip() if dyad_key else _UNKNOWN
     a = member_a.lower().strip() if member_a else _UNKNOWN
     b = member_b.lower().strip() if member_b else _UNKNOWN
+    speaker = speaker_id.lower().strip() if speaker_id else _UNKNOWN
     # R1-F3 lesson: escape < and > so the closing </response_text>
     # delimiter cannot appear verbatim inside user-supplied content.
     safe_text = html.escape(response_text, quote=False)
     return (
+        f"Speaker: {speaker}\n"
         f"Dyad: {dkey}\n"
         f"Members: {a}, {b}\n\n"
         f"<response_text>\n{safe_text}\n</response_text>\n\n"

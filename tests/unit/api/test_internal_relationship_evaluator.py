@@ -431,3 +431,86 @@ class TestEvaluateAndUpdateInternalLLMPath:
         )
         assert len(result) == 1
         assert result[0].applied.intimacy > 0
+
+
+class TestF1SpeakerThreading:
+    """R1-F1 closure (2026-04-15): focal `character_id` reaches the LLM prompt.
+
+    Codex Round 1 F1 proved by red-team that the same dyad text produced
+    identical user prompts whether the focal speaker was Bina or Reina.
+    These tests pin the post-fix contract: the user prompt the LLM sees
+    must contain a `Speaker:` line carrying the focal `character_id`.
+    """
+
+    async def test_user_prompt_carries_focal_character_id_as_speaker(self) -> None:
+        from starry_lyfe.dreams.llm import StubBDOne
+
+        captured: dict[str, str] = {}
+
+        def _responder(_sys: str, user: str) -> str:
+            captured["user_prompt"] = user
+            return (
+                '{"trust": 0.0, "intimacy": 0.01, "conflict": 0.0, '
+                '"unresolved_tension": 0.0, "repair_history": 0.0}'
+            )
+
+        stub = StubBDOne(responder=_responder)
+        factory = _FakeFactory([
+            _seed_internal_row("bina_reina", "bina", "reina"),
+        ])
+        await evaluate_and_update_internal(
+            factory,  # type: ignore[arg-type]
+            character_id="bina",
+            response_text="I left the hall light on for her when she got home.",
+            llm_client=stub,
+            settings=_StubSettings(),  # type: ignore[arg-type]
+        )
+        assert "Speaker: bina" in captured["user_prompt"]
+
+    async def test_same_dyad_distinct_focal_speakers_yield_distinct_prompts(self) -> None:
+        """The exact red-team Codex Round 1 ran. Post-fix, prompts must differ."""
+        from starry_lyfe.dreams.llm import StubBDOne
+
+        captured: list[str] = []
+
+        def _responder(_sys: str, user: str) -> str:
+            captured.append(user)
+            return (
+                '{"trust": 0.0, "intimacy": 0.0, "conflict": 0.0, '
+                '"unresolved_tension": 0.0, "repair_history": 0.0}'
+            )
+
+        stub = StubBDOne(responder=_responder)
+        text = "I left the hall light on for her when she got home."
+
+        # Run as Bina speaking.
+        factory_bina = _FakeFactory([
+            _seed_internal_row("bina_reina", "bina", "reina"),
+        ])
+        await evaluate_and_update_internal(
+            factory_bina,  # type: ignore[arg-type]
+            character_id="bina",
+            response_text=text,
+            llm_client=stub,
+            settings=_StubSettings(),  # type: ignore[arg-type]
+        )
+
+        # Run as Reina speaking — same dyad, same text.
+        factory_reina = _FakeFactory([
+            _seed_internal_row("bina_reina", "bina", "reina"),
+        ])
+        await evaluate_and_update_internal(
+            factory_reina,  # type: ignore[arg-type]
+            character_id="reina",
+            response_text=text,
+            llm_client=stub,
+            settings=_StubSettings(),  # type: ignore[arg-type]
+        )
+
+        assert len(captured) == 2
+        assert captured[0] != captured[1], (
+            "Pre-fix bug: identical user prompts for the same dyad/text "
+            "regardless of focal speaker. Post-fix: must differ."
+        )
+        assert "Speaker: bina" in captured[0]
+        assert "Speaker: reina" in captured[1]

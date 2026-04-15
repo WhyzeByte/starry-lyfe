@@ -176,6 +176,7 @@ async def _llm_propose_internal_deltas(
     dyad_key: str,
     member_a: str,
     member_b: str,
+    speaker_id: str,
     response_text: str,
     max_tokens: int,
     temperature: float,
@@ -186,6 +187,9 @@ async def _llm_propose_internal_deltas(
     circuit open, ``DreamsLLMError``, parser returning None. Each logs
     a structured ``internal_llm_eval_fallback_to_heuristic`` event with
     the ``dyad_key`` and ``reason``.
+
+    R1-F1 closure (2026-04-15): ``speaker_id`` is threaded through so
+    the LLM can disambiguate directional pair signals.
     """
     # Import here to avoid top-level circular import (prompts module
     # imports InternalDyadDeltaProposal from this module).
@@ -203,7 +207,7 @@ async def _llm_propose_internal_deltas(
         return None
 
     user_prompt = build_internal_eval_prompt(
-        dyad_key, member_a, member_b, response_text
+        dyad_key, member_a, member_b, response_text, speaker_id=speaker_id
     )
     try:
         completion = await llm_client.complete(
@@ -335,6 +339,7 @@ async def evaluate_and_update_internal(
                     dyad_key=row.dyad_key,
                     member_a=row.member_a,
                     member_b=row.member_b,
+                    speaker_id=character_id,
                     response_text=response_text,
                     max_tokens=max_tokens,
                     temperature=temperature,
