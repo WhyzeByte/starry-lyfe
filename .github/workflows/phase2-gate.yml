@@ -53,4 +53,14 @@ jobs:
         run: python -m starry_lyfe.db.seed
 
       - name: Run integration tests
-        run: python -m pytest tests/integration -v
+        # --tb=long + junit XML so the failure lands in a downloadable
+        # artifact. Required while CI log access is admin-only.
+        run: python -m pytest tests/integration -v --tb=long --junit-xml=pytest-report.xml --maxfail=1
+
+      - name: Upload pytest report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-report-${{ github.sha }}
+          path: pytest-report.xml
+          if-no-files-found: warn
