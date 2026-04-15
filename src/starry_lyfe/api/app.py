@@ -18,7 +18,7 @@ from typing import Any
 from fastapi import FastAPI
 
 from starry_lyfe.canon.loader import load_all_canon
-from starry_lyfe.db.embed import EmbeddingService, OllamaEmbeddingService
+from starry_lyfe.db.embed import EmbeddingService, LMStudioEmbeddingService
 from starry_lyfe.db.engine import build_engine, build_session_factory, close_db, init_db
 from starry_lyfe.dreams.llm import BDOne, BDOneSettings, StubBDOne
 
@@ -44,7 +44,7 @@ def _build_default_state(settings: ApiSettings) -> dict[str, Any]:
     canon = load_all_canon()
     engine = build_engine()
     session_factory = build_session_factory(engine)
-    embedding_service: EmbeddingService = OllamaEmbeddingService()
+    embedding_service: EmbeddingService = LMStudioEmbeddingService()
     llm_client: BDOne | StubBDOne = BDOne(BDOneSettings.from_env())
     return {
         "settings": settings,

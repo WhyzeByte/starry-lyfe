@@ -28,11 +28,16 @@ class DatabaseSettings(BaseSettings):
 
 
 class EmbeddingSettings(BaseSettings):
-    """Embedding model configuration."""
+    """Embedding model configuration.
 
-    model: str = "nomic-embed-text"
+    Defaults target LM Studio's OpenAI-compatible server on port 1234
+    with ``text-embedding-nomic-embed-text-v1.5`` (768-dim), which matches
+    the ``Vector(768)`` column on ``episodic_memories``.
+    """
+
+    model: str = "text-embedding-nomic-embed-text-v1.5@q5_k_m"
     dimension: int = 768
-    base_url: str = "http://localhost:11434"
+    base_url: str = "http://localhost:1234/v1"
 
     model_config = {"env_prefix": "STARRY_LYFE__EXT__EMBEDDING_"}
 
