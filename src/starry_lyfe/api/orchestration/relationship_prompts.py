@@ -290,10 +290,9 @@ def build_eval_prompt(character_id: str, response_text: str) -> str:
     register notes. This user turn supplies only the runtime values the
     evaluator needs: which character spoke, and what she said.
 
-    ``response_text`` is injected between XML-style delimiters so the LLM
-    can locate it unambiguously regardless of its content. No escaping of
-    the text itself is performed — the delimiters are sufficient to prevent
-    confusion with surrounding instructions.
+    ``response_text`` is injected between XML-style delimiters after HTML
+    escaping so the LLM can locate it unambiguously regardless of its
+    content without allowing delimiter injection from the text itself.
 
     Intentional narrowing (Phase 8 R2a, 2026-04-15): the prompt does NOT
     include the current ``DyadStateWhyze`` row. The Step 1 plan speculated
