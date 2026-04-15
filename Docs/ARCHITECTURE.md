@@ -17,7 +17,7 @@ Starry-Lyfe is a character AI backend for four v7.1 persona kernels (Adelia Raye
 - Phase 5: Scene Director — `src/starry_lyfe/scene/`
 - Phase 6: Dreams Engine (nightly batch life-simulation) — `src/starry_lyfe/dreams/`
 - Phase 7: HTTP service on port 8001 — `src/starry_lyfe/api/`
-- Phase 8: LLM Relationship Evaluator — **in-flight** (`src/starry_lyfe/api/orchestration/relationship_prompts.py` authored; Step 2 pending)
+- Phase 8: LLM Relationship Evaluator — **Step 4 Round 1 remediation complete** (2026-04-15; 4 commits addressing Codex R1+R2 findings; handshake to Codex for Round 3 re-audit)
 
 **Test baseline:** 1015 passed, 0 failed (910 unit + 60 integration + 45 fidelity). ruff clean. mypy `--strict` clean.
 
