@@ -1,6 +1,6 @@
 # Starry-Lyfe v7.1 Architecture
 
-**Version:** 0.9.0
+**Version:** 0.9.1
 **Date:** 2026-04-15
 **Status:** Concise architecture and module index. Canonical phase-completion status lives in `Docs/IMPLEMENTATION_PLAN_v7.1.md`.
 
@@ -18,9 +18,9 @@ Starry-Lyfe is a character AI backend for four v7.1 persona kernels (Adelia Raye
 - Phase 6: Dreams Engine (nightly batch life-simulation) — `src/starry_lyfe/dreams/`
 - Phase 7: HTTP service on port 8001 — `src/starry_lyfe/api/`
 - Phase 8: LLM Relationship Evaluator (Whyze-dyads) — **SEALED 2026-04-15** (Step 5 QA APPROVED FOR SHIP, 15/15 ACs PASS, all 6 Codex findings closed)
-- Phase 9: LLM Relationship Evaluator (DyadStateInternal — inter-woman dyads) — **Step 2 Execute complete** (2026-04-15; three-commit chain on main: `a3148f5` + `3449335` + governance sweep; 15/15 ACs MET pre-audit; handshake to Codex for Round 1)
+- Phase 9: LLM Relationship Evaluator (DyadStateInternal — inter-woman dyads) — **Step 4 Round 1 Remediation complete** (2026-04-15; closes 3 Codex Round 1 findings: F1 speaker identity threaded into prompt + 5 regression tests; F2 Alicia-orbital remote-turn note narrowed to deferred future-phase scope per Project Owner Hybrid choice; F3 PHASE_9.md governance repair; Step 4 R1 commit chain `b301b16` + `2906ed3` + R1-F3 governance; handshake to Codex for Round 2 re-audit)
 
-**Test baseline:** 1113 passed, 0 failed (1008 unit + 60 integration + 45 fidelity). ruff clean. mypy `--strict` clean across 103 source files.
+**Test baseline:** 1118 passed, 0 failed (1013 unit + 60 integration + 45 fidelity). ruff clean. mypy `--strict` clean across 103 source files.
 
 ## Module Registry
 

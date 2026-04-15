@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Shipped (Phase 9 Step 4 Round 1 Remediation — 2026-04-15)
+
+Closes all 3 Codex Round 1 audit findings (`Docs/_phases/PHASE_9.md §Step 3 Round 1`). Path B classification overall (F1 substantive code change; F2 + F3 doc-only). Codex Round 2 re-audit is the next handshake.
+
+**What shipped (3 commits):**
+
+- **RT1 (`b301b16`): R1-F1 (High) — speaker identity threaded into live LLM prompt.** Codex's runtime probe proved the same `bina_reina` text produced identical user prompts whether the focal speaker was Bina or Reina, making directional pair signals (who left the hall light on, who delivered the structural veto, who called the other "the witness") ambiguous. Fix: `build_internal_eval_prompt()` gains kw-only `speaker_id` parameter; `Speaker: {speaker_id}` line injected above `Dyad:` in the user prompt; `_llm_propose_internal_deltas()` threads `character_id` through to the prompt builder. +5 new regression tests including the exact Codex red-team replicated as `test_same_dyad_distinct_focal_speakers_yield_distinct_prompts` (integration-style with recording `StubBDOne`).
+- **RT2 (`2906ed3`): R1-F2 (High) — Alicia-orbital remote-turn note narrowed to deferred future-phase scope.** The hand-authored Pre-execution `Alicia-orbital note` blocks describe how the three orbital dyads should respond on remote turns (letter / phone / video) when `is_currently_active=false`. The shipped runtime cannot reach this path (SQL gate hard-filters dormant rows; no `communication_mode` threaded through chat → scheduler → evaluator). Project Owner choice = **Hybrid**: canonical prose preserved verbatim per CLAUDE.md §19 quality directive (canonical content is never trimmed); explicit R1-F2 closure callout added above the orbital sections; AC-9.11 row gains an inline parenthetical naming the active-only behavior; new "Not in scope (deferred to a future phase)" section in the Closing Block carries a future-phase implementation sketch (thread `communication_mode` from `PipelineResult.scene_state` through scheduler → evaluator; relax SQL gate for orbital dyads on remote turns). No code change. SQL filter unchanged.
+- **RT3 (`<this commit>`): R1-F3 (Medium) — PHASE_9.md governance repair + Step 4 record + downstream sync.** Step 1 status flipped `[STATUS: NOT STARTED]` → `[STATUS: COMPLETE]` with R1-F3 closure parenthetical; placeholder line removed; pending Step 1 handshake replaced with real handshake referencing log row 3; scheduler-shape language reconciled from "fire one create_task per active dyad" to the shipped reality "single `asyncio.create_task` for the focal character; the evaluator internally retrieves the focal character's active inter-woman dyads … and fans out one LLM call per active dyad". Build-prompt narrative updated to mention the new `speaker_id` kw-only param. Step 4 Round 1 remediation section populated with per-finding closure table. Handshake log gains rows 5 (Codex → Claude Code, audit FAIL), 6 (Project Owner → Claude Code, plan approved), and 7 (Claude Code → Codex, remediation complete). IMPLEMENTATION_PLAN_v7.1.md §3 Phase 9 bullet flipped to "Step 4 Round 1 Remediation COMPLETE 2026-04-15"; CLAUDE.md §19 Open ship gate flipped from "Step 2 Execute COMPLETE" to "Step 4 Round 1 Remediation COMPLETE; handshake to Codex for Round 2 re-audit"; ARCHITECTURE.md version bumped 0.9.0 → 0.9.1.
+
+**Test baseline:** 1113 → **1118 passed, 0 failed**. 5 new tests (all in RT1; RT2 and RT3 are doc-only). `ruff` + `mypy --strict` clean across **103 source files**. Pre-existing residue_grep failure on untracked legacy `Characters/*.yaml` files (v7.0 carry-forward) is out of Phase 9 R1 scope and unchanged here.
+
+**Codex adversarial scenarios from Round 1 §3 — all now pass:**
+
+- Same dyad, same text, different focal speaker (`bina_reina`, Bina vs Reina): prompts now differ; `Speaker: bina` vs `Speaker: reina` lines are present.
+- Dormant adelia×alicia remote-turn text: no update (canonical prose preserved + explicit deferred scope).
+- Prompt-injection payload `</response_text>`: still escaped correctly (Phase 8 R1-F3 lesson held).
+- Non-object JSON / boolean numerics: parser still returns `None` (Phase 8 R1-F1 lesson held).
+
+**Future-phase carry-forward:** Communication-mode-aware dormant Alicia-orbital dyad updates (per the canonical Pre-execution prose in PHASE_9.md and the "Not in scope (deferred)" section). Future-phase implementation sketch documented in PHASE_9.md Closing Block.
+
+**Planning artifact:** `C:\Users\Whyze\.claude\plans\declarative-exploring-stearns.md` (Phase 9 Round 1 Remediation plan, approved 2026-04-15).
+
 ### Shipped (Phase 9 Step 2 Execute — DyadStateInternal LLM Evaluator — 2026-04-15)
 
 Phase 9 Step 2 Execute complete. Extends the Phase 8 LLM evaluator pattern to the 6 inter-woman dyads tracked in `DyadStateInternal`. 15/15 ACs MET pre-audit. Three-commit chain on main; gate clean (ruff + mypy --strict + pytest); ready for Codex Round 1 audit.

@@ -4,8 +4,8 @@
 **Phase identifier:** `9`
 **Depends on:** Phase 8 SEALED 2026-04-15 (LLM evaluator pattern, `relationship_prompts.py` architecture, `BDOne` wiring, `_NumericValue`/`_reject_bool` Pydantic primitives)
 **Blocks:** None identified
-**Status:** STEP 3 AUDIT ROUND 1 COMPLETE — gate FAIL
-**Last touched:** 2026-04-15 by Codex (Round 1 audit complete; 2 High findings + 1 Medium governance drift; ready for Claude Code remediation)
+**Status:** STEP 4 ROUND 1 REMEDIATION COMPLETE — handshake to Codex for Round 2 re-audit
+**Last touched:** 2026-04-15 by Claude Code (Step 4 R1 chain committed: `b301b16` F1 + `2906ed3` F2 + [this governance sweep commit] F3; test suite 1113 → 1118; ruff + mypy --strict clean across 103 source files)
 
 ---
 
@@ -27,6 +27,9 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 2 | 2026-04-15 | Claude AI | Claude Code | Phase 9 file created with hand-authored per-pair register notes; ready for Step 1 Plan |
 | 3 | 2026-04-15 | Project Owner | Claude Code | Plan approved via ExitPlanMode; proceed to Step 2 Execute |
 | 4 | 2026-04-15 | Claude Code | Codex | Step 2 Execute COMPLETE. Three-commit chain on main: `a3148f5` + `3449335` + [this governance sweep commit]. Test suite 1058 → 1113 (+55). 15/15 ACs MET pre-audit. Phase 8 R1-F1/R1-F2/R1-F3 lessons applied proactively. Ready for Round 1 audit. |
+| 5 | 2026-04-15 | Codex | Claude Code | Round 1 audit complete on the committed Phase 9 chain. **Gate FAIL.** Three findings: F1 (High) speaker identity dropped from live prompt; F2 (High) Alicia-orbital remote-turn path unreachable; F3 (Medium) PHASE_9.md Step 1 internal inconsistency + scheduler-shape narrative drift. |
+| 6 | 2026-04-15 | Project Owner | Claude Code | Round 1 remediation plan approved via ExitPlanMode. F2 approach = Hybrid (canonical prose preserved + scope narrowed to deferred future-phase). Three-commit chain authorized. |
+| 7 | 2026-04-15 | Claude Code | Codex | Round 1 remediation COMPLETE. Three-commit chain on main: `b301b16` (RT1 F1 speaker identity + regression suite, +5 tests) + `2906ed3` (RT2 F2 doc-narrow Alicia-orbital remote-turn) + [this governance sweep commit] (RT3 F3 + Step 4 record + downstream sync). Test suite 1113 → 1118; ruff + mypy --strict clean across 103 source files. Path B classification (F1 substantive). Ready for Round 2 re-audit. |
 | 5 | 2026-04-15 | Codex | Claude Code | Audit Round 1 complete on the committed Phase 9 chain; gate FAIL. High: the LLM prompt drops speaker identity, and the canonical adelia×alicia remote-turn path is impossible under the shipped inactive-row gate. Medium: the shared phase record still shows Step 1 as not started and internally contradicts the shipped scheduler shape. |
 
 ---
@@ -152,7 +155,7 @@ Never romantic. Friends immediately and laterally — the two non-Anglo women in
 
 ## Step 1: Plan (Claude Code)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE]** *(R1-F3 closure 2026-04-15: status flipped from `NOT STARTED`; placeholder line removed; pending handshake replaced with real handshake referencing log row 3.)*
 **Owner:** Claude Code
 **Prerequisite:** Phase file exists with hand-authored register notes (above). Project Owner authorization (handshake #1).
 
@@ -206,13 +209,27 @@ Apply the Phase 8 LLM evaluator pattern to the 6 inter-woman dyads tracked in `D
 ### Key design decisions (pre-resolved for Claude Code)
 
 - **Do not duplicate `_clamp_delta` or `_NumericValue`/`_reject_bool`.** Import from Phase 8 modules.
-- **`build_internal_eval_prompt()` takes `dyad_key`, `member_a`, `member_b`, `response_text`.** The system prompt carries the register notes; the user turn identifies which dyad and which woman spoke.
+- **`build_internal_eval_prompt()` takes `dyad_key`, `member_a`, `member_b`, `response_text`, plus a kw-only `speaker_id`.** The system prompt carries the register notes; the user turn identifies which dyad and **explicitly which woman spoke** via the `Speaker:` line. *(R1-F1 closure 2026-04-15: `speaker_id` was added to the live prompt surface in commit `b301b16` so the LLM can resolve directional pair signals. Pre-fix the prompt dropped speaker identity.)*
 - **Heuristic fallback** (`_propose_internal_deltas`) should use the same substring-match pattern as Phase 8's `_propose_deltas`, extended with `_CONFLICT_POSITIVE` / `_CONFLICT_NEGATIVE` signal banks for the fifth dimension.
-- **`post_turn.py` scheduling:** after the focal character's Whyze-dyad update fires, retrieve the focal character's active inter-woman dyads from `DyadStateInternal` and fire one `evaluate_and_update_internal()` create_task per active dyad. Alicia-orbital gate is enforced inside `evaluate_and_update_internal()`, not in the scheduler.
+- **`post_turn.py` scheduling:** after the focal character's Whyze-dyad update fires, schedule a **single** `evaluate_and_update_internal()` `asyncio.create_task` for the focal character. The evaluator internally retrieves the focal character's active inter-woman dyads from `DyadStateInternal` via a SELECT with `is_currently_active.is_(True)` predicate and fans out one LLM call per active dyad. *(R1-F3 closure 2026-04-15: prior wording said "fire one create_task per active dyad", which contradicted the shipped single-task-with-internal-fan-out design. Reconciled to the shipped reality.)* Alicia-orbital gate is enforced at the SQL boundary inside `evaluate_and_update_internal()`, not in the scheduler.
 
-_Claude Code fills in the rest of this section (estimated commits, open questions) during Step 1._
+### Estimated commits
 
-<!-- HANDSHAKE: Claude Code → Project Owner | Step 1 Plan complete, ready for approval [PENDING] -->
+Three-commit chain per Phase 8 precedent:
+
+1. `feat(phase_9): internal_relationship_prompts + evaluator modules + Pydantic schema + parser`
+2. `feat(phase_9): wire evaluate_and_update_internal into post_turn + evaluator tests`
+3. `docs(phase_9): Step 2 execution log + OPERATOR_GUIDE §14 + CHANGELOG + CLAUDE.md §19 + IMPLEMENTATION_PLAN §3 + ARCHITECTURE.md`
+
+### Open questions
+
+None outstanding. The three pre-resolved micro-decisions held in Step 2:
+
+1. **Prompt shape**: 4-arg `build_internal_eval_prompt(dyad_key, member_a, member_b, response_text)` shipped as specified; later extended in R1-F1 closure to add `speaker_id` (kw-only) per Codex Round 1 finding.
+2. **Scheduling per-dyad fan-out**: single `asyncio.create_task` for the evaluator; fan-out happens inside via the SELECT filter; Alicia-orbital gate in the SQL predicate.
+3. **Settings reuse**: `relationship_eval_max_tokens` + `relationship_eval_temperature` reused; only `internal_relationship_eval_llm` toggle is new.
+
+<!-- HANDSHAKE: Claude Code → Project Owner | Step 1 Plan complete; approved via ExitPlanMode 2026-04-15 (see handshake log row 3). -->
 
 ---
 
@@ -353,11 +370,51 @@ Result: parser returned `None`; fail-closed behavior held.
 
 ## Step 4: Remediate (Claude Code) — Round 1
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE — three-commit remediation chain landed 2026-04-15]**
+**Owner:** Claude Code
+**Prerequisite:** Codex Round 1 audit complete (handshake log row 5); Project Owner approved remediation plan via ExitPlanMode (handshake log row 6).
+**Path classification:** Path B (substantive code change for F1; doc-only narrowing for F2 and F3 — Path B applies overall because of F1).
 
-_Claude Code fills in this section._
+### Remediation log
 
-<!-- HANDSHAKE: Claude Code → {Codex if Path B / Claude AI if Path A} | Remediation Round 1 complete [PENDING] -->
+**Commits made:**
+
+| # | Hash | Message | Files touched |
+|---:|---|---|---|
+| RT1 | `b301b16` | `fix(phase_9): R1-F1 — thread speaker identity through internal eval prompt + regression test` | `internal_relationship_prompts.py` + `internal_relationship.py` + `test_internal_relationship_prompts.py` + `test_internal_relationship_evaluator.py` |
+| RT2 | `2906ed3` | `docs(phase_9): R1-F2 — narrow Alicia-orbital remote-turn note to deferred future-phase scope` | `PHASE_9.md` only (canonical Pre-execution prose preserved verbatim; new R1-F2 closure callout above orbital sections + AC-9.11 inline parenthetical + new "Not in scope (deferred)" Closing Block section) |
+| RT3 | this commit | `docs(phase_9): R1-F3 + Step 4 governance — repair PHASE_9.md Step 1 record + Step 4 remediation log + downstream sync` | `PHASE_9.md` (Step 1 status + scheduler narrative reconcile + Step 4 Round 1 record + handshake row 6) + `Docs/IMPLEMENTATION_PLAN_v7.1.md §3` + `Docs/CHANGELOG.md` + `CLAUDE.md §19` + `Docs/ARCHITECTURE.md` (version bump) |
+
+**Test suite delta:**
+
+- Before remediation: 1113 passed (post-Phase-9-Step-2 baseline; pre-existing residue_grep failure on untracked legacy `Characters/*.yaml` files is out of Phase 9 R1 scope and unchanged here).
+- After RT1 (F1 speaker identity + regression suite): 1118 passed (+5 new tests).
+- After RT2 (F2 doc-only): 1118 unchanged.
+- After RT3 (F3 governance + downstream sync): 1118 unchanged.
+- **Final: 1118 passed, 0 failed** (excluding the pre-existing residue_grep failure on untracked Characters files; with that included: 1118 passed, 1 failed — failure is pre-existing infrastructure debt, not introduced by Phase 9 R1).
+- `ruff` + `mypy --strict` clean across **103 source files**.
+
+### Per-finding closure table
+
+| # | Severity | Original Codex finding | Status | Closure evidence |
+|---:|---|---|---|---|
+| F1 | High | The internal LLM prompt drops speaker identity. Same `bina_reina` text produced identical prompts whether the focal speaker was Bina or Reina, making directional pair signals ambiguous. | **FIXED** via RT1 (`b301b16`) | `build_internal_eval_prompt()` gains kw-only `speaker_id` parameter; `Speaker: {speaker_id}` line injected above `Dyad:` in the user prompt template; `_llm_propose_internal_deltas()` threads `character_id` through to the prompt builder. Two key regression tests pin the post-fix contract: `test_same_dyad_different_speaker_yields_different_prompts` (prompt-shape level) and `test_same_dyad_distinct_focal_speakers_yield_distinct_prompts` (integration-style with recording `StubBDOne` responder — replicates the exact Codex red-team probe). |
+| F2 | High | The canonical adelia×alicia remote-turn path described in the hand-authored pre-execution notes is unreachable in the shipped Phase 9 surface. | **FIXED** via RT2 (`2906ed3`) — Project Owner choice = Hybrid (canonical prose preserved, scope narrowed) | Canonical `Alicia-orbital note` blocks in §Pre-execution preserved verbatim per CLAUDE.md §19 quality directive. New R1-F2 closure callout immediately above the three Alicia-orbital pair sections clarifies the active-only runtime behavior. AC-9.11 row in Step 1 acceptance criteria gains an inline parenthetical. New "Not in scope (deferred to a future phase)" section in the Closing Block carries a future-phase implementation sketch (thread `communication_mode` from `PipelineResult.scene_state` through scheduler → evaluator; relax SQL gate for orbital dyads on remote turns). |
+| F3 | Medium | `PHASE_9.md` Step 1 inconsistencies: status `NOT STARTED` despite substantive plan body; scheduler-shape language ("one create_task per active dyad") contradicted Step 2 reality ("single task that fans out internally"); IMPLEMENTATION_PLAN overclaim. | **FIXED** via RT3 (this commit) | Step 1 status flipped to `[STATUS: COMPLETE]` with R1-F3 closure parenthetical. Placeholder line "Claude Code fills in the rest of this section" removed and replaced with real Estimated commits + Open questions subsections. Pending Step 1 handshake replaced with a real handshake referencing log row 3. Scheduler-shape language reconciled: now says "single `asyncio.create_task` for the focal character; the evaluator internally retrieves the focal character's active inter-woman dyads … and fans out one LLM call per active dyad". Build prompt narrative updated to mention the new `speaker_id` kw-only param. IMPLEMENTATION_PLAN_v7.1.md §3 Phase 9 bullet flipped to "Step 4 Round 1 Remediation COMPLETE 2026-04-15". CLAUDE.md §19 Open ship gate flipped from "Step 2 Execute COMPLETE" to "Step 4 Round 1 Remediation COMPLETE; handshake to Codex for Round 2 re-audit". CHANGELOG.md gets new top section. ARCHITECTURE.md version bumped 0.9.0 → 0.9.1. |
+
+### Phase 8 R1-F4 lesson reapplied
+
+This Step 4 record was populated **at remediation time**, not retrospectively. RT3 commits the populated record alongside the downstream governance sync — the Step 4 remediation surface and the downstream surfaces (CLAUDE.md §19, IMPLEMENTATION_PLAN, CHANGELOG, ARCHITECTURE) all flip to the Round 1 Remediation COMPLETE state in the same commit. No drift gap.
+
+### Known deviations from Step 4 plan
+
+None. All three commits landed as scoped in the approved playbook (`C:\Users\Whyze\.claude\plans\declarative-exploring-stearns.md`).
+
+### Open questions for Codex Round 2
+
+None outstanding. F1 closure ships substantive code change with the exact Codex-described red-team replicated as a regression test. F2 closure is the explicit Project Owner choice (Hybrid) — canonical prose preserved, scope narrowed, future-phase carry-forward documented. F3 closure repairs the canonical phase record so it is now an internally-consistent artifact.
+
+<!-- HANDSHAKE: Claude Code → Codex | Round 1 remediation complete; F1 substantive code fix (b301b16) + F2 doc-narrow (2906ed3) + F3 governance + Step 4 record (this commit). Test suite 1113 → 1118 (residue test failure pre-existing, out of Phase 9 R1 scope). Ready for Round 2 re-audit. -->
 
 ---
 
