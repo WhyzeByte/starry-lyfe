@@ -94,20 +94,39 @@ class TestMetricsEndpoint:
     def test_request_counter_increments_on_other_routes(
         self, metrics_app: TestClient
     ) -> None:
+        # Prometheus counters are process-global, so other tests in the
+        # session may have already incremented these series. Snapshot
+        # before → call → snapshot after and assert on the delta.
+        import re
+
+        def _read_counter(body: str, path: str) -> float:
+            pattern = re.compile(
+                r'http_requests_total\{method="GET",path="' + re.escape(path)
+                + r'",status="200"\}\s+([\d.]+)'
+            )
+            for line in body.splitlines():
+                match = pattern.search(line)
+                if match:
+                    return float(match.group(1))
+            return 0.0
+
         with metrics_app:
+            before = metrics_app.get("/metrics").text
+            live_before = _read_counter(before, "/health/live")
+            models_before = _read_counter(before, "/v1/models")
+
             metrics_app.get("/health/live")
             metrics_app.get("/health/live")
             metrics_app.get("/v1/models")
-            response = metrics_app.get("/metrics")
-        body = response.text
-        # /health/live counter incremented twice; /v1/models incremented once.
-        assert any(
-            'http_requests_total{method="GET",path="/health/live",status="200"} 2' in line
-            for line in body.splitlines()
+            after = metrics_app.get("/metrics").text
+
+        live_after = _read_counter(after, "/health/live")
+        models_after = _read_counter(after, "/v1/models")
+        assert live_after - live_before == 2.0, (
+            f"/health/live counter expected +2, got +{live_after - live_before}"
         )
-        assert any(
-            'http_requests_total{method="GET",path="/v1/models",status="200"} 1' in line
-            for line in body.splitlines()
+        assert models_after - models_before == 1.0, (
+            f"/v1/models counter expected +1, got +{models_after - models_before}"
         )
 
     def test_metrics_endpoint_does_not_self_count(

@@ -50,7 +50,17 @@ http_chat_completions_total = Counter(
 )
 http_sse_tokens_total = Counter(
     "http_sse_tokens_total",
-    "Cumulative SSE chunks streamed per focal character.",
+    # Semantic note: "tokens" is a misnomer retained for Prometheus series
+    # stability — this counter tracks per-delta LLM emissions, not LLM
+    # tokens. R2-F2 2026-04-15: one inc per upstream LLM stream delta in
+    # BOTH single-speaker and Crew paths. Attribution markers (``**Name:**``)
+    # and separators (``\n\n``) emitted around Crew speakers are SSE frame
+    # content, not LLM output — they do NOT increment this counter.
+    (
+        "Cumulative LLM stream deltas per labeled character "
+        "(speaker in Crew mode, focal character otherwise; "
+        "one inc per upstream delta)."
+    ),
     labelnames=("character_id",),
 )
 http_request_duration_seconds = Histogram(

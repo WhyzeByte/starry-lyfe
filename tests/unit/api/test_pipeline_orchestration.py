@@ -320,3 +320,209 @@ class TestPipelineImports:
         # Ensures that DreamsLLMError is the canonical upstream-failure
         # error type the pipeline catches.
         assert issubclass(DreamsLLMError, Exception)
+
+
+class TestAliciaHomeResolution:
+    """F2 closure: alicia_home is sourced from Tier 8 life_states, not hardcoded.
+
+    The pipeline calls ``retrieve_alicia_home(session)`` before scene
+    classification. When Alicia's row has ``is_away=True``, the scene
+    state that reaches the assembler reflects her absence; when the row
+    is missing the helper defaults to home=True (fresh-DB behavior
+    preserved).
+    """
+
+    def _build_app(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        *,
+        alicia_home: bool,
+    ) -> TestClient:
+        from starry_lyfe.api.orchestration import pipeline as pipeline_module
+
+        async def _fake_assemble_context(*args: object, **kwargs: object) -> AssembledPrompt:
+            return _stub_assembled_prompt("adelia")
+
+        async def _fake_alicia_home(_session: object) -> bool:
+            return alicia_home
+
+        async def _fake_retrieve_memories(*_a: object, **_k: object) -> None:
+            return None
+
+        monkeypatch.setattr(
+            "starry_lyfe.api.orchestration.pipeline.assemble_context",
+            _fake_assemble_context,
+        )
+        monkeypatch.setattr(
+            pipeline_module,
+            "retrieve_alicia_home",
+            _fake_alicia_home,
+        )
+        monkeypatch.setattr(
+            pipeline_module,
+            "retrieve_memories",
+            _fake_retrieve_memories,
+        )
+
+        app = create_app(
+            ApiSettings(api_key="test-key"),
+            state_overrides={
+                "session_factory": _DummyFactory(),
+                "llm_client": StubBDOne(default_text="hi"),
+                "engine": None,
+                "canon": None,
+                "embedding_service": None,
+            },
+        )
+        return TestClient(app)
+
+    def test_alicia_away_reaches_scene_state(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        client = self._build_app(monkeypatch, alicia_home=False)
+        with client as c:
+            response = c.post(
+                "/v1/chat/completions",
+                headers={"X-API-Key": "test-key"},
+                json={
+                    "model": "adelia",
+                    "messages": [{"role": "user", "content": "hi"}],
+                    "stream": True,
+                },
+            )
+        assert response.status_code == 200
+        # Scene state lands on app.state.last_pipeline_result for
+        # test inspection. alicia_home must reflect what retrieve_alicia_home
+        # returned, NOT the pre-F2 hardcoded True.
+        result = client.app.state.last_pipeline_result  # type: ignore[attr-defined]
+        assert result is not None, "pipeline_result must be stashed"
+        assert result.scene_state is not None
+        assert result.scene_state.alicia_home is False
+
+    def test_alicia_home_reaches_scene_state(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        client = self._build_app(monkeypatch, alicia_home=True)
+        with client as c:
+            response = c.post(
+                "/v1/chat/completions",
+                headers={"X-API-Key": "test-key"},
+                json={
+                    "model": "adelia",
+                    "messages": [{"role": "user", "content": "hi"}],
+                    "stream": True,
+                },
+            )
+        assert response.status_code == 200
+        result = client.app.state.last_pipeline_result  # type: ignore[attr-defined]
+        assert result.scene_state.alicia_home is True
+
+
+class TestSseTokensCounter:
+    """F5 closure: http_sse_tokens_total increments per SSE delta.
+
+    The counter is process-global, so we snapshot before + after and
+    assert the delta matches the stub's chunk count.
+    """
+
+    def test_counter_increments_per_chunk(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from starry_lyfe.api.endpoints.metrics import http_sse_tokens_total
+
+        async def _fake_assemble_context(*args: object, **kwargs: object) -> AssembledPrompt:
+            return _stub_assembled_prompt("bina")
+
+        monkeypatch.setattr(
+            "starry_lyfe.api.orchestration.pipeline.assemble_context",
+            _fake_assemble_context,
+        )
+
+        stub = StubBDOne(default_text="one two three four", stream_chunk_count=4)
+        app = create_app(
+            ApiSettings(api_key="test-key"),
+            state_overrides={
+                "session_factory": _DummyFactory(),
+                "llm_client": stub,
+                "engine": None,
+                "canon": None,
+                "embedding_service": None,
+            },
+        )
+
+        before = http_sse_tokens_total.labels(character_id="bina")._value.get()  # type: ignore[attr-defined]
+
+        with TestClient(app) as client:
+            response = client.post(
+                "/v1/chat/completions",
+                headers={"X-API-Key": "test-key"},
+                json={
+                    "model": "bina",
+                    "messages": [{"role": "user", "content": "hi"}],
+                    "stream": True,
+                },
+            )
+
+        assert response.status_code == 200
+        after = http_sse_tokens_total.labels(character_id="bina")._value.get()  # type: ignore[attr-defined]
+        # Counter invariant: one inc per content-carrying SSE delta. Parse
+        # the response and count content chunks (skipping role-only and
+        # finish_reason-only chunks), then compare against the counter
+        # delta. This is stub-chunking-invariant.
+        content_deltas = 0
+        for chunk in _parse_sse_lines(response.text):
+            if not isinstance(chunk, dict):
+                continue
+            delta = chunk["choices"][0]["delta"]  # type: ignore[index]
+            if delta.get("content"):
+                content_deltas += 1
+        assert content_deltas > 0, "stub must emit at least one content chunk"
+        assert after - before == content_deltas, (
+            f"expected counter to move by {content_deltas}, "
+            f"got {after - before} (before={before}, after={after})"
+        )
+
+    def test_counter_labeled_by_focal_character(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Routing focal character is the label; other characters stay flat."""
+        from starry_lyfe.api.endpoints.metrics import http_sse_tokens_total
+
+        async def _fake_assemble_context(*args: object, **kwargs: object) -> AssembledPrompt:
+            return _stub_assembled_prompt("reina")
+
+        monkeypatch.setattr(
+            "starry_lyfe.api.orchestration.pipeline.assemble_context",
+            _fake_assemble_context,
+        )
+
+        stub = StubBDOne(default_text="aa bb cc", stream_chunk_count=3)
+        app = create_app(
+            ApiSettings(api_key="test-key"),
+            state_overrides={
+                "session_factory": _DummyFactory(),
+                "llm_client": stub,
+                "engine": None,
+                "canon": None,
+                "embedding_service": None,
+            },
+        )
+
+        reina_before = http_sse_tokens_total.labels(character_id="reina")._value.get()  # type: ignore[attr-defined]
+        adelia_before = http_sse_tokens_total.labels(character_id="adelia")._value.get()  # type: ignore[attr-defined]
+
+        with TestClient(app) as client:
+            client.post(
+                "/v1/chat/completions",
+                headers={"X-API-Key": "test-key"},
+                json={
+                    "model": "reina",
+                    "messages": [{"role": "user", "content": "hi"}],
+                    "stream": True,
+                },
+            )
+
+        reina_after = http_sse_tokens_total.labels(character_id="reina")._value.get()  # type: ignore[attr-defined]
+        adelia_after = http_sse_tokens_total.labels(character_id="adelia")._value.get()  # type: ignore[attr-defined]
+        assert reina_after > reina_before, "focal counter must advance"
+        assert adelia_after == adelia_before, "non-focal counter must stay flat"

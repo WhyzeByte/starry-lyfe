@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starry_lyfe.canon.loader import Canon, load_all_canon
 from starry_lyfe.canon.soul_essence import soul_essence_token_estimate
 from starry_lyfe.db.embed import EmbeddingService
-from starry_lyfe.db.retrieval import retrieve_memories
+from starry_lyfe.db.retrieval import MemoryBundle, retrieve_memories
 
 from .budgets import DEFAULT_BUDGETS, estimate_tokens, trim_text_to_budget
 from .constraints import build_constraint_block
@@ -61,11 +61,18 @@ async def assemble_context(
     embedding_service: EmbeddingService,
     canon: Canon | None = None,
     scene_profile: str = "default",
+    memory_bundle: MemoryBundle | None = None,
 ) -> AssembledPrompt:
     """Assemble the seven-layer system prompt for a character.
 
     Layer 7 (Whyze-Byte constraints) is ALWAYS the final block in the
     prompt. Nothing follows it. This is terminal anchoring.
+
+    F2 (2026-04-15): Callers that have already retrieved the
+    ``MemoryBundle`` for ``character_id`` may pass it via
+    ``memory_bundle`` to avoid a duplicate DB round-trip. When omitted,
+    ``retrieve_memories`` is called internally — the Phase 3 public
+    contract is preserved.
 
     Raises:
         AliciaAwayError: If assembling Alicia for an in-person scene while she is away.
@@ -85,14 +92,18 @@ async def assemble_context(
         )
         raise AliciaAwayError(msg)
 
-    # Retrieve all memory tiers from Phase 2
-    memories = await retrieve_memories(
-        session=session,
-        embedding_service=embedding_service,
-        scene_context=scene_context,
-        character_id=character_id,
-        present_characters=scene_state.present_characters,
-    )
+    # Retrieve all memory tiers from Phase 2 — skip when caller provided a
+    # pre-fetched bundle (F2 plumbing from the HTTP pipeline).
+    if memory_bundle is not None:
+        memories = memory_bundle
+    else:
+        memories = await retrieve_memories(
+            session=session,
+            embedding_service=embedding_service,
+            scene_context=scene_context,
+            character_id=character_id,
+            present_characters=scene_state.present_characters,
+        )
 
     from .budgets import get_scene_profile, resolve_kernel_budget
 

@@ -229,6 +229,27 @@ async def _retrieve_life_state(
     return result.scalars().first()
 
 
+async def retrieve_alicia_home(session: AsyncSession) -> bool:
+    """Return True when Alicia is home (present for in-person scenes).
+
+    Reads Tier 8 ``life_states`` for ``character_id="alicia"`` and
+    resolves ``alicia_home = not is_away``. When no LifeState row exists
+    yet (fresh DB / Dreams has not run), defaults to ``True`` — the
+    operator's chosen family treats Alicia as home until an operation
+    explicitly moves her to ``is_away=True``.
+
+    Used by the Phase 7 HTTP pipeline's ``_build_scene_state`` to drop
+    the pre-F2 hardcode and honor Dreams-written residency state.
+    """
+    result = await session.execute(
+        select(LifeState).where(LifeState.character_id == "alicia")
+    )
+    row = result.scalars().first()
+    if row is None:
+        return True
+    return not row.is_away
+
+
 async def retrieve_memories(
     session: AsyncSession,
     embedding_service: EmbeddingService,

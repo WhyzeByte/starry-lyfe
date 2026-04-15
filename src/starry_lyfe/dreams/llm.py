@@ -190,6 +190,32 @@ class BDOne:
             f"{type(last_exc).__name__}: {last_exc}"
         ) from last_exc
 
+    async def ping(self, *, timeout_s: float = 1.5) -> None:
+        """Cheap reachability probe for /health/ready (F3).
+
+        Issues an HTTP HEAD against the provider base URL with the
+        configured auth header. Raises ``DreamsLLMError`` on any
+        connection failure, timeout, or non-2xx/3xx status. Does NOT
+        count against the circuit-breaker consecutive-failure counter —
+        health probes are observational; the circuit is driven only by
+        real completion attempts.
+
+        Token cost: zero. This is an HTTP HEAD, not a completion call.
+        """
+        headers = {"Authorization": f"Bearer {self._settings.api_key}"}
+        try:
+            async with httpx.AsyncClient(timeout=timeout_s) as client:
+                response = await client.head(self._settings.base_url, headers=headers)
+            if response.status_code >= 400:
+                raise DreamsLLMError(
+                    f"BD-1 ping returned HTTP {response.status_code} from "
+                    f"{self._settings.base_url}"
+                )
+        except httpx.HTTPError as exc:
+            raise DreamsLLMError(
+                f"BD-1 ping failed: {type(exc).__name__}: {exc}"
+            ) from exc
+
     async def stream_complete(
         self,
         system_prompt: str,
@@ -427,6 +453,16 @@ class StubBDOne:
         chunk_size = max(1, len(text) // chunk_count)
         for i in range(0, len(text), chunk_size):
             yield text[i:i + chunk_size]
+
+    async def ping(self, *, timeout_s: float = 1.5) -> None:
+        """Stub ping — always succeeds unless ``fail_next_n`` is set.
+
+        Tests that want to exercise the F3 503-path in /health/ready can
+        subclass and raise ``DreamsLLMError`` here.
+        """
+        if self.fail_next_n > 0:
+            self.fail_next_n -= 1
+            raise DreamsLLMError("StubBDOne configured to fail this ping")
 
     @property
     def circuit_open(self) -> bool:

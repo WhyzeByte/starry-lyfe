@@ -4,6 +4,10 @@
   container orchestrators / curl smoke tests.
 * ``/health/ready`` — verifies that R5 (DB) and BD-1 (LLM) are reachable.
   Returns 503 with a structured reason in the body when either is down.
+
+F3 closure (2026-04-15): the LLM branch now issues a live HEAD probe via
+``BDOne.ping()`` when ``settings.health_bd1_probe`` is True. The circuit-
+breaker short-circuit is preserved as a fast-path for known-bad state.
 """
 
 from __future__ import annotations
@@ -14,6 +18,8 @@ from typing import Any
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
+
+from starry_lyfe.dreams.errors import DreamsLLMError
 
 logger = logging.getLogger(__name__)
 
@@ -47,16 +53,26 @@ async def ready(request: Request) -> JSONResponse:
             checks["db"] = {"ok": False, "reason": f"{type(exc).__name__}: {exc}"}
             overall_ok = False
 
-    # BD-1: circuit breaker check. Don't call out to the LLM on every probe;
-    # surfacing the circuit state is enough for ops to decide whether the
-    # service is degraded.
+    # BD-1: circuit-breaker fast-path + live HEAD probe. Fast-path keeps
+    # known-bad state cheap; probe resolves the false-positive gap the
+    # original circuit-only check left (F3 closure 2026-04-15). The HEAD
+    # call costs zero tokens and uses a 1.5s timeout so scrapes stay cheap.
     llm = getattr(state, "llm_client", None)
+    settings = getattr(state, "settings", None)
+    probe_enabled = getattr(settings, "health_bd1_probe", True) if settings else True
     if llm is None:
         checks["llm"] = {"ok": False, "reason": "llm_client missing"}
         overall_ok = False
     elif getattr(llm, "circuit_open", False):
         checks["llm"] = {"ok": False, "reason": "BD-1 circuit breaker open"}
         overall_ok = False
+    elif probe_enabled and hasattr(llm, "ping"):
+        try:
+            await llm.ping()
+            checks["llm"] = {"ok": True}
+        except DreamsLLMError as exc:
+            checks["llm"] = {"ok": False, "reason": f"BD-1 probe failed: {exc}"}
+            overall_ok = False
     else:
         checks["llm"] = {"ok": True}
 

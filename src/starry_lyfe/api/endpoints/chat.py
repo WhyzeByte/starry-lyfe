@@ -137,6 +137,7 @@ async def chat_completions(
         canon=canon,
         llm_client=llm,
         embedding_service=embedding,
+        settings=settings,
     )
 
     session_factory = fast_request.app.state.session_factory
@@ -153,6 +154,12 @@ async def chat_completions(
             yield chunk
         result_obj = ctx.session.info.get("pipeline_result")
         result: PipelineResult | None = result_obj if isinstance(result_obj, PipelineResult) else None
+        # F2 2026-04-15: stash on app.state so tests can inspect the
+        # resolved SceneState (alicia_home, present_characters, etc.)
+        # without instrumenting the session object itself. Production
+        # code never reads this field — see PipelineResult docstring.
+        if result is not None:
+            fast_request.app.state.last_pipeline_result = result
         if result is not None and result.full_response_text:
             schedule_post_turn_tasks(
                 session_factory,

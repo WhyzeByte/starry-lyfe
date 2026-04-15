@@ -19,6 +19,13 @@ class ApiSettings(BaseSettings):
     api_key: str = ""
     cors_origins: list[str] = []
     default_character: str = "adelia"
+    # F3 closure: when True, /health/ready issues a live HEAD probe against
+    # the BD-1 provider URL. Tests that don't want network I/O set this
+    # False; production keeps it True for truthful readiness.
+    health_bd1_probe: bool = True
+    # F1 closure: Crew-mode multi-speaker cap. Project axiom (CLAUDE.md §16):
+    # "Max 3 choices per decision point. Fun, not overwhelming."
+    crew_max_speakers: int = 3
 
     model_config = {
         "env_prefix": "STARRY_LYFE__API__",
