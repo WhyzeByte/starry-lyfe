@@ -14,13 +14,19 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import AsyncIterator
 
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, Request
 from fastapi.responses import StreamingResponse
 
 from ..deps import CanonDep, EmbeddingDep, LLMDep, SessionDep, SettingsDep
 from ..errors import AuthError
-from ..orchestration.pipeline import PipelineContext, run_chat_pipeline
+from ..orchestration.pipeline import (
+    PipelineContext,
+    PipelineResult,
+    run_chat_pipeline,
+)
+from ..orchestration.post_turn import schedule_post_turn_tasks
 from ..orchestration.session import upsert_session
 from ..routing.character import resolve_character_id
 from ..routing.msty import preprocess_msty_request
@@ -84,6 +90,7 @@ def _enforce_api_key(provided: str | None, expected: str) -> None:
 @router.post("/v1/chat/completions")
 async def chat_completions(
     request: ChatCompletionRequest,
+    fast_request: Request,
     settings: SettingsDep,
     canon: CanonDep,
     session: SessionDep,
@@ -132,8 +139,32 @@ async def chat_completions(
         embedding_service=embedding,
     )
 
+    session_factory = fast_request.app.state.session_factory
+
+    async def _stream_with_post_turn() -> AsyncIterator[bytes]:
+        """Run the pipeline, then schedule post-turn tasks (E5).
+
+        Tasks run as ``asyncio.create_task`` so the SSE response
+        terminates BEFORE the extraction + relationship updates
+        complete (AC-7.10). Failure isolation is in
+        ``schedule_post_turn_tasks._log_task_outcome``.
+        """
+        async for chunk in run_chat_pipeline(ctx):
+            yield chunk
+        result_obj = ctx.session.info.get("pipeline_result")
+        result: PipelineResult | None = result_obj if isinstance(result_obj, PipelineResult) else None
+        if result is not None and result.full_response_text:
+            schedule_post_turn_tasks(
+                session_factory,
+                character_id=result.character_id,
+                user_message=msty.user_message,
+                full_response_text=result.full_response_text,
+                chat_session_id=session_id,
+                llm_client=llm,
+            )
+
     return StreamingResponse(
-        run_chat_pipeline(ctx),
+        _stream_with_post_turn(),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
