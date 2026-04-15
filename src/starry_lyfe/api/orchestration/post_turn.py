@@ -17,6 +17,7 @@ import asyncio
 import logging
 import uuid
 from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -24,6 +25,9 @@ from starry_lyfe.dreams.llm import BDOne, StubBDOne
 
 from .memory_extraction import extract_episodic
 from .relationship import evaluate_and_update
+
+if TYPE_CHECKING:
+    from starry_lyfe.api.config import ApiSettings
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +53,7 @@ def schedule_post_turn_tasks(
     full_response_text: str,
     chat_session_id: uuid.UUID | None,
     llm_client: BDOne | StubBDOne,
+    settings: ApiSettings | None = None,
 ) -> list[asyncio.Task[object]]:
     """Spawn the post-turn coroutines as detached tasks.
 
@@ -75,11 +80,16 @@ def schedule_post_turn_tasks(
     tasks.append(extraction_task)
 
     # AC-7.11: relationship evaluator with ±0.03 cap.
+    # Phase 8 (2026-04-15): llm_client + settings are threaded through so
+    # the evaluator can take the LLM-primary path. Both are optional —
+    # when omitted the evaluator falls back to the heuristic path.
     relationship_task = asyncio.create_task(
         evaluate_and_update(
             session_factory,
             character_id=character_id,
             response_text=full_response_text,
+            llm_client=llm_client,
+            settings=settings,
         ),
         name=f"post_turn_evaluate_and_update[{character_id}]",
     )

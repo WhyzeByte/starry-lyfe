@@ -26,6 +26,14 @@ class ApiSettings(BaseSettings):
     # F1 closure: Crew-mode multi-speaker cap. Project axiom (CLAUDE.md §16):
     # "Max 3 choices per decision point. Fun, not overwhelming."
     crew_max_speakers: int = 3
+    # Phase 8 AC-8.4 / AC-8.7: LLM relationship evaluator settings.
+    # When relationship_eval_llm is False, the post-turn evaluator forces
+    # the heuristic path (useful for offline dev + test suites that don't
+    # want live LLM traffic). max_tokens + temperature are passed through
+    # to BDOne.complete() for the evaluation call.
+    relationship_eval_llm: bool = True
+    relationship_eval_max_tokens: int = 200
+    relationship_eval_temperature: float = 0.2
 
     model_config = {
         "env_prefix": "STARRY_LYFE__API__",

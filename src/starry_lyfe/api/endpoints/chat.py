@@ -168,6 +168,7 @@ async def chat_completions(
                 full_response_text=result.full_response_text,
                 chat_session_id=session_id,
                 llm_client=llm,
+                settings=settings,
             )
 
     return StreamingResponse(
