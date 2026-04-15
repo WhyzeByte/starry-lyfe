@@ -18,10 +18,12 @@ Criteria) + per-character kernels §5 (Behavioral Tier Framework) §8
 
 from __future__ import annotations
 
+import html
 import json
 import logging
+from typing import Annotated, Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, ValidationError
 
 from starry_lyfe.api.orchestration.relationship import DyadDeltaProposal
 
@@ -233,18 +235,43 @@ is to indicate direction and rough magnitude, not to apply the cap yourself.
 # ---------------------------------------------------------------------------
 
 
+def _reject_bool(v: Any) -> Any:
+    """R1-F2 before-validator: reject JSON booleans in numeric fields.
+
+    ``bool`` is a subclass of ``int`` in Python, so Pydantic's default
+    ``float`` validator would coerce True/False to 1.0/0.0. AC-8.9
+    requires non-numeric inputs (including booleans) to fail closed.
+    """
+    if isinstance(v, bool):
+        raise ValueError("boolean values are not accepted in numeric fields")
+    return v
+
+
+_NumericValue = Annotated[float, BeforeValidator(_reject_bool)]
+
+
 class RelationshipEvalResponse(BaseModel):
     """Parsed LLM response for a single relationship evaluation turn.
 
-    All four float fields must be in [-1.0, 1.0]. ``repair_history`` is
-    positive-only per architecture (AC-8.10); negative values are clamped
-    to 0.0 by ``parse_eval_response`` before returning the proposal.
+    R1-F2 closure (2026-04-15): this schema is now the authoritative
+    validator used by ``parse_eval_response`` via ``model_validate``.
+    All four numeric fields reject booleans via the ``_reject_bool``
+    before-validator. Range clamping happens AFTER validation in the
+    parser — AC-8.5 specifies clamping-with-warn rather than raising
+    on out-of-range values, so the schema stays permissive on range
+    and the parser applies the clamp.
+
+    ``repair_history`` is positive-only per architecture (AC-8.10);
+    the parser clamps negative values to 0.0 after this schema has
+    validated the shape and types.
     """
 
-    intimacy: float = Field(..., ge=-1.0, le=1.0)
-    unresolved_tension: float = Field(..., ge=-1.0, le=1.0)
-    trust: float = Field(..., ge=-1.0, le=1.0)
-    repair_history: float = Field(..., ge=-1.0, le=1.0)
+    model_config = ConfigDict(extra="ignore")
+
+    intimacy: _NumericValue
+    unresolved_tension: _NumericValue
+    trust: _NumericValue
+    repair_history: _NumericValue
 
 
 # ---------------------------------------------------------------------------
@@ -353,6 +380,8 @@ def parse_eval_response(text: str) -> DyadDeltaProposal | None:
     # the object shape has ``.keys()``; everything else raised
     # AttributeError pre-remediation and propagated out of
     # ``evaluate_and_update`` instead of falling back to the heuristic.
+    # Pydantic would also reject these with a ValidationError, but the
+    # explicit guard logs a cleaner reason.
     if not isinstance(raw, dict):
         logger.warning(
             "llm_eval_parse_non_object",
@@ -360,32 +389,24 @@ def parse_eval_response(text: str) -> DyadDeltaProposal | None:
         )
         return None
 
-    # Validate field presence and numeric types before Pydantic clamping.
-    required = {"intimacy", "unresolved_tension", "trust", "repair_history"}
-    if not required.issubset(raw.keys()):
-        missing = required - raw.keys()
+    # R1-F2 closure (2026-04-15): route field-shape + type validation
+    # through the RelationshipEvalResponse Pydantic schema. The before-
+    # validator on ``_NumericValue`` rejects booleans; missing fields
+    # and non-numeric values raise ValidationError → None. Extra fields
+    # are ignored per model_config.
+    try:
+        model = RelationshipEvalResponse.model_validate(raw)
+    except ValidationError as exc:
         logger.warning(
-            "llm_eval_parse_missing_fields",
-            extra={"missing": sorted(missing)},
+            "llm_eval_parse_schema_validation_failed",
+            extra={"error": str(exc), "raw_keys": sorted(raw.keys())},
         )
         return None
 
-    for field in required:
-        value = raw[field]
-        # R1-F1 boolean rejection (2026-04-15): ``bool`` is a subclass of
-        # ``int`` in Python, so ``isinstance(True, (int, float))`` is
-        # True. We intend numeric-only per AC-8.9 — reject booleans
-        # explicitly before the int/float check.
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
-            logger.warning(
-                "llm_eval_parse_non_numeric",
-                extra={"field": field, "value": value, "type": type(value).__name__},
-            )
-            return None
-
-    # Clamp out-of-range values and warn. Pydantic ge/le would raise; we
-    # clamp instead so a slightly-out-of-bounds LLM response degrades
-    # gracefully rather than falling back entirely.
+    # Clamp out-of-range values and warn. The schema stays permissive on
+    # range so we can clamp-with-warn here rather than failing closed on
+    # a slightly-out-of-bounds LLM response (AC-8.5). This degrades
+    # gracefully: the ±0.03 downstream cap is the real safety margin.
     def _clamp_range(value: float, lo: float, hi: float, field: str) -> float:
         if value < lo or value > hi:
             logger.warning(
@@ -395,10 +416,10 @@ def parse_eval_response(text: str) -> DyadDeltaProposal | None:
             return max(lo, min(hi, value))
         return value
 
-    intimacy = _clamp_range(float(raw["intimacy"]), -1.0, 1.0, "intimacy")
-    tension = _clamp_range(float(raw["unresolved_tension"]), -1.0, 1.0, "unresolved_tension")
-    trust = _clamp_range(float(raw["trust"]), -1.0, 1.0, "trust")
-    repair_raw = float(raw["repair_history"])
+    intimacy = _clamp_range(model.intimacy, -1.0, 1.0, "intimacy")
+    tension = _clamp_range(model.unresolved_tension, -1.0, 1.0, "unresolved_tension")
+    trust = _clamp_range(model.trust, -1.0, 1.0, "trust")
+    repair_raw = model.repair_history
 
     # AC-8.10: repair_history is positive-only. Clamp negative to 0.0.
     if repair_raw < 0.0:

@@ -181,3 +181,55 @@ class TestR1F1ParserFailClosed:
             '"trust": 0.0, "repair_history": false}'
         )
         assert parse_eval_response(raw) is None
+
+
+class TestR1F2PydanticSchemaActive:
+    """R1-F2 closure: `RelationshipEvalResponse` is no longer dead code.
+
+    The parser now routes validation through ``model_validate``. These
+    tests prove the schema fires by importing it directly and asserting
+    the same contract the parser relies on.
+    """
+
+    def test_schema_rejects_booleans_via_before_validator(self) -> None:
+        """Direct schema test: boolean in any field raises ValidationError."""
+        from pydantic import ValidationError
+
+        from starry_lyfe.api.orchestration import RelationshipEvalResponse
+
+        with pytest.raises(ValidationError):
+            RelationshipEvalResponse.model_validate(
+                {"intimacy": True, "unresolved_tension": 0.0, "trust": 0.0, "repair_history": 0.0}
+            )
+
+    def test_schema_accepts_valid_floats(self) -> None:
+        from starry_lyfe.api.orchestration import RelationshipEvalResponse
+
+        model = RelationshipEvalResponse.model_validate(
+            {"intimacy": 0.12, "unresolved_tension": -0.05, "trust": 0.08, "repair_history": 0.0}
+        )
+        assert model.intimacy == 0.12
+        assert model.unresolved_tension == -0.05
+
+    def test_schema_ignores_extra_fields(self) -> None:
+        """`extra='ignore'` config lets LLMs add `reason` etc. without breaking parse."""
+        from starry_lyfe.api.orchestration import RelationshipEvalResponse
+
+        model = RelationshipEvalResponse.model_validate(
+            {
+                "intimacy": 0.1, "unresolved_tension": 0.0,
+                "trust": 0.0, "repair_history": 0.0,
+                "reason": "Warm and reserved",
+                "confidence": 0.85,
+            }
+        )
+        assert model.intimacy == 0.1
+
+    def test_schema_accepts_integer_coerced_to_float(self) -> None:
+        from starry_lyfe.api.orchestration import RelationshipEvalResponse
+
+        model = RelationshipEvalResponse.model_validate(
+            {"intimacy": 0, "unresolved_tension": 0, "trust": 0, "repair_history": 0}
+        )
+        assert isinstance(model.intimacy, float)
+        assert model.intimacy == 0.0
