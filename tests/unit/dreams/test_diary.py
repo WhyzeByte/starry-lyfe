@@ -78,6 +78,21 @@ class TestGenerateDiary:
             assert out.input_tokens > 0
             assert out.output_tokens > 0
 
+    async def test_mood_is_inferred_from_reflection_text(self, canon: Any) -> None:
+        settled = await generate_diary(
+            _ctx("adelia", canon, llm_client=StubBDOne(default_text="I feel calm and steady tonight."))
+        )
+        strained = await generate_diary(
+            _ctx("reina", canon, llm_client=StubBDOne(default_text="I feel tense, raw, and tired tonight."))
+        )
+        reflective = await generate_diary(
+            _ctx("bina", canon, llm_client=StubBDOne(default_text="I keep turning the day over in my head."))
+        )
+
+        assert settled.structured_data["mood"] == "settled"
+        assert strained.structured_data["mood"] == "strained"
+        assert reflective.structured_data["mood"] == "reflective"
+
     async def test_llm_failure_returns_warning_not_exception(self, canon: Any) -> None:
         failing = StubBDOne(fail_next_n=1)
         out = await generate_diary(_ctx("adelia", canon, llm_client=failing))

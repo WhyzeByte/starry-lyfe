@@ -4,8 +4,8 @@
 **Phase identifier:** `6` (architectural phase, numeric — following the §1-§10 architectural sequence; compare Phase 4 Whyze-Byte, Phase 5 Scene Director)
 **Depends on:** Phase 0 + all §3 Context Assembly phases (A, A', A'', B, I, C, D, E, F, G — all SHIPPED 2026-04-12/13), Phase 4 (Whyze-Byte Validation Pipeline, SHIPPED 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, SHIPPED 2026-04-14), Phase 5 (Scene Director, SHIPPED 2026-04-14 with R1/R2/R3 remediations landed)
 **Blocks:** Phase 7 (HTTP service) consumes the Dreams-populated `activities` / `open_loops` / `life_state` state it writes; Phase 7 is not blocked on Phase 6 execution per se, but Phase 7's activity-context endpoints expect Dreams to be live.
-**Status:** IN PROGRESS — Round 2 remediation complete; pending Claude AI QA (Step 5) + Project Owner ship (Step 6). Per Codex R3-F3 finding, the previous "SHIPPED 2026-04-14" header was a workflow violation and is now reopened. Round 1 (R1-R8) closed Codex F1-F6; Round 2 (this cycle) closes R3-F1 test fix + R3-F2 Layer 6 Dreams consumer + R3-F3 status reopen + R3-F4 dyad-delta claim narrowing.
-**Last touched:** 2026-04-14 by Claude Code (Round 2 remediation — R3-F1/F2/F3/F4)
+**Status:** IN PROGRESS — Round 2 remediation complete; pending Claude AI QA (Step 5) + Project Owner ship (Step 6). Per Codex R3-F3 finding, the previous "SHIPPED 2026-04-14" header was a workflow violation and is now reopened. Round 1 (R1-R8) closed Codex F1-F6; Round 2 (this cycle) closes R3-F1 test fix + R3-F2 Layer 6 Dreams consumer + R3-F3 status reopen + R3-F4 dyad-delta claim narrowing. Direct Codex doc remediation later aligned the remaining control-plane surfaces without changing production code.
+**Last touched:** 2026-04-14 by Codex (post-addendum governance + low-grade runtime cleanup)
 
 ---
 
@@ -30,9 +30,12 @@ The full planning document (with rationale, risk analysis, and lessons-applied n
 | 7 | 2026-04-14 | Claude Code | Claude Code (self) | Remediation plan-of-record recorded at Step 4 below. Scope (Project Owner decision): full remediation across all 6 findings, implement 3 real generators (off_screen/open_loops/activity_design), switch runner to asyncio.gather parallel. 8 remediation commits planned (R1-R8). Path B (substantive remediation; re-audit required before QA). |
 | 8 | 2026-04-14 | Codex | Claude Code | Round 2 re-audit (Step 3' below) ran BEFORE my R1-R7 code commits landed. Codex's R2 findings (R2-F1, R2-F2, R2-F3) correctly flagged that only the plan-of-record docs commit had shipped at that snapshot. Those R2 findings are now moot: R1-R7 code commits have all landed, closing F1/F2/F3/F4/F6 substantively. R2-F3 (partial F5) now closed by this R8 commit. |
 | 9 | 2026-04-14 | Claude Code | Claude AI | Round 1 remediation complete. All 8 planned commits landed: `651be7c` audit record, `aebb30e` plan-of-record, `726e550` R1+R2 (writers + snapshot loader + asyncio.gather), `5172bb7` R3 (off_screen), `dc42add` R4+R5 (open_loops + activity_design), `5e7f788` R6 (DB round-trip + MemoryBundle), `1c69629` R7 (daemon + fidelity), and this commit R8 (final record). Test baseline 843 → 897 (+54 Round 1 remediation tests). F1/F2/F3/F4/F5/F6 all FIXED per Step 4 table. Sample Dreams output artifacts generated at `Docs/_phases/_samples/PHASE_6_dreams_output_*.txt`. Ready for Codex re-audit then QA. |
-| 8 | 2026-04-14 | Codex | Claude Code | Round 2 re-audit of remediation efforts complete. **Gate: FAIL.** Only docs commit `aebb30e` landed after Round 1, and it records a plan-of-record rather than substantive remediation. F5 is partially corrected (phase reopened to IN PROGRESS; `pytest -q` now truly reports `843 passed`), but F1/F2/F3/F4/F6 remain open on the live code/test path. |
-| 10 | 2026-04-14 | Codex | Project Owner | Round 3 audit complete. **Gate: FAIL. Mandatory escalation.** The Phase 6 runtime is now materially real, but the remediation does not converge cleanly: hard-DB `pytest -q` fails (`896 passed, 1 failed`) on a new Alicia-away DB assertion, the Dreams -> Scene Director / assembler DB-backed consumer path is still only seam-tested, and the phase file still marks the phase shipped before QA / Project Owner signoff. |
-| 11 | 2026-04-14 | Claude Code | Project Owner | Round 3 remediation complete (see Step 4'' below). 3 commits: `0c28d9c` (Codex R3 audit governance record), `37ba61e` (R3-F1 Alicia test selection + R3-F2 Layer 6 Dreams consumer wiring + test), `3bae5d5` (R3-F3 status reopen + R3-F4 F1 claim narrowing). Full suite 898 passing. Per AGENTS.md cycle limit, Round 3 is the final audit round — no Round 4 opens without explicit PO direction. Handshake to Project Owner for ship-vs-further-remediation decision; PO then authorizes Step 5 Claude AI QA. |
+| 10 | 2026-04-14 | Codex | Claude Code | Round 2 re-audit of remediation efforts complete. **Gate: FAIL.** Only docs commit `aebb30e` landed after Round 1, and it records a plan-of-record rather than substantive remediation. F5 is partially corrected (phase reopened to IN PROGRESS; `pytest -q` now truly reports `843 passed`), but F1/F2/F3/F4/F6 remain open on the live code/test path. |
+| 11 | 2026-04-14 | Codex | Project Owner | Round 3 audit complete. **Gate: FAIL. Mandatory escalation.** The Phase 6 runtime is now materially real, but the remediation does not converge cleanly: hard-DB `pytest -q` fails (`896 passed, 1 failed`) on a new Alicia-away DB assertion, the Dreams -> Scene Director / assembler DB-backed consumer path is still only seam-tested, and the phase file still marks the phase shipped before QA / Project Owner signoff. |
+| 12 | 2026-04-14 | Claude Code | Project Owner | Round 3 remediation complete (see Step 4'' below). 3 commits: `0c28d9c` (Codex R3 audit governance record), `37ba61e` (R3-F1 Alicia test selection + R3-F2 Layer 6 Dreams consumer wiring + test), `3bae5d5` (R3-F3 status reopen + R3-F4 F1 claim narrowing). Full suite 898 passing. Per AGENTS.md cycle limit, Round 3 is the final audit round — no Round 4 opens without explicit PO direction. Handshake to Project Owner for ship-vs-further-remediation decision; PO then authorizes Step 5 Claude AI QA. |
+| 13 | 2026-04-14 | Codex | Project Owner | Post-remediation audit addendum complete. **Gate: PASS WITH MINOR FIXES.** Hard-DB suite is now genuinely green and the R3 code-path fixes are real, but control-plane docs still drift: canonical shipped-status surfaces still call Phase 6 shipped/complete while `PHASE_6.md` is correctly `IN PROGRESS` pending Step 5/6, and the Scene Director handoff is effectively deferred to Phase 7 glue while some canonical docs still describe it as a shipped Phase 6 surface. |
+| 14 | 2026-04-14 | Codex | Project Owner | Direct doc remediation applied under AGENTS.md Path C-style constraints by explicit Project Owner instruction in chat ("Directly remdiate the issues"). Canonical status surfaces aligned to "implementation complete; QA/ship pending," Scene Director auto-population clarified as Phase 7 HTTP glue, and handshake numbering corrected. |
+| 15 | 2026-04-14 | Codex | Project Owner | Post-addendum cleanup recorded. Direct Project Owner instruction in chat ("remediate any findings you see") was used to fix one real runtime defect (`run_dreams_pass()` internal-clock `finished_at` bug), remove the remaining live Phase 6 `TODO`/hardcoded diary mood placeholder, update stale generator-package commentary, and align the Step 5 QA guidance to the actual shipped Phase 6 scope. Focused Dreams verification is green (`20 passed` unit slice, `135 passed` broader Dreams slice, ruff + mypy clean). |
 
 (Append one row per handshake event. Never delete rows. The log is the audit trail.)
 
@@ -158,6 +161,8 @@ Implement the Dreams Engine as a monolithic phase per Project Owner direction. S
 8. **`tests/integration/test_dreams_to_assembler.py`** — after Dreams run, next `assemble_context()` includes Dreams-generated open loops in Layer 6 and Dreams-generated activity in Layer 4/6.
 9. Per-character regression tests (H4) and fidelity tests (H5).
 10. `tests/integration/test_dreams_alicia_away_mode.py` — Alicia `life_state.is_away=True` → all generated content tagged with `communication_mode`, Phase A'' filter preserves them in remote-mode runtime prompts.
+
+**Post-remediation scope note (2026-04-14):** The original Step 1 test-plan item 7 and AC-10 described a fully automatic Dreams → Scene Director path. The landed Phase 6 scope closes the seam-level Rule 7 salience contract plus the DB-backed Dreams → assembler consumer path. Automatic population of `NextSpeakerInput.activity_context` from retrieved Dreams activities is deferred to Phase 7 HTTP-service glue; see Step 4'' Deferrals and the Codex addendum below.
 
 ### Files touched
 
@@ -707,6 +712,73 @@ The phase is ready for Claude AI QA (Step 5) and then your ship decision (Step 6
 
 ---
 
+## Codex Post-Remediation Addendum (outside formal cycle)
+
+**Status:** COMPLETE — advisory addendum only; does not open Round 4.
+
+### Scope
+
+- Round 3 remediation commits: `37ba61e`, `3bae5d5`, `7520ff1`
+- Canonical status surfaces: `Docs/_phases/PHASE_6.md`, `Docs/IMPLEMENTATION_PLAN_v7.1.md`, `Docs/CHANGELOG.md`, `CLAUDE.md`
+- Consumer-path tests: `tests/integration/test_dreams_to_scene_director.py`, `tests/integration/test_dreams_db_round_trip.py`
+
+### Verification context
+
+- `pytest -q` with `STARRY_LYFE__TEST__REQUIRE_POSTGRES=1` -> **898 passed**
+- `pytest tests/integration/test_dreams_to_scene_director.py tests/integration/test_dreams_db_round_trip.py -q` -> **8 passed**
+- `ruff check src tests` -> clean
+- `python -m mypy src` -> clean
+
+### Findings
+
+| ID | Severity | Finding | Evidence | Recommended remediation |
+|----|----------|---------|----------|-------------------------|
+| A1 | Medium | Canonical shipped-status surfaces still contradict the Phase 6 phase file. | `Docs/_phases/PHASE_6.md:7` and the closing block keep Phase 6 `IN PROGRESS` pending Step 5/6, but `Docs/IMPLEMENTATION_PLAN_v7.1.md:37` / `:194` still mark Phase 6 COMPLETE, and `CLAUDE.md:522` still says `Phase 6: Dreams Engine — SHIPPED 2026-04-14`. `Docs/CHANGELOG.md:61` also still says the Round 1 F5 fix "corrected back to SHIPPED" even though Round 2 reopened the phase. Since the master plan is canonical for shipped/planned state, this is still control-plane drift. | Align `IMPLEMENTATION_PLAN_v7.1.md`, `CLAUDE.md`, and the stale Round 1 F5 changelog wording to the current phase state: code landed, but the phase is still pending Step 5 QA and Step 6 ship. |
+| A2 | Medium | The Scene Director half of the old R3-F2 concern is now effectively deferred to Phase 7, but not all canonical docs say so. | Step 4'' now explicitly notes `Scene Director activity_context auto-population from memories.activities` is Phase 7 glue at `Docs/_phases/PHASE_6.md:683`, and the new DB-backed consumer test closes only the assembler side. But `Docs/_phases/PHASE_6.md:157` / `:196`, `Docs/CHANGELOG.md:80`, and `CLAUDE.md:522` still describe Dreams → Scene Director handoff as a shipped Phase 6 surface. The live Scene Director test remains seam-level at `tests/integration/test_dreams_to_scene_director.py:9`. | Either update the canonical docs to say Phase 6 closes the write/retrieve + assembler consumer path while Phase 7 owns Scene Director glue, or implement the Scene Director DB-backed consumer path before claiming the handoff fully shipped. |
+| A3 | Low | The Phase 6 handshake log still has audit-trail numbering drift. | `Docs/_phases/PHASE_6.md:31` and `:33` both use row number `8`, so the log is no longer monotonic. The content is readable, but the numbering undermines the "single canonical record" audit trail. | Renumber the handshake rows monotonically in one doc-only pass. |
+
+### Historical gate recommendation
+
+**PASS WITH MINOR FIXES.** The runtime remediation is real and the hard-DB suite is green. The remaining issues are canonical-doc alignment and audit-trail housekeeping, not broken production code.
+
+### Direct Codex doc remediation (Project Owner authorized)
+
+Authorization source: direct Project Owner instruction in chat — "Directly remdiate the issues."
+
+| Finding | Status | Notes |
+|---------|--------|-------|
+| A1 | **FIXED** | `Docs/IMPLEMENTATION_PLAN_v7.1.md`, `Docs/CHANGELOG.md`, and `CLAUDE.md` now describe Phase 6 as implementation-complete but still pending Step 5 QA + Step 6 ship, matching this phase file. |
+| A2 | **FIXED** | Canonical docs now distinguish the shipped Phase 6 Dreams write/retrieve + assembler-consumer path from the still-deferred Phase 7 Scene Director `activity_context` auto-population glue. |
+| A3 | **FIXED** | The handshake log is now monotonic and this direct doc remediation is explicitly recorded as row 14. |
+
+Residual status after direct doc remediation: no open findings remain in this addendum.
+
+Current addendum state after direct doc remediation: **PASS**.
+
+### Post-addendum direct remediation (Project Owner authorized)
+
+Authorization source: direct Project Owner instruction in chat — "remediate any findings you see."
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Dreams pass timing defect | **FIXED** | `src/starry_lyfe/dreams/runner.py` now preserves whether `run_dreams_pass()` is using the internal clock, so `DreamsPassResult.finished_at` no longer reuses `started_at` on the default path. |
+| Residual live Phase 6 `TODO` / placeholder cleanup | **FIXED** | `src/starry_lyfe/dreams/generators/diary.py` now infers a coarse `mood` field from the generated reflection text instead of hardcoding `"reflective"` behind a `TODO`. `src/starry_lyfe/dreams/generators/__init__.py` now describes the shipped generator set rather than the old placeholder-stub state. |
+| Governance trace alignment | **FIXED** | Step 5 QA guidance now treats automatic Scene Director `activity_context` population as Phase 7 HTTP glue rather than a Phase 6 ship gate. |
+
+Additional verification after this post-addendum remediation:
+
+- `pytest tests/unit/dreams/test_diary.py tests/unit/dreams/test_runner.py -q` -> **20 passed**
+- `pytest tests/unit/dreams tests/integration/test_dreams_pipeline.py tests/integration/test_dreams_db_round_trip.py tests/integration/test_dreams_to_scene_director.py tests/integration/test_dreams_to_assembler.py tests/integration/test_dreams_alicia_away_mode.py -q` -> **135 passed**
+- `ruff check src/starry_lyfe/dreams tests/unit/dreams/test_diary.py tests/unit/dreams/test_runner.py` -> clean
+- `python -m mypy src/starry_lyfe/dreams/generators/diary.py src/starry_lyfe/dreams/runner.py` -> clean
+
+Current addendum state after post-addendum direct remediation: **PASS**.
+
+<!-- HANDSHAKE: Codex -> Project Owner | Post-remediation audit addendum complete. PASS WITH MINOR FIXES. Remaining issues are control-plane drift (master plan / CLAUDE / changelog still overstate ship state or Scene Director closure) plus handshake-log numbering cleanup. -->
+<!-- HANDSHAKE: Codex -> Project Owner | Post-addendum cleanup recorded. Addendum PASS. No remaining Codex-remediable findings are open in Phase 6; next governance step is Claude AI Step 5 QA, then Project Owner Step 6 ship. -->
+
+---
+
 ## Step 5: QA (Claude AI)
 
 **[STATUS: NOT STARTED]**
@@ -722,7 +794,7 @@ _Claude AI will fill in. Specification trace (AC-1 through AC-25 with PASS/FAIL/
 **Load-bearing QA items specific to Phase 6:**
 
 - **Sample review:** Claude AI reads one Dreams output artifact per character end-to-end and evaluates: (a) is this recognizably the character's voice? (b) does the content reflect canonical routines + yesterday's session data? (c) is Phase G prose rendering evident? (d) for Alicia-away samples, are `communication_mode` tags present?
-- **Cross-Phase impact check:** does Dreams output correctly populate Phase 5 `NextSpeakerInput.activity_context` and Phase 3 Layer 6 (scene_context)? Run next-turn smoke: `classify_scene` → `select_next_speaker` → `assemble_context` and confirm Dreams-generated activity reaches the model.
+- **Cross-Phase impact check:** confirm the shipped Phase 6 consumer path is real: Dreams-written activity reaches Phase 3 Layer 6 on the next turn via retrieval + `assemble_context()`. Automatic population of Phase 5 `NextSpeakerInput.activity_context` is Phase 7 HTTP glue and should be treated as N/A for Phase 6 ship.
 - **Subjective voice distinctness (lesson carried from Phase 5 audit culture):** spot-check each character's Dreams output for voice-swappability with other characters. Any flattening is a FAIL regardless of rubric score.
 
 ### Verdict
@@ -771,12 +843,12 @@ _(or)_
 
 **Cross-references:**
 
-- Master plan: `Docs/IMPLEMENTATION_PLAN_v7.1.md` §9 (now marked COMPLETE across all 6 status surfaces)
+- Master plan: `Docs/IMPLEMENTATION_PLAN_v7.1.md` §9 (status surfaces now aligned to "implementation complete; QA/ship pending" pending Step 5/6)
 - AGENTS.md cycle definition: `AGENTS.md`
 - Sample Dreams output artifacts: `Docs/_phases/_samples/PHASE_6_dreams_output_{adelia,bina,reina,alicia}_2026-04-14.txt` — 4 per-character full-pass reproductions (schedule + diary + off_screen + open_loops + activity_design, all Phase G wrapped), generated via the Round 1 R8 dry-run pass with StubBDOne.
 - Planning artifact: `C:\Users\Whyze\.claude\plans\fizzy-napping-whisper.md`
 - Previous phase file: `Docs/_phases/PHASE_5.md` (Scene Director, SHIPPED 2026-04-14 with R1/R2/R3 remediations)
-- Handoff target: Phase 5 `NextSpeakerInput.activity_context` slot (`src/starry_lyfe/scene/next_speaker.py:103`)
+- Handoff target: Phase 7 HTTP-service glue that will populate Phase 5 `NextSpeakerInput.activity_context` from retrieved Dreams activities
 - Retroactive phases: Phase G (`src/starry_lyfe/context/prose.py::render_diary_prose` + per-character _DIARY_OPENERS/_DIARY_CLOSERS banks), Phase A'' (`layers.py:75-84` communication-mode pruning + `dreams/alicia_mode.py` sampling), Phase H (`tests/unit/dreams/test_dreams_regression_per_character.py` bundle)
 - Alembic migrations: `alembic/versions/002_phase_6_dreams_tables.py` (7 Tier 8 tables), `alembic/versions/003_phase_6_episodic_comm_mode.py` (Phase A'' column)
 - Next phase file (if shipped): `Docs/_phases/PHASE_7.md`

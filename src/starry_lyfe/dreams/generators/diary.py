@@ -58,6 +58,47 @@ _SYSTEM_PROMPTS: dict[str, str] = {
     ),
 }
 
+_SETTLED_MOOD_MARKERS = (
+    "calm",
+    "clear",
+    "gentle",
+    "grounded",
+    "quiet",
+    "settled",
+    "soft",
+    "steady",
+    "warm",
+)
+
+_STRAINED_MOOD_MARKERS = (
+    "angry",
+    "frayed",
+    "hurt",
+    "raw",
+    "restless",
+    "sharp",
+    "sore",
+    "tense",
+    "tired",
+    "unsettled",
+)
+
+
+def _infer_mood(raw_text: str) -> str:
+    """Infer a coarse diary mood from the generated reflection text.
+
+    Dreams does not need fine-grained sentiment analysis here; it just
+    needs a deterministic summary field that is better than a hardcoded
+    placeholder. The categories are intentionally coarse to avoid
+    overfitting fragile text heuristics.
+    """
+    normalized = raw_text.casefold()
+    if any(marker in normalized for marker in _STRAINED_MOOD_MARKERS):
+        return "strained"
+    if any(marker in normalized for marker in _SETTLED_MOOD_MARKERS):
+        return "settled"
+    return "reflective"
+
 
 def _build_user_prompt(ctx: GenerationContext) -> str:
     """Assemble the user-side prompt from focal-character session data only.
@@ -152,7 +193,7 @@ async def generate_diary(ctx: GenerationContext) -> GenerationOutput:
         raw_llm_text=raw,
         rendered_prose=rendered,
         structured_data={
-            "mood": "reflective",  # TODO(phase_6_continuation): infer from text
+            "mood": _infer_mood(raw),
             "reflection": raw,
             "things_to_revisit": [],
             "communication_mode": communication_mode,

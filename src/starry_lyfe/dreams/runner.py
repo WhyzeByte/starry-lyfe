@@ -198,6 +198,7 @@ async def run_dreams_pass(
     """
     if settings is None:
         settings = DreamsSettings()
+    use_internal_clock = now is None
     if now is None:
         now = datetime.now(UTC)
     if snapshot_loader is None:
@@ -243,7 +244,7 @@ async def run_dreams_pass(
 
     _assert_complete_character_keys(character_results, "dreams.run_dreams_pass results")
 
-    finished_at = datetime.now(UTC) if now is None else now
+    finished_at = datetime.now(UTC) if use_internal_clock else now
     logger.info(
         "dreams_run_complete",
         extra={

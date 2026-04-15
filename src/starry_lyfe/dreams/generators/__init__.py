@@ -1,10 +1,12 @@
 """Phase 6 Dreams content generators.
 
 Each generator is an async function ``generate_<kind>(ctx) -> GenerationOutput``.
-Commit 4 ships placeholder stubs that return empty-shape outputs so the
-runner orchestration is exercised end-to-end. Commit 5 replaces the
-diary stub with a real LLM-backed implementation; subsequent commits
-replace the remaining four.
+The shipped set is:
+- ``schedule``: deterministic from ``routines.yaml``
+- ``diary``: LLM-backed, wrapped through Phase G prose rendering
+- ``off_screen``: LLM-backed overnight events
+- ``open_loops``: LLM-backed loop extraction / resolution candidates
+- ``activity_design``: LLM-backed next-session opener design
 
 Every generator is a pure function: it reads ``ctx`` (GenerationContext)
 and returns a ``GenerationOutput``. Generators never touch the DB.

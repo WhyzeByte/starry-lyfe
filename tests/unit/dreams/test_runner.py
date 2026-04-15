@@ -23,6 +23,7 @@ from starry_lyfe.dreams import (
     StubBDOne,
     run_dreams_pass,
 )
+from starry_lyfe.dreams import runner as runner_module
 
 # ---------------------------------------------------------------------------
 # Stub session — accepts every method the runner may call as a no-op.
@@ -189,6 +190,42 @@ class TestRunDreamsPass:
                 f"{char_id} diary_entry_id should be populated; "
                 "R1 writers.write_diary_entry failed to land"
             )
+
+    async def test_internal_clock_updates_finished_at(self, canon: Any) -> None:
+        """When ``now`` is omitted, the pass result should record a later
+        finish timestamp instead of reusing ``started_at``."""
+
+        timeline = iter(
+            [
+                datetime(2026, 4, 14, 3, 30, 0, tzinfo=UTC),
+                datetime(2026, 4, 14, 3, 30, 1, tzinfo=UTC),
+                datetime(2026, 4, 14, 3, 30, 2, tzinfo=UTC),
+                datetime(2026, 4, 14, 3, 30, 3, tzinfo=UTC),
+                datetime(2026, 4, 14, 3, 30, 4, tzinfo=UTC),
+                datetime(2026, 4, 14, 3, 30, 5, tzinfo=UTC),
+            ]
+        )
+
+        class _FakeDateTime:
+            @classmethod
+            def now(cls, tz: Any = None) -> datetime:
+                return next(timeline)
+
+        monkeypatch = pytest.MonkeyPatch()
+        monkeypatch.setattr(runner_module, "datetime", _FakeDateTime)
+        try:
+            result = await run_dreams_pass(
+                session_factory=_stub_session_factory,  # type: ignore[arg-type]
+                llm_client=StubBDOne(default_text="reflection"),
+                canon=canon,
+                snapshot_loader=_empty_snapshot_loader,
+            )
+        finally:
+            monkeypatch.undo()
+
+        assert result.started_at == datetime(2026, 4, 14, 3, 30, 0, tzinfo=UTC)
+        assert result.finished_at == datetime(2026, 4, 14, 3, 30, 5, tzinfo=UTC)
+        assert result.finished_at > result.started_at
 
 
 class TestDreamsSettings:

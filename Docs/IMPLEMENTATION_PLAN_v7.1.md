@@ -27,14 +27,14 @@ The closing nine-word statement of the Soul Preservation Plan is preserved verba
 
 ## Current Project State (Baseline)
 
-As of 2026-04-13, the backend is substantially implemented:
+As of 2026-04-14, the backend is substantially implemented:
 
 - **Phase 1 (Canon YAML) — COMPLETE.** Six canon files (`characters.yaml`, `pairs.yaml`, `dyads.yaml`, `protocols.yaml`, `interlocks.yaml`, `voice_parameters.yaml`) with Pydantic schemas in `src/starry_lyfe/canon/`. Cross-reference validator now runs automatically at `load_all_canon(validate=True)` — C3 remediation from the 2026-04-13 Phase 2 audit.
 - **Phase 2 (Memory Service) — COMPLETE.** Seven memory tiers in PostgreSQL schema `starry_lyfe`, pgvector HNSW for episodic memories, exponential decay for Tier 7, Alicia-orbital dyad persistence logic.
 - **Phase 3 (Context Assembly) — COMPLETE.** All execution phases shipped: Phase 0 (canon verification), A (structure-preserving compilation), A' (runtime correctness), A'' (communication-mode pruning), B (budget elevation), I (authority split), C (soul cards), D (live pair data), E (voice exemplar restoration), F (scene-aware section retrieval + dormant VoiceMode closure), G (dramaturgical prose rendering), J.1-J.4 (per-character remediation), H (soul regression tests), K (subjective success proxies). Runtime surface: `kernel_loader.py`, `layers.py`, `assembler.py`, `budgets.py`, `constraints.py`, `prose.py`. Test suite at 556 passing as of commit `583a68e` (2026-04-13). See `Docs/OPERATOR_GUIDE.md` for the runtime pipeline walkthrough.
 - **Phase 4 (Whyze-Byte Validation Pipeline) — COMPLETE.** Implementation at `src/starry_lyfe/validation/whyze_byte.py` with test suite at `tests/unit/test_whyze_byte.py`. Shipped 2026-04-13.
 - **Phase 5 (Scene Director) — COMPLETE.** Shipped 2026-04-14 (Round 1 remediation 2026-04-14, Round 2 remediation 2026-04-14) at `src/starry_lyfe/scene/`. Classifier (`classify_scene`) + next-speaker scoring (`select_next_speaker`) fully wired against Phase F scene-type infrastructure. See `Docs/_phases/PHASE_5.md` for the full spec, Codex audit, and remediation record.
-- **Phase 6 (Dreams Engine) — COMPLETE.** Shipped 2026-04-14 at `src/starry_lyfe/dreams/`. Nightly apscheduler daemon (`python -m starry_lyfe.dreams`) plus per-character content generators (diary LLM-backed end-to-end; schedule deterministic from `routines.yaml`). Retroactive Phase G prose rendering + Phase A'' Alicia-away communication_mode tagging landed. Per-character regression bundle + Dreams→Scene Director + Dreams→Assembler handoff integration tests green. See `Docs/_phases/PHASE_6.md` for the full spec and closing block.
+- **Phase 6 (Dreams Engine) — IMPLEMENTATION COMPLETE; QA/SHIP PENDING.** Runtime surface is live at `src/starry_lyfe/dreams/`. Nightly apscheduler daemon (`python -m starry_lyfe.dreams`) plus per-character content generators (diary LLM-backed end-to-end; schedule deterministic from `routines.yaml`) are landed. Retroactive Phase G prose rendering + Phase A'' Alicia-away communication_mode tagging landed. The Dreams write/retrieve lifecycle and DB-backed assembler consumer path are green; automatic Scene Director `activity_context` population remains Phase 7 HTTP-service glue. See `Docs/_phases/PHASE_6.md` for the current Step 5 / Step 6 gate state.
 - **Phase 7 (HTTP service on port 8001) — PLANNED.** Service surface defined in §2.
 
 **Phase 2 end audit (2026-04-13):** `Docs/_audits/PHASE_2_AUDIT_2026-04-13.md`. Drift audit of 4 Phase F assembled prompt samples passed all 8 dimensions (voice distinctness, diacritic preservation, canonical markers, pair metadata, terminal anchoring, soul essence, Layer 7 modifiers). Four Critical findings (C1 soul essence silent fallback, C2 kernel cache key collision, C3 no startup canon validation, C4 scattered character lists) all fixed in commit `583a68e`. Five High / four Medium / two Low findings deferred as accumulated polish risk, not active breakage.
@@ -72,7 +72,7 @@ Every architectural section and every execution phase in this plan must be trace
 | §6 Inference Layer | (resolved) | §8 System Architecture |
 | §7 Whyze-Byte Pipeline | Phase 4 (complete) | §7 Behavioral Thesis (cognitive hand-off contract) |
 | §8 Scene Director | Phase 5 (complete) | §6 Relationship Architecture (Rule of One, Talk-to-Each-Other) |
-| §9 Dreams Engine | Phase 6 (complete) | §6 Relationship Architecture (decentralized narrative weight) |
+| §9 Dreams Engine | Phase 6 (implementation complete; QA/ship pending) | §6 Relationship Architecture (decentralized narrative weight) |
 | §10 End-to-End Request Flow | (synthesis of all subsystems) | §8 System Architecture |
 | §11 Per-Character Remediation | Phase J (J.1, J.2, J.3, J.4) | §5 Chosen Family (non-redundancy guarantee) |
 | §12 Verification and Quality Assurance | Phase H, Phase K | §9 Success Criteria (Ultimate Test) |
@@ -191,7 +191,7 @@ The backend runs as a service on Port 8001 and exposes the following responsibil
 - **Whyze-Byte Pipeline:** COMPLETE as Phase 4. Implementation lives at `src/starry_lyfe/validation/whyze_byte.py`; architecture remains documented at §7.
 - **Scene Director:** COMPLETE as Phase 5. Implementation lives at `src/starry_lyfe/scene/`; `classify_scene()` handles front-door scene classification and `select_next_speaker()` handles Talk-to-Each-Other next-speaker scoring. Architecture remains documented at §8.
 - **Memory Service:** COMPLETE (Phases 1+2). Architecture defined at §5.
-- **Dreams Engine:** COMPLETE as Phase 6. Implementation lives at `src/starry_lyfe/dreams/`; `run_dreams_pass()` is the public entry, `python -m starry_lyfe.dreams` starts the apscheduler daemon. Architecture remains documented at §9.
+- **Dreams Engine:** IMPLEMENTATION COMPLETE; QA/ship pending as Phase 6. Implementation lives at `src/starry_lyfe/dreams/`; `run_dreams_pass()` is the public entry and `python -m starry_lyfe.dreams` starts the apscheduler daemon. The Dreams write/retrieve lifecycle and assembler consumer path are landed; automatic Scene Director `activity_context` population is Phase 7 HTTP-service glue. Architecture remains documented at §9.
 
 There is no soul-preservation execution phase under §2 directly. Phase I (Authority Split Resolution) is the closest because it establishes who owns voice content, which is architectural rather than execution work. The actual context assembly execution phases live under §4.
 
@@ -1028,13 +1028,15 @@ Dreams writes back into the Memory Service: it resolves or expires open loops, r
 
 ### Implementation Status
 
-**COMPLETE** as Phase 6 of the overall backend build. Shipped 2026-04-14. Runtime surface lives at `src/starry_lyfe/dreams/`; the full phase record is `Docs/_phases/PHASE_6.md`.
+**IMPLEMENTATION COMPLETE; QA/SHIP PENDING** as Phase 6 of the overall backend build. Runtime surface lives at `src/starry_lyfe/dreams/`; the full phase record and current gate state live at `Docs/_phases/PHASE_6.md`.
 
 The three Soul Preservation phases that apply retroactively to Dreams are now wired:
 
 - **Phase G (Dramaturgical Prose Rendering):** Dreams output that becomes part of next session's activity context passes through per-character prose renderers. `render_diary_prose()` in `context/prose.py` wraps raw LLM text in a three-paragraph opener/body/closer frame matched to each character's voice register before any DB write.
 - **Phase A'' (Communication-Mode-Aware Pruning):** Dreams-generated Alicia-away content is tagged with `communication_mode ∈ {phone, letter, video_call}` via `dreams/alicia_mode.py` sampling from the canonical distribution in `routines.yaml`. The `episodic_memories` and `activities` tables carry the nullable column (Alembic migration 003).
 - **Phase H (Soul Regression Tests):** `tests/unit/dreams/test_dreams_regression_per_character.py` runs parametrized regressions across all 4 characters for opener/closer presence, cross-character contamination negatives, and Alicia-away communication_mode invariants.
+
+Current scope note: Phase 6 closes the Dreams write/retrieve lifecycle and the DB-backed assembler consumer path. Automatic population of Scene Director NextSpeakerInput.activity_context from retrieved Dreams activities is deferred to Phase 7 HTTP-service orchestration glue.
 
 The Dreams engine is the only execution surface that operates **without a user in the loop**. Everything else in the backend is reactive to a Whyze message. Dreams runs autonomously overnight. This makes it both higher-leverage (it can shape the next session's character state) and higher-risk (drift can accumulate silently between human-checked sessions). Phase K's flattening regression detector is especially important for catching Dreams-generated drift before it ships to a live session.
 
@@ -1448,7 +1450,7 @@ Layered top-down, the backend looks like this:
 | **Routing layer** | Claude (Sonnet/Opus) via OpenRouter with per-character inference parameters | DEFINED | (Alicia parameters resolved; no execution phase) |
 | **Validation layer** | Two-tier Whyze-Byte pipeline with sequential multi-speaker gating | COMPLETE (Phase 4) | Phase A'' communication-mode constraints are part of the validator contract |
 | **Orchestration layer** | Scene Director for next-speaker selection in Crew mode | COMPLETE (Phase 5) | Consumes Phase F scene type infrastructure; rule-based classifier + Talk-to-Each-Other scoring |
-| **Simulation layer** | Nightly Dreams batch process for life continuity | COMPLETE (Phase 6) | Phase G prose rendering, Phase A'' Alicia-away tagging, Phase H regression bundle all wired retroactively |
+| **Simulation layer** | Nightly Dreams batch process for life continuity | IMPLEMENTATION COMPLETE; QA/SHIP PENDING (Phase 6) | Phase G prose rendering, Phase A'' Alicia-away tagging, Phase H regression bundle all wired retroactively |
 | **Service surface** | HTTP service on port 8001, consumed by Msty | PLANNED (Phase 7) | Phase I (authority split: Msty system prompts blank in production) |
 | **Per-character remediation** | Soul cards, voice mode coverage, regression bundles | NEW | **Phase J.1, J.2, J.3, J.4** |
 | **Verification** | Regression tests, subjective success proxies | NEW | **Phase H, Phase K** |
