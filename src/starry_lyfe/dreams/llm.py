@@ -11,10 +11,12 @@ keyed by a hash of ``(system_prompt, user_prompt)``.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
+import json
 import os
 import random
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -188,6 +190,125 @@ class BDOne:
             f"{type(last_exc).__name__}: {last_exc}"
         ) from last_exc
 
+    async def stream_complete(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        max_tokens: int = 2000,
+        temperature: float = 0.7,
+    ) -> AsyncIterator[str]:
+        """Stream LLM text deltas as they arrive (Phase 7).
+
+        Yields raw text fragments from the upstream OpenAI-compatible
+        ``/v1/chat/completions`` SSE stream. Each yielded string is the
+        ``choices[0].delta.content`` of one upstream chunk; the caller
+        is responsible for re-wrapping them in the local SSE envelope.
+
+        Shares retry/circuit-breaker state with ``complete()``: opens
+        the circuit on N consecutive failures, refuses to call when
+        already open. Note: streaming starts before the response is
+        complete, so the first failure surfaces at connect/HTTP time;
+        once a chunk has been yielded, subsequent network failures
+        bubble up as ``DreamsLLMError`` mid-stream rather than
+        retrying (we cannot replay the partial output the caller has
+        already consumed).
+
+        Raises:
+            DreamsLLMError: circuit open, connect retries exhausted, or
+                upstream returned a non-2xx initial response.
+        """
+        if self._circuit_open:
+            raise DreamsLLMError(
+                f"BD-1 circuit breaker is open "
+                f"(after {self._consecutive_failures} consecutive failures). "
+                "Call reset_circuit() after fixing the upstream issue."
+            )
+
+        payload = {
+            "model": self._settings.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "stream": True,
+        }
+        headers = {
+            "Authorization": f"Bearer {self._settings.api_key}",
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream",
+        }
+
+        # Pre-stream connect with retries. Once the upstream stream is
+        # open and yielding bytes, errors bubble up without retry.
+        last_exc: Exception | None = None
+        client: httpx.AsyncClient | None = None
+        response_cm: Any = None
+        response: httpx.Response | None = None
+        for attempt in range(1, self._settings.max_retries + 1):
+            try:
+                client = httpx.AsyncClient(timeout=self._settings.timeout_s)
+                response_cm = client.stream(
+                    "POST",
+                    f"{self._settings.base_url}/chat/completions",
+                    json=payload,
+                    headers=headers,
+                )
+                response = await response_cm.__aenter__()
+                response.raise_for_status()
+                last_exc = None
+                break
+            except (httpx.HTTPError, KeyError, ValueError) as exc:
+                last_exc = exc
+                if response_cm is not None:
+                    with contextlib.suppress(Exception):
+                        await response_cm.__aexit__(None, None, None)
+                if client is not None:
+                    await client.aclose()
+                response_cm = None
+                client = None
+                response = None
+                if attempt < self._settings.max_retries:
+                    import asyncio
+                    sleep_s = _backoff_seconds(
+                        attempt, _DEFAULT_BACKOFF_BASE_S, _DEFAULT_BACKOFF_MAX_S
+                    )
+                    await asyncio.sleep(sleep_s)
+
+        if last_exc is not None or response is None or client is None or response_cm is None:
+            self._consecutive_failures += 1
+            if self._consecutive_failures >= self._settings.circuit_threshold:
+                self._circuit_open = True
+            raise DreamsLLMError(
+                f"BD-1 stream connect failed after {self._settings.max_retries} attempts: "
+                f"{type(last_exc).__name__}: {last_exc}"
+            ) from last_exc
+
+        try:
+            async for line in response.aiter_lines():
+                if not line or not line.startswith("data:"):
+                    continue
+                data_str = line[len("data:"):].strip()
+                if data_str == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(data_str)
+                except json.JSONDecodeError:
+                    continue
+                delta = (
+                    chunk.get("choices") or [{}]
+                )[0].get("delta") or {}
+                content = delta.get("content")
+                if content:
+                    yield str(content)
+            self._consecutive_failures = 0
+        finally:
+            with contextlib.suppress(Exception):
+                await response_cm.__aexit__(None, None, None)
+            await client.aclose()
+
 
 def _parse_completion(data: dict[str, Any], model: str) -> BDOneCompletion:
     """Extract text + token counts from an OpenRouter/Anthropic-compatible response."""
@@ -231,8 +352,13 @@ class StubBDOne:
     default_text: str = "stub-response"
     fail_next_n: int = 0
     call_count: int = 0
+    stream_call_count: int = 0
     fail_history: list[str] = field(default_factory=list)
     model: str = "stub/claude-sonnet-4-6"
+    # When > 0, ``stream_complete`` yields the canned text in N
+    # equally-sized chunks. Defaults to 4 so tests can assert that
+    # multiple chunks arrive.
+    stream_chunk_count: int = 4
 
     async def complete(
         self,
@@ -261,6 +387,46 @@ class StubBDOne:
             output_tokens=len(text.split()),
             model=self.model,
         )
+
+    async def stream_complete(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        max_tokens: int = 2000,
+        temperature: float = 0.7,
+    ) -> AsyncIterator[str]:
+        """Stream the canned response in ``stream_chunk_count`` pieces.
+
+        Mirrors the BDOne contract for tests + dry-run sample
+        generation. ``fail_next_n`` is honored — a configured failure
+        raises before any chunks are yielded.
+        """
+        self.stream_call_count += 1
+
+        if self.fail_next_n > 0:
+            self.fail_next_n -= 1
+            self.fail_history.append(system_prompt[:40])
+            raise DreamsLLMError("StubBDOne configured to fail this call")
+
+        if self.responder is not None:
+            text = self.responder(system_prompt, user_prompt)
+        else:
+            key = hashlib.sha256(
+                (system_prompt + "|" + user_prompt).encode("utf-8")
+            ).hexdigest()[:8]
+            text = f"{self.default_text} [{key}]"
+
+        if self.stream_chunk_count <= 0 or not text:
+            yield text
+            return
+
+        # Split into roughly equal chunks. Edge case: text shorter than
+        # chunk count → yield each character individually.
+        chunk_count = min(self.stream_chunk_count, len(text))
+        chunk_size = max(1, len(text) // chunk_count)
+        for i in range(0, len(text), chunk_size):
+            yield text[i:i + chunk_size]
 
     @property
     def circuit_open(self) -> bool:
