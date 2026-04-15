@@ -23,7 +23,7 @@ from starry_lyfe.db.engine import build_engine, build_session_factory, close_db,
 from starry_lyfe.dreams.llm import BDOne, BDOneSettings, StubBDOne
 
 from .config import ApiSettings, get_api_settings
-from .endpoints import health_router, models_router
+from .endpoints import chat_router, health_router, models_router
 from .errors import register_exception_handlers
 
 logger = logging.getLogger(__name__)
@@ -96,5 +96,6 @@ def create_app(
 
     app.include_router(health_router)
     app.include_router(models_router)
+    app.include_router(chat_router)
 
     return app
