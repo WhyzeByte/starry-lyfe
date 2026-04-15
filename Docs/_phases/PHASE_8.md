@@ -29,7 +29,7 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 4 | 2026-04-15 | Claude Code | Codex | Step 2 Execute complete pre-commit; 1035 tests pass, 14/15 ACs MET, AC-8.12 PARTIAL; ready for audit Round 1 once commits land |
 | 5 | 2026-04-15 | Codex | Claude Code | Audit Round 1 complete on pre-commit working tree; gate FAIL. F1 parser does not fail closed on non-object JSON, F2 prompt delimiter injection remains open, F3 AC-8.12 docs incomplete, F4 status drift across phase artifacts. |
 | 6 | 2026-04-15 | Codex | Claude Code | Audit Round 2 complete on committed remediation chain; gate FAIL. R1-F1 parser fail-closed gap still open, R1-F2 AC-8.5 overclaim still open, R1-F3 prompt delimiter injection still open, and the canonical Step 4 remediation record is still missing. |
-| 7 | 2026-04-15 | Claude Code | Codex | Step 4 Round 1 Remediation COMPLETE. All 4 Round 1 findings closed across 4 commits: `6cc8533` (RT1 R1-F1 parser fail-closed + boolean rejection), `6638825` (RT2a R1-F2 Pydantic schema active), `39c8b53` (RT3 R1-F3 prompt injection escape), `<rt4>` (RT4 R1-F4 governance sync). Test suite 1035 → 1058 (+23). Path B (substantive design changes). Ready for Round 3 re-audit. |
+| 7 | 2026-04-15 | Claude Code | Codex | Step 4 Round 1 Remediation COMPLETE. All 4 Round 1 findings closed across 4 commits: `6cc8533` (RT1 R1-F1 parser fail-closed + boolean rejection), `6638825` (RT2a R1-F2 Pydantic schema active), `39c8b53` (RT3 R1-F3 prompt injection escape), `2a62798` (RT4 R1-F4 governance sync). Test suite 1035 → 1058 (+23). Path B (substantive design changes). Ready for Round 3 re-audit. |
 
 ---
 
@@ -156,11 +156,12 @@ Existing 16 heuristic cases stay — the toggle path ensures they remain exercis
   | `tests/unit/api/test_relationship_prompts.py` | Created | 13 unit tests: build_eval_prompt (4 cases) + parse_eval_response (9 cases). |
   | `tests/unit/api/test_relationship_evaluator.py` | Modified | +7 LLM-path tests under new `TestEvaluateAndUpdateLLMPath`. Existing 16 heuristic cases unchanged. |
 
-- **Test suite delta:**
+- **Test suite delta (Step 2 Execute):**
   - Tests added: **20 new** (13 in `test_relationship_prompts.py`, 7 in `test_relationship_evaluator.py::TestEvaluateAndUpdateLLMPath`).
   - Tests passing: **1015 → 1035**.
   - Tests failing: none.
-- **Lint / type check:** `ruff` clean across `src/` + `tests/`. `mypy --strict` clean across **101 source files** (100 → 101; +1 for `relationship_prompts.py`).
+- **Test suite delta (Step 4 Round 1 Remediation, 2026-04-15):** +23 tests across the RT1/RT2a/RT3/RT4 chain (see §4 Step 4 Remediate section for the per-finding breakdown). **1035 → 1058**.
+- **Lint / type check:** `ruff` clean across `src/` + `tests/`. `mypy --strict` clean across **101 source files**.
 
 ### Self-assessment against acceptance criteria
 
@@ -170,13 +171,13 @@ Existing 16 heuristic cases stay — the toggle path ensures they remain exercis
 | AC-8.2 | **MET** | `DyadDeltaProposal` dataclass unchanged — same fields, same frozen semantics. |
 | AC-8.3 | **MET** | `_clamp_delta` gate still runs as the final stage. `test_llm_path_clamps_deltas_above_cap` proves an LLM returning ±1.0 still lands at ±0.03 applied delta. |
 | AC-8.4 | **MET** | `_llm_propose_deltas` calls `BDOne.complete()` with `max_tokens` + `temperature` from `ApiSettings`. Fire-and-forget scheduling unchanged. |
-| AC-8.5 | **MET** | `RelationshipEvalResponse` Pydantic model + parser clamp-at-boundary with warn log. `test_parse_out_of_range_value_clamps_at_boundary` proves behavior. |
-| AC-8.6 | **MET** | Five fallback branches covered by dedicated tests. `_propose_deltas` kept as named fallback path. |
+| AC-8.5 | **MET** (Step 2 claimed; confirmed true after R1-F2 closure `6638825`) | Step 2 shipped this as a MET claim but R1-F2 Codex audit flagged that `RelationshipEvalResponse` was dead code. RT2a routed `parse_eval_response` through `RelationshipEvalResponse.model_validate` so the schema is now the live validator. `TestR1F2PydanticSchemaActive` (4 tests) proves activation. Range clamp-with-warn stays in the parser per spec. |
+| AC-8.6 | **MET** (five fallback branches + R1-F1 hardening `6cc8533`) | Original five fallback branches (toggle off, missing client, circuit open, `DreamsLLMError`, parser None) covered by dedicated tests. R1-F1 additionally hardened the "parser None" branch so non-object JSON and JSON booleans route to the heuristic instead of propagating exceptions. `TestR1F1EvaluatorFallbackOnNonObjectJSON` (6 tests) proves each new fallback path. `_propose_deltas` kept as named fallback. |
 | AC-8.7 | **MET** | `STARRY_LYFE__API__RELATIONSHIP_EVAL_LLM=false` wired via `ApiSettings.relationship_eval_llm`. `test_llm_toggle_false_uses_heuristic_directly` proves the responder was never invoked when toggle is False. |
 | AC-8.8 | **MET** | `RELATIONSHIP_EVAL_SYSTEM` contains hand-authored per-character register sections for all four women. `test_system_prompt_names_all_four_characters` asserts presence. |
-| AC-8.9 | **MET** | `parse_eval_response` returns `None` on malformed / missing / non-numeric. Four dedicated tests. |
+| AC-8.9 | **MET** (Step 2 claimed; confirmed true after R1-F1 closure `6cc8533`) | Step 2 shipped this as a MET claim but R1-F1 Codex audit flagged that the parser raised `AttributeError` on non-object JSON (`[]`, `42`, `"hi"`, `null`) and accepted JSON booleans as numeric (`bool` subclasses `int` in Python). RT1 added `isinstance(raw, dict)` guard and explicit `isinstance(value, bool)` short-circuit. `TestR1F1ParserFailClosed` (10 parametrized + 2 direct) + `TestR1F1EvaluatorFallbackOnNonObjectJSON` (6 more) prove the fail-closed contract at parser and evaluator levels. |
 | AC-8.10 | **MET** | Negative `repair_history` clamps to 0.0 with warn log. `test_negative_repair_history_clamps_to_zero` proves the contract. |
-| AC-8.11 | **MET** | **1035 passed, 0 failed** (≥1025 target exceeded). `ruff` + `mypy --strict` clean across 101 source files. |
+| AC-8.11 | **MET** (Step 2 baseline: 1035; Step 4 Round 1 baseline: **1058**) | Step 2 shipped at 1035 passed (≥1025 target exceeded). Step 4 Round 1 remediation added 23 more (14 parser hardening + 4 Pydantic schema + 3 prompt injection + 2 bonus edge cases). `ruff` + `mypy --strict` clean across 101 source files at both milestones. |
 | AC-8.12 | **MET** (R1 closure 2026-04-15) | `.env.example` + `OPERATOR_GUIDE.md §14.2` document the three env vars with defaults + required? + semantics. §14.4.1 adds a cost-envelope paragraph (~300 tokens/turn, fire-and-forget). §14.5 Step 12 row annotates the LLM-primary evaluator + five fallback branches + structured log event names. |
 | AC-8.13 | **MET** | This file follows `_TEMPLATE.md` structure. |
 | AC-8.14 | **MET** | No schema change; no Alembic migration. `DyadStateWhyze` ORM unchanged. |
@@ -291,7 +292,7 @@ Result: parser accepted `true` / `false` as `1.0` / `0.0` rather than rejecting 
 | R1-F1 | High | **FIXED** | `6cc8533` | Added `isinstance(raw, dict)` guard in `parse_eval_response` before `raw.keys()`; added `isinstance(value, bool)` short-circuit before the int/float check (bool is a subclass of int in Python, so the original check accepted booleans). New tests: `TestR1F1ParserFailClosed` (8 parametrized + 2 direct in `test_relationship_prompts.py`) + `TestR1F1EvaluatorFallbackOnNonObjectJSON` (5 parametrized + 1 direct in `test_relationship_evaluator.py`). All four Codex adversarial probes (`[]`, `42`, `"hi"`, `null`) now return `None` at parser level and trigger the heuristic fallback at evaluator level. |
 | R1-F2 | Medium | **FIXED** | `6638825` | Routed `parse_eval_response` through `RelationshipEvalResponse.model_validate`. Dropped `Field(ge/le)` range bounds (AC-8.5 specifies clamp-with-warn, not fail-closed on range) and added `_NumericValue = Annotated[float, BeforeValidator(_reject_bool)]` so Pydantic rejects booleans before its default float coercion. `model_config = ConfigDict(extra="ignore")` keeps the "extra fields survive" contract. 30+ lines of hand-rolled validation replaced with one `model_validate()` call. New tests: `TestR1F2PydanticSchemaActive` (4 cases) verify schema is the live path. AC-8.5 claim is now true. |
 | R1-F3 | Medium | **FIXED** | `39c8b53` | Applied `html.escape(response_text, quote=False)` in `build_eval_prompt` before interpolation into the `<response_text>...</response_text>` wrapper. `<` and `>` in user content become `&lt;` and `&gt;`, so `</response_text>` cannot appear verbatim inside the body and cannot break the frame. The Step 1 plan's named red-team test `test_build_eval_prompt_escapes_response_text_safely` finally landed along with two supporting cases. Codex's injection probe now produces a frame-intact prompt with the escaped injection content still legible to the LLM. |
-| R1-F4 | Medium | **FIXED** | `<rt4>` (this commit) | Populated this Step 4 Round 1 section with the per-finding status table above; phase header flipped to "STEP 4 REMEDIATION ROUND 1 COMPLETE"; handshake log row 7 added; ARCHITECTURE.md line 20 synced from "Step 2 pending" to "Step 4 Round 1 complete"; IMPLEMENTATION_PLAN_v7.1.md §3 Phase 8 bullet test baseline refreshed 1035 → 1058; CLAUDE.md §19 test baseline refreshed; §2 self-assessment AC statuses corrected (R1-F2 removed AC-8.5 overclaim false-positive; all 15 ACs MET post this remediation round). |
+| R1-F4 | Medium | **FIXED** | `2a62798` (this commit) | Populated this Step 4 Round 1 section with the per-finding status table above; phase header flipped to "STEP 4 REMEDIATION ROUND 1 COMPLETE"; handshake log row 7 added; ARCHITECTURE.md line 20 synced from "Step 2 pending" to "Step 4 Round 1 complete"; IMPLEMENTATION_PLAN_v7.1.md §3 Phase 8 bullet test baseline refreshed 1035 → 1058; CLAUDE.md §19 test baseline refreshed; §2 self-assessment AC statuses corrected (R1-F2 removed AC-8.5 overclaim false-positive; all 15 ACs MET post this remediation round). |
 
 **Push-backs:** None. All four findings are acknowledged and addressed.
 
@@ -316,7 +317,7 @@ Per `AGENTS.md`:
 
 **Chosen path:** **Path B** — the remediation replaced a hand-rolled parser with Pydantic-routed validation (substantive design change), added a non-trivial escape layer to `build_eval_prompt`, and introduced new boolean-rejection semantics that were not in the original design. Codex re-audit is warranted before Claude AI QA.
 
-<!-- HANDSHAKE: Claude Code → Codex | Remediation Round 1 complete (Path B). Four commits landed: 6cc8533 / 6638825 / 39c8b53 / <rt4>. Test suite 1035 → 1058, ruff + mypy --strict clean. Ready for Audit Round 3 re-audit over the full committed chain. -->
+<!-- HANDSHAKE: Claude Code → Codex | Remediation Round 1 complete (Path B). Four commits landed: 6cc8533 / 6638825 / 39c8b53 / 2a62798. Test suite 1035 → 1058, ruff + mypy --strict clean. Ready for Audit Round 3 re-audit over the full committed chain. -->
 
 ---
 
