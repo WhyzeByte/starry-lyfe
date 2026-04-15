@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Shipped (Phase 7: HTTP Service on Port 8001 — 2026-04-15)
+
+Phase 7 SHIPPED 2026-04-15. Lands the FastAPI HTTP service on port 8001 that exposes the Starry-Lyfe backend as an OpenAI-compatible chat API consumed by Msty + Open WebUI.
+
+**Endpoints (5):**
+- `GET /health/live` — liveness (always 200)
+- `GET /health/ready` — DB + BD-1 reachability (200/503 with structured reason)
+- `GET /v1/models` — 5 entries (legacy `starry-lyfe` + per-character)
+- `POST /v1/chat/completions` — SSE streaming chat with `X-API-Key` auth
+- `GET /metrics` — Prometheus exposition (5 named series, public)
+
+**12-step request flow** (per IMPLEMENTATION_PLAN §10) implemented in `src/starry_lyfe/api/orchestration/pipeline.py`:
+1. POST → 2. Msty Crew preprocessing + scene classification → 3-5. Memory retrieval + 7-layer assembly → 6-7. BDOne stream_complete → 8. Whyze-Byte validation → 10. SSE response → 12. Post-turn fire-and-forget (memory extraction + relationship evaluator).
+
+**Phase 6 → Phase 7 deferred glue closure (AC-7.8):** Dreams-written `Activity` rows auto-populate Layer 6 of the assembled prompt on the next chat turn via the existing `MemoryBundle.activities` consumer path. End-to-end verified by `tests/integration/test_http_dreams_glue.py::test_dreams_activity_lands_in_layer_6`.
+
+**New runtime surface:**
+- `src/starry_lyfe/api/` (15 new files): app factory, config, deps, errors, routing, endpoints, orchestration, schemas
+- `src/starry_lyfe/dreams/llm.py`: `BDOne.stream_complete()` + `StubBDOne.stream_complete()` siblings to `complete()` sharing retry/circuit-breaker state
+- `src/starry_lyfe/db/models/chat_session.py`: new `ChatSession` ORM
+- `alembic/versions/004_phase_7_chat_sessions.py`: migration creating `chat_sessions` table (applied to live DB)
+
+**New tests (95):** 88 unit + 7 integration. Test baseline 900 → **995 passed, 0 failed**. ruff + mypy --strict clean across 100 source files (75 → 100, +25 new modules).
+
+**Lessons applied:**
+- Lesson #1 (end-to-end integration contracts): `tests/integration/test_http_chat.py` is the load-bearing G3 test — invokes the full SSE flow via TestClient against live Postgres, asserts SSE wire format + DB state changes + post-turn fire-and-forget completion.
+- Lesson #2 (subtract narrow context): `resolve_character_id()` is a single narrow pure function returning a frozen `CharacterRoutingDecision`; the focal character cannot be re-resolved or contaminated mid-pipeline. AC-7.17 explicitly tests `header > model` resolution without leaking the losing source.
+- Lesson #3 (doc sweep covers prose + claim surfaces): this commit sweeps PHASE_7.md + OPERATOR_GUIDE §14 + CHANGELOG + CLAUDE.md §19 + master plan §2/§36/§194/§1039/§1454/§1539. AC-7.18 grep gate (`grep "Phase 7.*PLANNED\|HTTP service.*planned\|When Phase 7 is implemented" Docs/IMPLEMENTATION_PLAN_v7.1.md`) returns empty post-ship.
+- Lesson #4 (honest self-assessment): the AC table in PHASE_7.md marks MET only when the contract actually runs in the checked-in test suite, not when "infrastructure exists".
+
+See `Docs/_phases/PHASE_7.md` for the complete spec, AC trace, and commit chain.
+
 ### Shipped (Phase 6: Dreams Engine — 2026-04-15)
 
 Phase 6 SHIPPED 2026-04-15. Step 5 Claude AI QA verdict APPROVED FOR SHIP accepted in full by Project Owner. The most rigorously audited phase in project history: 3 Codex audit rounds + 2 Claude Code remediation rounds + 2 Codex direct doc remediation passes + 1 Claude AI Step 5 QA pass with 1 inline direct remediation (Famaillá diacritic in `routines.yaml` line 161). All 10 audit findings (F1-F6 + R3-F1/R3-F2/R3-F3/R3-F4) closed with commit hashes and live verification. Hard-DB suite **900 passed, 0 failed**. ruff + mypy `--strict` clean across 75 source files (up from 49 at end of Phase 5). 152 new tests added across the cycle (748 baseline → 900 post-ship). The Dreams write/retrieve lifecycle and DB-backed assembler consumer path are live; automatic Scene Director `activity_context` population is Phase 7 HTTP-service glue. See `Docs/_phases/PHASE_6.md` for the complete cycle record.

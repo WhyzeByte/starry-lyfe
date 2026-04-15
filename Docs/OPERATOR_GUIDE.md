@@ -749,4 +749,124 @@ Dreams output passes through three retroactive invariants:
 | `refresh_somatic_decay()` / `apply_overnight_dyad_deltas()` | `src/starry_lyfe/dreams/consolidation.py:57` / `:156` |
 | Alembic migrations | `alembic/versions/002_phase_6_dreams_tables.py`, `003_phase_6_episodic_comm_mode.py` |
 
+---
+
+## 14. HTTP Service (Phase 7)
+
+The HTTP service exposes the Starry-Lyfe backend on **port 8001** as an OpenAI-compatible chat API. Consumed by Msty Studio (direct) and Open WebUI (via pipe function). SHIPPED 2026-04-15.
+
+### 14.1 Boot
+
+```
+python -m starry_lyfe.api
+```
+
+`starry_lyfe.api.__main__` invokes `main.py::main()`, which loads `ApiSettings` from environment, builds the FastAPI app via `create_app()`, and starts uvicorn on the configured host/port. Lifespan startup builds the canon, DB engine + session factory, embedding service, and BD-1 client; shutdown disposes the engine.
+
+### 14.2 Environment variables
+
+| Variable | Default | Required? |
+|----------|---------|-----------|
+| `STARRY_LYFE__API__HOST` | `0.0.0.0` | no |
+| `STARRY_LYFE__API__PORT` | `8001` | no |
+| `STARRY_LYFE__API__API_KEY` | `""` | yes (or chat 401s) |
+| `STARRY_LYFE__API__CORS_ORIGINS` | `""` (no CORS) | no — comma-separated list |
+| `STARRY_LYFE__API__DEFAULT_CHARACTER` | `adelia` | no — must be a canonical character |
+
+### 14.3 Endpoints
+
+| Method | Path | Purpose | Auth |
+|--------|------|---------|------|
+| GET    | `/health/live` | Liveness probe (always 200) | None |
+| GET    | `/health/ready` | DB + BD-1 reachability (200/503 with structured `checks` body) | None |
+| GET    | `/v1/models` | 5 OpenAI-compatible entries | None |
+| POST   | `/v1/chat/completions` | OpenAI-compatible SSE streaming chat | `X-API-Key` |
+| GET    | `/metrics` | Prometheus exposition | None |
+
+### 14.4 Character routing priority
+
+`api/routing/character.py::resolve_character_id` resolves the focal character in this order:
+
+1. `X-SC-Force-Character` header (Open WebUI pipe path)
+2. Inline `/<char>` or `/all` override at user message start
+3. `model` field matching a canonical id (Msty path)
+4. `STARRY_LYFE__API__DEFAULT_CHARACTER` (default `adelia`)
+
+Returns a frozen `CharacterRoutingDecision` with `source` audit field. Unknown character IDs raise `CharacterNotFoundError` → 400 with `valid_character_ids` in the body.
+
+### 14.5 12-step request flow (debugging)
+
+| # | Step | Where to look |
+|---|------|---------------|
+| 1 | POST received | `api/endpoints/chat.py::chat_completions` (request log + X-Request-ID header) |
+| 2 | Msty preprocess + scene classify | `api/routing/msty.py::preprocess_msty_request` + `scene/classify_scene` |
+| 3-5 | Memory retrieval + 7-layer assembly | `context/assembler.py::assemble_context` (Layer 6 includes Tier 8 Dreams activities) |
+| 6 | LLM stream | `dreams/llm.py::BDOne.stream_complete` |
+| 8 | Whyze-Byte validation | `validation/whyze_byte.py::validate_response` (Tier 1 FAIL emits terminal error chunk) |
+| 10 | SSE response | `api/orchestration/pipeline.py::run_chat_pipeline` (`StreamingResponse`) |
+| 12 | Post-turn fire-and-forget | `api/orchestration/post_turn.py::schedule_post_turn_tasks` |
+
+Response headers for observability:
+- `X-Request-ID` (correlate with MSE-6 logs)
+- `X-Character-ID` (focal character)
+- `X-Routing-Source` (`header|inline_override|model_field|default`)
+- `X-Session-ID` (chat_sessions row id)
+
+### 14.6 Curl reference
+
+```bash
+# Health
+curl -s http://localhost:8001/health/live | jq
+curl -s http://localhost:8001/health/ready | jq
+
+# Models registry
+curl -s http://localhost:8001/v1/models | jq
+
+# SSE streaming chat
+curl -N -X POST http://localhost:8001/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $STARRY_LYFE__API__API_KEY" \
+  -d '{"model":"adelia","messages":[{"role":"user","content":"morning"}],"stream":true}'
+
+# OWUI pipe path (force character via header)
+curl -N -X POST http://localhost:8001/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $STARRY_LYFE__API__API_KEY" \
+  -H "X-SC-Force-Character: bina" \
+  -d '{"model":"starry-lyfe","messages":[{"role":"user","content":"hi"}],"stream":true}'
+
+# Prometheus scrape
+curl -s http://localhost:8001/metrics | head -30
+```
+
+### 14.7 Prometheus series
+
+| Series | Type | Labels |
+|--------|------|--------|
+| `http_requests_total` | counter | `method`, `path`, `status` |
+| `http_chat_completions_total` | counter | `character_id`, `routing_source`, `outcome` |
+| `http_sse_tokens_total` | counter | `character_id` |
+| `http_request_duration_seconds` | histogram | `method`, `path` |
+| `http_chat_ttfb_seconds` | histogram | `character_id` |
+
+### 14.8 File:line reference for key symbols
+
+| Symbol | File:line |
+|--------|-----------|
+| `create_app()` | `src/starry_lyfe/api/app.py:43` |
+| `main()` (uvicorn entry) | `src/starry_lyfe/api/main.py:14` |
+| `ApiSettings` | `src/starry_lyfe/api/config.py:9` |
+| `resolve_character_id()` | `src/starry_lyfe/api/routing/character.py:60` |
+| `CharacterRoutingDecision` | `src/starry_lyfe/api/routing/character.py:39` |
+| `preprocess_msty_request()` | `src/starry_lyfe/api/routing/msty.py:88` |
+| `chat_completions()` endpoint | `src/starry_lyfe/api/endpoints/chat.py:94` |
+| `run_chat_pipeline()` | `src/starry_lyfe/api/orchestration/pipeline.py:135` |
+| `upsert_session()` | `src/starry_lyfe/api/orchestration/session.py:21` |
+| `extract_episodic()` | `src/starry_lyfe/api/orchestration/memory_extraction.py:79` |
+| `evaluate_and_update()` | `src/starry_lyfe/api/orchestration/relationship.py:97` |
+| `schedule_post_turn_tasks()` | `src/starry_lyfe/api/orchestration/post_turn.py:43` |
+| `MetricsMiddleware` | `src/starry_lyfe/api/endpoints/metrics.py:74` |
+| `BDOne.stream_complete()` | `src/starry_lyfe/dreams/llm.py:189` |
+| Alembic migration | `alembic/versions/004_phase_7_chat_sessions.py` |
+
 **End of Operator Guide.**
