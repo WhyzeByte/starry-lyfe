@@ -303,7 +303,7 @@ Character routing priority: (1) `X-SC-Force-Character` header (OWUI pipe path), 
 | Variable | Default |
 |----------|---------|
 | `STARRY_LYFE__EXT__SFW_MODEL` | `deepseek/deepseek-v3.2` |
-| `STARRY_LYFE__EXT__EMBEDDING_MODEL` | `nomic-embed-text` |
+| `STARRY_LYFE__EXT__EMBEDDING_MODEL` | `text-embedding-nomic-embed-text-v1.5@q5_k_m` (LM Studio) |
 
 See `.env.example` for the full variable list covering: API host, DB port, logging, embedding config, auth, session timeout, Dreams schedule, environment polling (weather/roads/news), health auditor thresholds, Whyze-Byte settings, and observability.
 
@@ -380,8 +380,8 @@ These corrections override any conflicting content in project files. Apply befor
 
 ## 19. CURRENT PHASE STATUS (2026-04-15)
 
-**Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13), F (2026-04-13), G (2026-04-13), J.1–J.4 (2026-04-13), H (2026-04-13), K (2026-04-13), Phase 4 (Whyze-Byte Validation Pipeline, 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, 2026-04-14), Phase 5 (Scene Director, 2026-04-14; R1 2026-04-14 closes Codex F1/F2/F3; R2 2026-04-14 closes Codex R2-F1/R2-F2; R3 2026-04-14 doc-only closes R3-F1/R3-F2), Phase 6 (Dreams Engine, 2026-04-15; 3 Codex audit rounds + 2 Claude Code remediation rounds + 2 Codex direct doc remediation passes + 1 Claude AI Step 5 QA pass with 1 inline direct remediation; closes F1-F6 + R3-F1/R3-F2/R3-F3/R3-F4 + addendum A1/A2/A3 + Famaillá diacritic), Phase 7 (HTTP Service on Port 8001, 2026-04-15; 9 commits P1-P9; closes the deferred Phase 6 → Phase 7 Dreams glue via `tests/integration/test_http_dreams_glue.py`). Lettered-phase remediation complete (2026-04-13). Phase doc housekeeping (PHASE_I closure + PHASE_J retrospective + 5 closing blocks finalized) complete (2026-04-14).
-**Open ship gate:** None. All architectural phases (1-7) shipped.
+**Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13), F (2026-04-13), G (2026-04-13), J.1–J.4 (2026-04-13), H (2026-04-13), K (2026-04-13), Phase 4 (Whyze-Byte Validation Pipeline, 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, 2026-04-14), Phase 5 (Scene Director, 2026-04-14; R1 2026-04-14 closes Codex F1/F2/F3; R2 2026-04-14 closes Codex R2-F1/R2-F2; R3 2026-04-14 doc-only closes R3-F1/R3-F2), Phase 6 (Dreams Engine, 2026-04-15; 3 Codex audit rounds + 2 Claude Code remediation rounds + 2 Codex direct doc remediation passes + 1 Claude AI Step 5 QA pass with 1 inline direct remediation; closes F1-F6 + R3-F1/R3-F2/R3-F3/R3-F4 + addendum A1/A2/A3 + Famaillá diacritic), Phase 7 (HTTP Service on Port 8001, 2026-04-15; 9 commits P1-P9; **post-ship audit remediation 2026-04-15 closes F1-F5 via `PHASE_7.md §10`; Round 2 re-audit remediation 2026-04-15 closes R2-F1 + R2-F2 via `PHASE_7.md §12`; Direct Codex R3 remediation 2026-04-15 closes R3-F1 validated-only carry-forward + R3-F2 metric label wording via `PHASE_7.md §14`**). Lettered-phase remediation complete (2026-04-13). Phase doc housekeeping (PHASE_I closure + PHASE_J retrospective + 5 closing blocks finalized) complete (2026-04-14).
+**Open ship gate:** None. All architectural phases (1-7) shipped; Phase 7 post-ship audit remediation closed with PASS.
 **Next phase:** TBD — backend is now end-to-end production-ready. Future work would be operational (deployment, observability dashboards, OWUI pipe function authoring) rather than architectural.
 
 ### Project-wide Quality Directive (Project Owner, 2026-04-13)
@@ -483,7 +483,7 @@ Removed: `Vision/{Adelia Raye,Alicia Marin,Bina Malek,Reina Torres}.md`, `Docs/_
 
 ### Test baseline
 
-**995 passed, 0 failed** as of 2026-04-15 post-Phase-7-ship (890 unit + 60 integration + 45 fidelity). Phase 7 added 95 tests (88 unit + 7 integration) on top of the Phase 6 baseline of 900. ruff clean. mypy `--strict` clean across 100 source files (75 → 100, +25 new api modules).
+**1015 passed, 0 failed** as of 2026-04-15 post-Phase-7-Direct-R3-remediation (910 unit + 60 integration + 45 fidelity). R1 remediation added 15 new tests (F1 Crew 7, F3 BD-1 probe 4, F2 alicia_home 2, F5 counter 2); R2 remediation added 4 more (R2-F1 carry-forward 3, R2-F2 exact counter 1); direct R3 remediation added 1 more (`test_failed_speaker_is_not_carried_forward` — R3-F1 validated-only carry-forward). ruff clean. mypy `--strict` clean across 100 source files.
 
 ### Phase 2 end audit (2026-04-13)
 

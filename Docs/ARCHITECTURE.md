@@ -52,7 +52,7 @@ Planned later phases remain:
 | `db/models/open_loop.py` | Tier 6: Open Loops (TTL, resolution, expiry) | R5 |
 | `db/models/transient_somatic.py` | Tier 7: Transient Somatic State (exponential decay) | R5 |
 | `db/decay.py` | Exponential decay pure function for Tier 7 | -- |
-| `db/embed.py` | EmbeddingService protocol + Ollama implementation | BD-1 |
+| `db/embed.py` | EmbeddingService protocol + LM Studio implementation (OpenAI-compatible `/v1/embeddings`) | BD-1 |
 | `db/seed.py` | Canon YAML to DB seeding pipeline (Tiers 1-4, 7) | R5, GNK |
 | `db/retrieval.py` | Per-tier retrieval API with read-time decay | R5 |
 

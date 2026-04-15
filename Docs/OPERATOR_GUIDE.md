@@ -772,6 +772,8 @@ python -m starry_lyfe.api
 | `STARRY_LYFE__API__API_KEY` | `""` | yes (or chat 401s) |
 | `STARRY_LYFE__API__CORS_ORIGINS` | `""` (no CORS) | no — comma-separated list |
 | `STARRY_LYFE__API__DEFAULT_CHARACTER` | `adelia` | no — must be a canonical character |
+| `STARRY_LYFE__API__HEALTH_BD1_PROBE` | `true` | no — F3 closure 2026-04-15. When true, `/health/ready` issues a live HEAD probe against the BD-1 provider URL (1.5s timeout). Set `false` to skip the network call. |
+| `STARRY_LYFE__API__CREW_MAX_SPEAKERS` | `3` | no — F1 closure 2026-04-15. Crew-mode multi-speaker cap (project axiom: "Max 3 choices per decision point"). |
 
 ### 14.3 Endpoints
 
@@ -800,9 +802,12 @@ Returns a frozen `CharacterRoutingDecision` with `source` audit field. Unknown c
 |---|------|---------------|
 | 1 | POST received | `api/endpoints/chat.py::chat_completions` (request log + X-Request-ID header) |
 | 2 | Msty preprocess + scene classify | `api/routing/msty.py::preprocess_msty_request` + `scene/classify_scene` |
-| 3-5 | Memory retrieval + 7-layer assembly | `context/assembler.py::assemble_context` (Layer 6 includes Tier 8 Dreams activities) |
-| 6 | LLM stream | `dreams/llm.py::BDOne.stream_complete` |
+| 2a | Resolve `alicia_home` from Tier 8 `life_states` | `db/retrieval.py::retrieve_alicia_home` (F2 closure 2026-04-15; defaults to True when row absent) |
+| 3 | Memory retrieval | `db/retrieval.py::retrieve_memories` called at pipeline boundary so the `MemoryBundle` is shared between assembler and Crew loop |
+| 4-5 | 7-layer prompt assembly | `context/assembler.py::assemble_context` (Layer 6 includes Tier 8 Dreams activities); optional `memory_bundle=` kwarg skips the internal fetch |
+| 6-7 | LLM stream | `dreams/llm.py::BDOne.stream_complete` (single-speaker path) |
 | 8 | Whyze-Byte validation | `validation/whyze_byte.py::validate_response` (Tier 1 FAIL emits terminal error chunk) |
+| 9 | Crew sequencing (F1 closure 2026-04-15; R2-F1 carry-forward closure 2026-04-15; direct R3-F1 hardening 2026-04-15) | `api/orchestration/pipeline.py::_run_crew_turn` — loops `select_next_speaker()` up to `crew_max_speakers` times when `_is_crew_mode(ctx)` fires. Multi-speaker SSE uses inline `**Name:** ` attribution between speakers. Each speaker after the first receives the earlier speakers' validated text as a `[Earlier this turn: …]` block prepended to their `user_prompt` via `_format_crew_prior_block`, so speaker B can respond to speaker A rather than generate in isolation (the "prevents NPC Competition collapse" contract from `IMPLEMENTATION_PLAN §7`). If a prior speaker trips a Whyze-Byte FAIL, that speaker's text is not carried forward. |
 | 10 | SSE response | `api/orchestration/pipeline.py::run_chat_pipeline` (`StreamingResponse`) |
 | 12 | Post-turn fire-and-forget | `api/orchestration/post_turn.py::schedule_post_turn_tasks` |
 
@@ -845,7 +850,7 @@ curl -s http://localhost:8001/metrics | head -30
 |--------|------|--------|
 | `http_requests_total` | counter | `method`, `path`, `status` |
 | `http_chat_completions_total` | counter | `character_id`, `routing_source`, `outcome` |
-| `http_sse_tokens_total` | counter | `character_id` |
+| `http_sse_tokens_total` | counter | `character_id` — counts upstream **LLM stream deltas**, not tokens. Label semantics: focal character in single-speaker mode, actual speaker in Crew mode. Name retained for Prometheus series stability. |
 | `http_request_duration_seconds` | histogram | `method`, `path` |
 | `http_chat_ttfb_seconds` | histogram | `character_id` |
 

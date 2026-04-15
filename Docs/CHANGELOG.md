@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Shipped (Phase 7 Direct Codex Remediation — 2026-04-15)
+
+Project Owner explicitly directed Codex to remediate the remaining Phase 7 findings directly. Closes the 2 findings raised by Codex in Round 3 (`Docs/_phases/PHASE_7.md §13`). Gate: FAIL → **PASS**.
+
+- **R3-F1 (Medium): Step 9 fail-path hardening.** `src/starry_lyfe/api/orchestration/pipeline.py::_run_crew_turn` now appends to `prior_validated_speakers` only when `speaker_validation.passed` is true. A prior speaker that triggers `WHYZE_BYTE_FAIL` remains visible to the client that already received it, but it is no longer forwarded into later speakers' carry-forward blocks. New regression test `test_failed_speaker_is_not_carried_forward` proves the fail path.
+- **R3-F2 (Low): metric label wording cleanup.** `src/starry_lyfe/api/endpoints/metrics.py:51` now describes `http_sse_tokens_total` as per labeled character (speaker in Crew mode, focal character otherwise). Matching Phase 7 and operator docs were aligned to the same wording.
+- **Test baseline:** 1014 → **1015 passed, 0 failed**. 1 new unit test. `ruff` + `mypy --strict` clean across 100 source files.
+
+### Shipped (Phase 7 Round 2 Re-Audit Remediation — 2026-04-15)
+
+Closes the 2 findings raised by Codex in Round 2 (`Docs/_phases/PHASE_7.md §11`) against the R1 remediation. Gate: FAIL → **PASS**.
+
+- **R2-F1 (High): Step 9 validated-output carry-forward.** New helper `_format_crew_prior_block` in `src/starry_lyfe/api/orchestration/pipeline.py` prepends each earlier Crew speaker's full buffered text to the next speaker's `user_prompt` as a bracketed `[Earlier this turn: …]` block. Speaker 1 sees the cleaned user message unchanged; speakers 2+ see all prior speakers' text before the message. Historical R2 note: FAIL'd text was still forwarded at this stage. Direct R3 remediation later tightened the carry-forward set to validated-only output. Three new tests in `TestR2F1CarryForward` use a recording `StubBDOne` responder to prove the carry-forward reaches the LLM boundary.
+- **R2-F2 (Low): uniform counter semantics.** Removed the `http_sse_tokens_total.labels(character_id=speaker).inc()` call that sat next to the Crew attribution emission. Counter now fires exactly once per upstream LLM stream delta in both single-speaker and Crew paths. `src/starry_lyfe/api/endpoints/metrics.py:51` docstring tightened to say so explicitly and call out that attribution + separator chunks are SSE frame content, not LLM output. New test `test_crew_counter_matches_llm_deltas_exactly` parses the SSE body to validate the invariant across both paths.
+- **Test baseline:** 1010 → **1014 passed, 0 failed**. 4 new unit tests. `ruff` + `mypy --strict` clean across 100 source files.
+- **Planning artifact:** `C:\Users\Whyze\.claude\plans\declarative-exploring-stearns.md` (Round 2 plan overwrote the R1 plan).
+
+### Shipped (Phase 7 Post-Ship Audit Remediation — 2026-04-15)
+
+Closes all 5 Codex post-ship audit findings from `Docs/_phases/PHASE_7.md §9`. Gate: FAIL → **PASS**.
+
+- **F1 (High): Step 9 Crew sequencing.** `src/starry_lyfe/api/orchestration/pipeline.py` gains `_is_crew_mode`, `_build_turn_history`, `_build_activity_context`, `_retrieve_dyads_for_scene`, and `_run_crew_turn`. When `/all` override or a Msty Crew Conversation payload is detected, the pipeline loops `select_next_speaker()` up to `crew_max_speakers` (default 3, env-configurable) and streams a single OpenAI-compatible SSE response with inline `**Name:** ` attribution between speakers. Per-speaker Whyze-Byte validation runs in the loop; FAIL violations emit a warning chunk without aborting subsequent speakers. Rule of One enforced via `in_turn_already_spoken`.
+- **F2 (High): Scene Director `activity_context` + life_state.** `retrieve_alicia_home()` helper in `src/starry_lyfe/db/retrieval.py` resolves residency from Tier 8 `life_states`; replaces the pre-F2 `alicia_home=True` hardcode at `pipeline.py:143`. `MemoryBundle.activities` concatenated into `NextSpeakerInput.activity_context` feeds Rule 7 narrative salience in the Crew scorer. `assemble_context` accepts optional `memory_bundle=` to avoid duplicate retrieval when the pipeline pre-fetches.
+- **F3 (Medium): `/health/ready` BD-1 probe.** `BDOne.ping()` + `StubBDOne.ping()` added to `src/starry_lyfe/dreams/llm.py` (1.5s HEAD probe, zero tokens). `src/starry_lyfe/api/endpoints/health.py` issues a real probe when `STARRY_LYFE__API__HEALTH_BD1_PROBE=true` (default); circuit-open fast-path preserved. Four regression tests in `tests/unit/api/test_health_probe.py`.
+- **F4 (Medium): AC-7.20 governance gap.** `Docs/_phases/PHASE_7.md §4` AC-7.20 row flipped `MET` → `NOT MET` with rationale; no retroactive Step 1–6 backfill. Phase 8+ adheres to the template from the outset.
+- **F5 (Low): `http_sse_tokens_total` wiring.** Counter increments per SSE delta in both single-speaker and Crew paths. `src/starry_lyfe/api/endpoints/metrics.py:51` docstring clarifies "tokens" is a misnomer for SSE chunks (series name frozen for Prometheus stability).
+- **Test baseline:** 995 → **1010 passed, 0 failed**. 15 new unit tests. `ruff` + `mypy --strict` clean across 100 source files.
+- **Config:** `.env.example` gains `STARRY_LYFE__API__CREW_MAX_SPEAKERS=3` and `STARRY_LYFE__API__HEALTH_BD1_PROBE=true`.
+- **Planning artifact:** `C:\Users\Whyze\.claude\plans\declarative-exploring-stearns.md`.
+
+### Changed (Embedding provider: Ollama → LM Studio — 2026-04-15)
+
+- `db/embed.py`: `OllamaEmbeddingService` replaced with `LMStudioEmbeddingService` (OpenAI-compatible `POST /v1/embeddings`, response shape `{"data": [{"embedding": [...], "index": int}, ...]}`, index-sorted for batch order preservation).
+- `db/config.py`: `EmbeddingSettings` defaults now `base_url=http://localhost:1234/v1`, `model=text-embedding-nomic-embed-text-v1.5` (LM Studio's 768-dim Nomic equivalent; `Vector(768)` schema unchanged).
+- `api/app.py`: `_build_default_state` wires `LMStudioEmbeddingService()` on the lifespan startup hook.
+- `.env.example`: updated embedding section defaults.
+- `scripts/reembed_episodic_memories.py`: one-shot migration helper. Existing `episodic_memories` rows were embedded in Ollama's vector space; same 768-dim shape but incomparable geometry. Run after cutover to rewrite every `embedding` column in place using `event_summary` as source text.
+
 ### Shipped (Phase 7: HTTP Service on Port 8001 — 2026-04-15)
 
 Phase 7 SHIPPED 2026-04-15. Lands the FastAPI HTTP service on port 8001 that exposes the Starry-Lyfe backend as an OpenAI-compatible chat API consumed by Msty + Open WebUI.
