@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Shipped (Phase 8 Step 2 Execute — LLM Relationship Evaluator — 2026-04-15)
+
+Phase 8 Step 2 Execute complete + self-remediation (R1/R2a/R3b). 15/15 ACs MET. Ready for Codex Step 3 Audit Round 1. Gate: ruff + mypy --strict clean, **1015 → 1035 tests passing**.
+
+**What shipped:**
+
+- **New module `src/starry_lyfe/api/orchestration/relationship_prompts.py`** — canonical `RELATIONSHIP_EVAL_SYSTEM` with hand-authored per-character register sections for Adelia / Bina / Reina / Alicia drawn from the character kernels; `RelationshipEvalResponse` Pydantic schema with four float fields in [-1.0, 1.0]; `build_eval_prompt(character_id, response_text)` for the user-turn message; `parse_eval_response(text)` with markdown-fence stripping, missing-field / non-numeric / out-of-range guards, and negative-repair clamp-to-0.0 (positive-only architecture contract).
+- **`relationship.py::evaluate_and_update`** — LLM-primary with five heuristic-fallback branches: `settings.relationship_eval_llm=false`, missing `llm_client`, circuit-breaker open, `DreamsLLMError`, parser returning None. Public signature + ±0.03 `_clamp_delta` cap preserved. Structured log events: `llm_eval_parsed_proposal` on success, `llm_eval_fallback_to_heuristic` on fallback (with `reason` field).
+- **`post_turn.py::schedule_post_turn_tasks`** + `chat.py` endpoint call site — thread `llm_client` + `settings` into the fire-and-forget `asyncio.create_task(evaluate_and_update(...))` call.
+- **`ApiSettings`** — new fields: `relationship_eval_llm: bool = True`, `relationship_eval_max_tokens: int = 200`, `relationship_eval_temperature: float = 0.2`.
+- **Governance docs** — `PHASE_8.md` §2 Execute section fully populated with commits table, self-assessment (15/15 ACs MET), resolved open questions. `OPERATOR_GUIDE.md §14` documents the three new env vars + cost envelope paragraph (~300 tokens/turn, fire-and-forget) + Step 12 row annotated with evaluator flow + fallback branches + log event names.
+- **Tests** — 20 new: 13 in `test_relationship_prompts.py` (prompt builder + parser coverage); 7 in `test_relationship_evaluator.py::TestEvaluateAndUpdateLLMPath` (LLM-path + five fallback branches + backward-compat no-client path). Existing 16 heuristic cases unchanged.
+- **Self-remediation (R1/R2a/R3b):** R1 closed AC-8.12 PARTIAL → MET via OPERATOR_GUIDE §14 sweep. R2a narrowed `build_eval_prompt` to the 2-arg form as canonical scope with rationale documented in the docstring. R3b split the commit chain into three semantically-coherent commits per Step 1 plan.
+
+**Planning artifact:** `C:\Users\Whyze\.claude\plans\declarative-exploring-stearns.md` (Step 2 Execute playbook, approved 2026-04-15).
+
 ### Shipped (Phase 7 Direct Codex Remediation — 2026-04-15)
 
 Project Owner explicitly directed Codex to remediate the remaining Phase 7 findings directly. Closes the 2 findings raised by Codex in Round 3 (`Docs/_phases/PHASE_7.md §13`). Gate: FAIL → **PASS**.

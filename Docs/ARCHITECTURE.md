@@ -1,25 +1,25 @@
 # Starry-Lyfe v7.1 Architecture
 
-**Version:** 0.4.0
-**Date:** 2026-04-13
+**Version:** 0.8.0
+**Date:** 2026-04-15
 **Status:** Concise architecture and module index. Canonical phase-completion status lives in `Docs/IMPLEMENTATION_PLAN_v7.1.md`.
 
 ## Overview
 
-Starry-Lyfe is a character AI backend for four v7.1 persona kernels (Adelia Raye, Bina Malek, Reina Torres, Alicia Marin).
+Starry-Lyfe is a character AI backend for four v7.1 persona kernels (Adelia Raye, Bina Malek, Reina Torres, Alicia Marin). Consumed exclusively by Msty AI via an OpenAI-compatible SSE streaming API on port 8001. Each character is a Msty Persona (Persona Studio, System Prompt Mode = Replace, blank system prompt in production — backend is the sole voice authority per ADR-001). Multi-character scenes use Msty Crew Mode.
 
-Current implementation covers:
+**Shipped phases (as of 2026-04-15):**
 
-- Phase 1: canon YAML
-- Phase 2: memory service
-- Phase 3: seven-layer context assembly
-- Phase 4: Whyze-Byte validation
+- Phase 1: Canon YAML — `src/starry_lyfe/canon/`
+- Phase 2: Memory Service — `src/starry_lyfe/db/`
+- Phase 3: Seven-layer context assembly — `src/starry_lyfe/context/`
+- Phase 4: Whyze-Byte validation — `src/starry_lyfe/validation/`
+- Phase 5: Scene Director — `src/starry_lyfe/scene/`
+- Phase 6: Dreams Engine (nightly batch life-simulation) — `src/starry_lyfe/dreams/`
+- Phase 7: HTTP service on port 8001 — `src/starry_lyfe/api/`
+- Phase 8: LLM Relationship Evaluator — **in-flight** (`src/starry_lyfe/api/orchestration/relationship_prompts.py` authored; Step 2 pending)
 
-Planned later phases remain:
-
-- Phase 5: Scene Director
-- Phase 6: Dreams engine
-- Phase 7: HTTP service on port 8001
+**Test baseline:** 1015 passed, 0 failed (910 unit + 60 integration + 45 fidelity). ruff clean. mypy `--strict` clean.
 
 ## Module Registry
 
@@ -74,6 +74,50 @@ Planned later phases remain:
 | Module | Purpose | Protocol Droid |
 |--------|---------|---------------|
 | `validation/whyze_byte.py` | Two-tier response validator with AI-ism, framework-leak, repetition, and hand-off checks | -- |
+| `validation/fidelity.py` | Positive fidelity rubrics (Phase F-Fidelity); 7 dimensions × 4 characters = 28 rubrics | -- |
+
+### `src/starry_lyfe/scene/` -- Scene Director (Phase 5)
+
+| Module | Purpose |
+|--------|---------|
+| `scene/classifier.py` | `classify_scene()` — rule-based `SceneState` builder from caller inputs; auto-appends Whyze, normalizes `recalled_dyads` |
+| `scene/next_speaker.py` | `select_next_speaker()` — Talk-to-Each-Other Mandate scoring; `DyadStateProvider` Protocol; `build_dyad_state_provider()` |
+| `scene/errors.py` | `AliciaAwayContradictionError` |
+
+### `src/starry_lyfe/dreams/` -- Dreams Engine (Phase 6)
+
+| Module | Purpose | Protocol Droid |
+|--------|---------|---------------|
+| `dreams/runner.py` | `run_dreams_pass()` — iterates all 4 characters, runs 5 generators, aggregates | BD-1 |
+| `dreams/daemon.py` | apscheduler daemon; `python -m starry_lyfe.dreams` entry point | -- |
+| `dreams/config.py` | `DreamsSettings` / `.from_env()` | GNK |
+| `dreams/llm.py` | `BDOne` (OpenRouter/Anthropic HTTP client) + `StubBDOne` (test double) | BD-1 |
+| `dreams/consolidation.py` | Somatic decay, overnight dyad delta cap (±0.10), loop expiry/resolution | R5 |
+| `dreams/alicia_mode.py` | `pick_alicia_communication_mode()` — samples phone/letter/video per canonical distribution | -- |
+| `dreams/generators/diary.py` | LLM-backed per-character diary entry generator | BD-1 |
+| `dreams/generators/schedule.py` | Deterministic daily schedule from `routines.yaml` | -- |
+| `dreams/generators/off_screen.py` | LLM-backed off-screen event generator | BD-1 |
+| `dreams/generators/open_loops.py` | LLM-backed open loop generator | BD-1 |
+| `dreams/generators/activity_design.py` | LLM-backed activity design generator | BD-1 |
+
+### `src/starry_lyfe/api/` -- HTTP Service (Phase 7)
+
+| Module | Purpose | Protocol Droid |
+|--------|---------|---------------|
+| `api/app.py` | `create_app()` FastAPI factory + lifespan | -- |
+| `api/main.py` | `main()` uvicorn entry point | -- |
+| `api/config.py` | `ApiSettings` — host, port, API key, crew max, BD-1 probe toggle | GNK |
+| `api/endpoints/chat.py` | `chat_completions()` — POST `/v1/chat/completions` SSE | -- |
+| `api/endpoints/metrics.py` | `MetricsMiddleware` + GET `/metrics` Prometheus | MSE-6 |
+| `api/routing/character.py` | `resolve_character_id()` — model field → inline override → header → default | -- |
+| `api/routing/msty.py` | `preprocess_msty_request()` — Crew roster + prior response extraction; `MstyPreprocessed` | -- |
+| `api/orchestration/pipeline.py` | `run_chat_pipeline()` — 12-step flow; `_run_crew_turn()` — multi-speaker SSE loop | -- |
+| `api/orchestration/post_turn.py` | `schedule_post_turn_tasks()` — fire-and-forget memory extraction + relationship update | -- |
+| `api/orchestration/relationship.py` | `evaluate_and_update()` — per-turn dyad delta (±0.03 cap); heuristic `_propose_deltas()` fallback | -- |
+| `api/orchestration/relationship_prompts.py` | `RELATIONSHIP_EVAL_SYSTEM` (hand-authored, per-character register notes); `build_eval_prompt()`; `parse_eval_response()`; `RelationshipEvalResponse` — Phase 8 authored by Claude AI 2026-04-15 | -- |
+| `api/orchestration/memory_extraction.py` | `extract_episodic()` — post-turn episodic memory extraction | BD-1 |
+| `api/orchestration/session.py` | `upsert_session()` — `chat_sessions` table management | R5 |
+| `api/schemas/chat.py` | OpenAI-compatible request/response schemas | -- |
 
 ### Canon YAML Files
 

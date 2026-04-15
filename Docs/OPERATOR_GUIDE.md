@@ -774,6 +774,9 @@ python -m starry_lyfe.api
 | `STARRY_LYFE__API__DEFAULT_CHARACTER` | `adelia` | no — must be a canonical character |
 | `STARRY_LYFE__API__HEALTH_BD1_PROBE` | `true` | no — F3 closure 2026-04-15. When true, `/health/ready` issues a live HEAD probe against the BD-1 provider URL (1.5s timeout). Set `false` to skip the network call. |
 | `STARRY_LYFE__API__CREW_MAX_SPEAKERS` | `3` | no — F1 closure 2026-04-15. Crew-mode multi-speaker cap (project axiom: "Max 3 choices per decision point"). |
+| `STARRY_LYFE__API__RELATIONSHIP_EVAL_LLM` | `true` | no — Phase 8 2026-04-15. When true, the post-turn relationship evaluator uses BD-1 as its primary delta-proposal source; heuristic `_propose_deltas` runs only as fallback. Set `false` to force the heuristic path (offline dev / test environments). |
+| `STARRY_LYFE__API__RELATIONSHIP_EVAL_MAX_TOKENS` | `200` | no — Phase 8. `max_tokens` passed to `BDOne.complete()` for the relationship evaluation call. 200 is enough for the required 4-field JSON response + minimal slack. |
+| `STARRY_LYFE__API__RELATIONSHIP_EVAL_TEMPERATURE` | `0.2` | no — Phase 8. Low temperature keeps evaluator output stable across runs. The ±0.03 cap absorbs residual noise regardless. |
 
 ### 14.3 Endpoints
 
@@ -789,12 +792,16 @@ python -m starry_lyfe.api
 
 `api/routing/character.py::resolve_character_id` resolves the focal character in this order:
 
-1. `X-SC-Force-Character` header (optional force-character override for any client)
-2. Inline `/<char>` or `/all` override at user message start
-3. `model` field matching a canonical id (Msty path)
-4. `STARRY_LYFE__API__DEFAULT_CHARACTER` (default `adelia`)
+1. `model` field matching a canonical id — **the Msty production path**. Msty Studio sends the active Persona's model name (`adelia`, `bina`, `reina`, `alicia`) in the `model` field of every request. Characters are always loaded through Personas in Msty, never through headers. Multi-character (Crew) conversations are handled by Msty Crew Mode — see §14.9.
+2. Inline `/<char>` or `/all` override at user message start — dev/test convenience.
+3. `X-SC-Force-Character` header — dev/test override only. Not used in production Msty. Useful for `curl`, observability dashboards, and non-Msty clients.
+4. `STARRY_LYFE__API__DEFAULT_CHARACTER` (default `adelia`) — fallback when no character is identifiable from any of the above.
 
-Returns a frozen `CharacterRoutingDecision` with `source` audit field. Unknown character IDs raise `CharacterNotFoundError` → 400 with `valid_character_ids` in the body.
+Returns a frozen `CharacterRoutingDecision` with `source` audit field (`model_field` | `inline_override` | `header` | `default`). Unknown character IDs raise `CharacterNotFoundError` → 400 with `valid_character_ids` in the body.
+
+### 14.4.1 Cost envelope (Phase 8 — 2026-04-15)
+
+The relationship evaluator (Step 12 below) issues one additional `BDOne.complete()` call per chat turn. At the default `relationship_eval_max_tokens=200` + `relationship_eval_temperature=0.2`, the round-trip averages ~300 tokens (prompt + response). Because the evaluator runs as `asyncio.create_task` after the SSE close (fire-and-forget), it does NOT contribute to user-visible latency. It DOES contribute to BD-1 request volume: at N chat turns/day, expect ~N extra evaluator calls/day. Set `STARRY_LYFE__API__RELATIONSHIP_EVAL_LLM=false` to suppress the extra traffic and force the heuristic path; the ±0.03 cap semantics are identical either way.
 
 ### 14.5 12-step request flow (debugging)
 
@@ -809,7 +816,7 @@ Returns a frozen `CharacterRoutingDecision` with `source` audit field. Unknown c
 | 8 | Whyze-Byte validation | `validation/whyze_byte.py::validate_response` (Tier 1 FAIL emits terminal error chunk) |
 | 9 | Crew sequencing (F1 closure 2026-04-15; R2-F1 carry-forward closure 2026-04-15; direct R3-F1 hardening 2026-04-15) | `api/orchestration/pipeline.py::_run_crew_turn` — loops `select_next_speaker()` up to `crew_max_speakers` times when `_is_crew_mode(ctx)` fires. Multi-speaker SSE uses inline `**Name:** ` attribution between speakers. Each speaker after the first receives the earlier speakers' validated text as a `[Earlier this turn: …]` block prepended to their `user_prompt` via `_format_crew_prior_block`, so speaker B can respond to speaker A rather than generate in isolation (the "prevents NPC Competition collapse" contract from `IMPLEMENTATION_PLAN §7`). If a prior speaker trips a Whyze-Byte FAIL, that speaker's text is not carried forward. |
 | 10 | SSE response | `api/orchestration/pipeline.py::run_chat_pipeline` (`StreamingResponse`) |
-| 12 | Post-turn fire-and-forget | `api/orchestration/post_turn.py::schedule_post_turn_tasks` |
+| 12 | Post-turn fire-and-forget (Phase 8 closure 2026-04-15) | `api/orchestration/post_turn.py::schedule_post_turn_tasks` schedules two detached coroutines: (a) episodic memory extraction via `memory_extraction.py::extract_episodic` and (b) relationship evaluation via `relationship.py::evaluate_and_update`. The evaluator is LLM-primary by default — builds a canonical 4-dimension prompt via `relationship_prompts.py::build_eval_prompt`, calls `BDOne.complete()`, parses the JSON response through `parse_eval_response`, and applies the proposal through the existing ±0.03 `_clamp_delta` gate. Falls back to heuristic `_propose_deltas` on any of five conditions: `relationship_eval_llm=false` toggle, missing llm_client, circuit-breaker open, `DreamsLLMError`, parser returning None. Structured log events: `llm_eval_parsed_proposal` on success (includes all four delta values), `llm_eval_fallback_to_heuristic` on fallback (includes the `reason` field). |
 
 Response headers for observability:
 - `X-Request-ID` (correlate with MSE-6 logs)
@@ -833,7 +840,7 @@ curl -N -X POST http://localhost:8001/v1/chat/completions \
   -H "X-API-Key: $STARRY_LYFE__API__API_KEY" \
   -d '{"model":"adelia","messages":[{"role":"user","content":"morning"}],"stream":true}'
 
-# Force-character via header (any client)
+# Force-character via header (dev/test only — not the Msty production path)
 curl -N -X POST http://localhost:8001/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $STARRY_LYFE__API__API_KEY" \
@@ -854,7 +861,56 @@ curl -s http://localhost:8001/metrics | head -30
 | `http_request_duration_seconds` | histogram | `method`, `path` |
 | `http_chat_ttfb_seconds` | histogram | `character_id` |
 
-### 14.8 File:line reference for key symbols
+### 14.9 Msty Studio Integration Architecture
+
+Msty is the only consumer of this backend. Two Msty features map to two distinct backend paths.
+
+#### Single-character: Persona Conversations
+
+Each character has a dedicated Persona in Msty's Persona Studio:
+
+| Msty Persona | System Prompt Mode | System Prompt Content | model field |
+|---|---|---|---|
+| Adelia Raye | Replace | Blank (backend is voice authority per ADR-001) | `adelia` |
+| Bina Malek | Replace | Blank | `bina` |
+| Reina Torres | Replace | Blank | `reina` |
+| Alicia Marin | Replace | Blank | `alicia` |
+
+When a user opens a Persona Conversation, Msty sends `model: "<character-id>"` to `/v1/chat/completions`. The backend reads the `model` field, assembles the seven-layer prompt for that character, generates the response, and validates it through Whyze-Byte. The character's voice, memory, and constraints are entirely backend-sourced — the blank Msty system prompt is the production invariant, enforced by ADR-001.
+
+The `# SYSTEM_ROLE:` header line in each kernel file (e.g., `# SYSTEM_ROLE: Adelia RAYE (The Catalyst)`) is a Msty Persona Studio authoring artifact. At runtime `_sanitize_kernel_text()` in `kernel_loader.py` strips it along with `**Version:**` and `**Target:**` before the kernel reaches the model. It never appears in the assembled prompt.
+
+#### Multi-character: Crew Conversations
+
+Crew Mode is Msty's multi-persona feature. A Crew is a named group of Personas. When a Crew Conversation is active:
+
+1. Msty manages the turn-taking UI and sends the full message history to the backend with each request.
+2. Prior speaker turns arrive as `role="assistant"` messages with a `name` field set to the persona id (e.g., `name: "adelia"`). The Msty system prompt may carry a roster header naming the active crew members.
+3. `preprocess_msty_request()` in `api/routing/msty.py` narrows this wide payload: it extracts the scene roster (`scene_characters`), the prior persona responses (`prior_responses`), and the latest user message. The system prompt is stripped per ADR-001.
+4. The backend's `select_next_speaker()` (Phase 5 Scene Director) scores which woman should speak next based on the Talk-to-Each-Other Mandate, Rule of One, dyad-state fitness, and narrative salience.
+5. `_run_crew_turn()` in `pipeline.py` loops up to `CREW_MAX_SPEAKERS` times, streaming each speaker's turn inline with `**Name:** ` attribution. Each speaker after the first receives the validated text of earlier speakers as a `[Earlier this turn: …]` block, so speaker B can actually respond to speaker A.
+
+Characters are never "forced" into a Crew by headers. The Crew roster is assembled in Msty by the operator choosing which Personas belong to the Crew.
+
+#### `SYSTEM_ROLE` headers are Persona Studio artifacts, not runtime directives
+
+The `# SYSTEM_ROLE:` lines at the top of each kernel file are Msty Persona Studio display labels — they appear in the Persona authoring UI and are stripped at runtime. They are not HTTP headers. They are not injected into the assembled prompt. Operators editing kernels do not need to preserve them; they exist only for Msty's UI display layer.
+
+#### File:line reference for Msty integration
+
+| Symbol | File:line |
+|--------|-----------|
+| `preprocess_msty_request()` | `src/starry_lyfe/api/routing/msty.py:88` |
+| `MstyPreprocessed` | `src/starry_lyfe/api/routing/msty.py:45` |
+| `resolve_character_id()` | `src/starry_lyfe/api/routing/character.py:60` |
+| `_sanitize_kernel_text()` | `src/starry_lyfe/context/kernel_loader.py:117` |
+| `_run_crew_turn()` | `src/starry_lyfe/api/orchestration/pipeline.py` |
+| `select_next_speaker()` | `src/starry_lyfe/scene/next_speaker.py:115` |
+| ADR-001 (voice authority) | `Docs/ADR_001_Voice_Authority_Split.md` |
+
+---
+
+
 
 | Symbol | File:line |
 |--------|-----------|
