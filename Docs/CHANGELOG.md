@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Shipped (Phase 6: Dreams Engine — 2026-04-15)
+
+Phase 6 SHIPPED 2026-04-15. Step 5 Claude AI QA verdict APPROVED FOR SHIP accepted in full by Project Owner. The most rigorously audited phase in project history: 3 Codex audit rounds + 2 Claude Code remediation rounds + 2 Codex direct doc remediation passes + 1 Claude AI Step 5 QA pass with 1 inline direct remediation (Famaillá diacritic in `routines.yaml` line 161). All 10 audit findings (F1-F6 + R3-F1/R3-F2/R3-F3/R3-F4) closed with commit hashes and live verification. Hard-DB suite **900 passed, 0 failed**. ruff + mypy `--strict` clean across 75 source files (up from 49 at end of Phase 5). 152 new tests added across the cycle (748 baseline → 900 post-ship). The Dreams write/retrieve lifecycle and DB-backed assembler consumer path are live; automatic Scene Director `activity_context` population is Phase 7 HTTP-service glue. See `Docs/_phases/PHASE_6.md` for the complete cycle record.
+
 ### Added (Phase 3: Context Assembly — Complete)
 
 - Seven-layer context assembler (`assembler.py`) with terminal constraint anchoring
