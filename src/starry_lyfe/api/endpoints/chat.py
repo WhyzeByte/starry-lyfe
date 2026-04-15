@@ -13,6 +13,7 @@ metrics) remain public per CLAUDE.md §14.
 from __future__ import annotations
 
 import logging
+import uuid
 
 from fastapi import APIRouter, Header
 from fastapi.responses import StreamingResponse
@@ -20,6 +21,7 @@ from fastapi.responses import StreamingResponse
 from ..deps import CanonDep, EmbeddingDep, LLMDep, SessionDep, SettingsDep
 from ..errors import AuthError
 from ..orchestration.pipeline import PipelineContext, run_chat_pipeline
+from ..orchestration.session import upsert_session
 from ..routing.character import resolve_character_id
 from ..routing.msty import preprocess_msty_request
 from ..schemas.chat import ChatCompletionRequest
@@ -27,6 +29,38 @@ from ..schemas.chat import ChatCompletionRequest
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _resolve_session_id(provided: str | None, openai_user: str | None) -> uuid.UUID:
+    """Pick a stable session UUID for this request.
+
+    Priority: explicit X-Session-ID header > OpenAI ``user`` field
+    (hashed into a UUID5) > random UUID4. The header is the canonical
+    OWUI/Msty session token surface; the OpenAI ``user`` field is a
+    documented OpenAI hook for tracking end users.
+    """
+    if provided:
+        try:
+            return uuid.UUID(provided)
+        except ValueError:
+            return uuid.uuid5(uuid.NAMESPACE_URL, provided)
+    if openai_user:
+        return uuid.uuid5(uuid.NAMESPACE_URL, openai_user)
+    return uuid.uuid4()
+
+
+def _detect_client_type(user_agent: str | None, has_force_header: bool) -> str:
+    """Coarse client classification for observability.
+
+    Msty uses model field + assistant.name; OWUI uses the
+    X-SC-Force-Character header. Anything else (curl, custom scripts)
+    reports as "other".
+    """
+    if has_force_header:
+        return "owui"
+    if user_agent and "msty" in user_agent.lower():
+        return "msty"
+    return "other"
 
 
 def _enforce_api_key(provided: str | None, expected: str) -> None:
@@ -57,6 +91,8 @@ async def chat_completions(
     llm: LLMDep,
     x_api_key: str | None = Header(default=None, alias="X-API-Key"),
     x_sc_force_character: str | None = Header(default=None, alias="X-SC-Force-Character"),
+    x_session_id: str | None = Header(default=None, alias="X-Session-ID"),
+    user_agent: str | None = Header(default=None, alias="User-Agent"),
 ) -> StreamingResponse:
     """Handle a single chat completion request, returning an SSE stream."""
     _enforce_api_key(x_api_key, settings.api_key)
@@ -68,6 +104,23 @@ async def chat_completions(
         user_message=msty.user_message,
         settings=settings,
     )
+
+    # Upsert the chat_sessions row before streaming so observability has
+    # a record of the request even if the LLM call fails downstream.
+    session_id = _resolve_session_id(x_session_id, request.user)
+    client_type = _detect_client_type(user_agent, x_sc_force_character is not None)
+    try:
+        await upsert_session(
+            session,
+            session_id=session_id,
+            client_type=client_type,
+            character_id=routing.character_id,
+            scene_characters=msty.scene_characters or [routing.character_id],
+        )
+        await session.commit()
+    except Exception as exc:  # noqa: BLE001 — session tracking is best-effort
+        logger.warning("upsert_session_failed", exc_info=exc)
+        await session.rollback()
 
     ctx = PipelineContext(
         request=request,
@@ -87,5 +140,6 @@ async def chat_completions(
             "X-Request-ID": ctx.request_id,
             "X-Character-ID": routing.character_id,
             "X-Routing-Source": routing.source,
+            "X-Session-ID": str(session_id),
         },
     )

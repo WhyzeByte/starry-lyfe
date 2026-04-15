@@ -3,6 +3,7 @@
 from .activity import Activity
 from .canon_facts import CanonFact
 from .character_baseline import CharacterBaseline
+from .chat_session import ChatSession
 from .consolidated_memory import ConsolidatedMemory
 from .consolidation_log import ConsolidationLog
 from .drive_state import DriveState
@@ -19,6 +20,7 @@ __all__ = [
     "Activity",
     "CanonFact",
     "CharacterBaseline",
+    "ChatSession",
     "ConsolidatedMemory",
     "ConsolidationLog",
     "DriveState",

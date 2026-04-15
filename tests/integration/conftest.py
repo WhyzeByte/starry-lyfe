@@ -45,6 +45,7 @@ APPLICATION_TABLES = (
     "episodic_memories",
     "open_loops",
     "transient_somatic_states",
+    "chat_sessions",
 )
 REQUIRED_TABLES = frozenset((*APPLICATION_TABLES, "alembic_version"))
 
