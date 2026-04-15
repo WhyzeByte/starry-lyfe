@@ -53,16 +53,28 @@ jobs:
         run: python -m starry_lyfe.db.seed
 
       - name: Run integration tests
-        # --tb=long so the traceback lands in stdout; tee to file so the
-        # Step Summary can echo it below even when this step exits non-zero.
+        id: pytest
         run: |
           set -o pipefail
           python -m pytest tests/integration -v --tb=long --maxfail=1 2>&1 | tee pytest-output.txt
 
-      - name: Echo pytest output to Step Summary
-        if: ${{ always() }}
+      - name: Emit pytest failure as workflow annotation
+        if: ${{ failure() && steps.pytest.conclusion == 'failure' }}
         run: |
-          echo "## Integration test output" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          tail -c 30000 pytest-output.txt >> "$GITHUB_STEP_SUMMARY" || echo "(no pytest-output.txt found)" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          # Annotations API is publicly readable, logs/artifacts are not.
+          # Encode one ::error:: line per tail-line so the failure surfaces.
+          python3 - <<'PY'
+          import os, re
+          try:
+              with open("pytest-output.txt", "r", encoding="utf-8", errors="replace") as f:
+                  text = f.read()
+          except FileNotFoundError:
+              text = "(no pytest-output.txt found)"
+          # Keep the last 200 lines — usually enough for the failing traceback.
+          tail = "\n".join(text.splitlines()[-200:])
+          # Workflow commands encode % and newlines specially.
+          encoded = tail.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+          # Chunk to stay under GitHub's ~65k annotation message limit.
+          for i in range(0, len(encoded), 60000):
+              print(f"::error title=pytest integration failure::{encoded[i:i+60000]}")
+          PY
