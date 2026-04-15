@@ -4,8 +4,8 @@
 **Phase identifier:** `9`
 **Depends on:** Phase 8 SEALED 2026-04-15 (LLM evaluator pattern, `relationship_prompts.py` architecture, `BDOne` wiring, `_NumericValue`/`_reject_bool` Pydantic primitives)
 **Blocks:** None identified
-**Status:** STEP 4 ROUND 1 REMEDIATION COMPLETE — handshake to Codex for Round 2 re-audit
-**Last touched:** 2026-04-15 by Claude Code (Step 4 R1 chain committed: `b301b16` F1 + `2906ed3` F2 + [this governance sweep commit] F3; test suite 1113 → 1118; ruff + mypy --strict clean across 103 source files)
+**Status:** STEP 3'' AUDIT ROUND 3 COMPLETE — Project Owner-authorized AGENTS.md Path C direct Codex doc-only remediation applied; gate PASS
+**Last touched:** 2026-04-15 by Codex (Round 3 doc-only remediation applied directly under AGENTS.md Path C; no production code changes; ready for Step 5 QA)
 
 ---
 
@@ -26,11 +26,14 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 1 | 2026-04-15 | Project Owner (via chat) | Claude AI | Phase 8 shipped; proceed to Phase 9 (DyadStateInternal LLM evaluator) |
 | 2 | 2026-04-15 | Claude AI | Claude Code | Phase 9 file created with hand-authored per-pair register notes; ready for Step 1 Plan |
 | 3 | 2026-04-15 | Project Owner | Claude Code | Plan approved via ExitPlanMode; proceed to Step 2 Execute |
-| 4 | 2026-04-15 | Claude Code | Codex | Step 2 Execute COMPLETE. Three-commit chain on main: `a3148f5` + `3449335` + [this governance sweep commit]. Test suite 1058 → 1113 (+55). 15/15 ACs MET pre-audit. Phase 8 R1-F1/R1-F2/R1-F3 lessons applied proactively. Ready for Round 1 audit. |
+| 4 | 2026-04-15 | Claude Code | Codex | Step 2 Execute COMPLETE. Three-commit chain on main: `a3148f5` + `3449335` + `4b50132`. Test suite 1058 → 1113 (+55). 15/15 ACs MET pre-audit. Phase 8 R1-F1/R1-F2/R1-F3 lessons applied proactively. Ready for Round 1 audit. |
 | 5 | 2026-04-15 | Codex | Claude Code | Round 1 audit complete on the committed Phase 9 chain. **Gate FAIL.** Three findings: F1 (High) speaker identity dropped from live prompt; F2 (High) Alicia-orbital remote-turn path unreachable; F3 (Medium) PHASE_9.md Step 1 internal inconsistency + scheduler-shape narrative drift. |
 | 6 | 2026-04-15 | Project Owner | Claude Code | Round 1 remediation plan approved via ExitPlanMode. F2 approach = Hybrid (canonical prose preserved + scope narrowed to deferred future-phase). Three-commit chain authorized. |
-| 7 | 2026-04-15 | Claude Code | Codex | Round 1 remediation COMPLETE. Three-commit chain on main: `b301b16` (RT1 F1 speaker identity + regression suite, +5 tests) + `2906ed3` (RT2 F2 doc-narrow Alicia-orbital remote-turn) + [this governance sweep commit] (RT3 F3 + Step 4 record + downstream sync). Test suite 1113 → 1118; ruff + mypy --strict clean across 103 source files. Path B classification (F1 substantive). Ready for Round 2 re-audit. |
-| 5 | 2026-04-15 | Codex | Claude Code | Audit Round 1 complete on the committed Phase 9 chain; gate FAIL. High: the LLM prompt drops speaker identity, and the canonical adelia×alicia remote-turn path is impossible under the shipped inactive-row gate. Medium: the shared phase record still shows Step 1 as not started and internally contradicts the shipped scheduler shape. |
+| 7 | 2026-04-15 | Claude Code | Codex | Round 1 remediation COMPLETE. Three-commit chain on main: `b301b16` (RT1 F1 speaker identity + regression suite, +6 tests) + `2906ed3` (RT2 F2 doc-narrow Alicia-orbital remote-turn) + `11a8af6` (RT3 F3 + Step 4 record + downstream sync). Test suite 1113 → 1119; ruff + mypy --strict clean across 103 source files. Path B classification (F1 substantive). Ready for Round 2 re-audit. |
+| 8 | 2026-04-15 | Codex | Claude Code | Round 2 re-audit complete on the remediation chain `b301b16` + `2906ed3` + `11a8af6`; gate PASS WITH MINOR FIXES. F1 and F2 are genuinely closed; remaining issues are low-severity doc drift in the phase record and downstream sync surfaces (duplicate handshake row, stale 1118/residue-failure claims, placeholder commit references). |
+| 9 | 2026-04-15 | Codex | Claude Code | Round 3 re-audit complete on the current post-Round-2 state. No new remediation commit or Step 4' artifact is visible beyond the prior Round 2 audit append in this file. Gate remains PASS WITH MINOR FIXES; the same 3 low-severity doc findings remain open unchanged. |
+| 10 | 2026-04-15 | Project Owner (via chat) | Codex | Authorized AGENTS.md Path C direct Codex doc-only remediation for the 3 Round 3 low-severity Phase 9 documentation findings. |
+| 11 | 2026-04-15 | Codex | Claude AI | Path C remediation applied directly in `PHASE_9.md`, `Docs/CHANGELOG.md`, `CLAUDE.md`, `Docs/IMPLEMENTATION_PLAN_v7.1.md`, and `Docs/ARCHITECTURE.md`. Round 3 closed with no remaining findings; gate PASS; ready for Step 5 QA. |
 
 ---
 
@@ -248,7 +251,7 @@ None outstanding. The three pre-resolved micro-decisions held in Step 2:
 |---:|---|---|---|
 | 1 | `a3148f5` | `feat(phase_9): internal_relationship_prompts + evaluator modules + Pydantic schema + parser` | 2 new src modules + `__init__.py` + `config.py` + `.env.example` + `test_internal_relationship_prompts.py` |
 | 2 | `3449335` | `feat(phase_9): wire evaluate_and_update_internal into post_turn + evaluator tests` | `post_turn.py` + `test_internal_relationship_evaluator.py` + `test_post_turn.py` update |
-| 3 | this commit | `docs(phase_9): Step 2 execution log + OPERATOR_GUIDE §14 + CHANGELOG + CLAUDE.md §19 + IMPLEMENTATION_PLAN §3 + ARCHITECTURE.md` | PHASE_9.md + CLAUDE.md + ARCHITECTURE.md + CHANGELOG.md + IMPLEMENTATION_PLAN_v7.1.md + OPERATOR_GUIDE.md + PHASE_8.md (SEALED markers) |
+| 3 | `4b50132` | `docs(phase_9): Step 2 execution log + OPERATOR_GUIDE §14 + CHANGELOG + CLAUDE.md §19 + IMPLEMENTATION_PLAN §3 + ARCHITECTURE.md` | PHASE_9.md + CLAUDE.md + ARCHITECTURE.md + CHANGELOG.md + IMPLEMENTATION_PLAN_v7.1.md + OPERATOR_GUIDE.md + PHASE_8.md (SEALED markers) |
 
 **Test suite delta:**
 
@@ -289,7 +292,7 @@ None. All three micro-decisions flagged as pre-resolved in the plan held:
 
 None outstanding. Phase 8 R1-F1 / R1-F2 / R1-F3 lessons were applied proactively in Step 2 (see AC-9.9, AC-9.5, AC-9.8 evidence), so the surface Codex audited in Phase 8 R1 is already hardened here.
 
-<!-- HANDSHAKE: Claude Code → Codex | Step 2 Execute COMPLETE. Three-commit chain on main: a3148f5 + 3449335 + [this governance sweep commit]. Test suite 1058 → 1113, ruff + mypy --strict clean. 15/15 ACs MET pre-audit with proactive application of Phase 8 R1-F1/R1-F2/R1-F3 lessons. Ready for Round 1 audit. -->
+<!-- HANDSHAKE: Claude Code → Codex | Step 2 Execute COMPLETE. Three-commit chain on main: a3148f5 + 3449335 + 4b50132. Test suite 1058 → 1113, ruff + mypy --strict clean. 15/15 ACs MET pre-audit with proactive application of Phase 8 R1-F1/R1-F2/R1-F3 lessons. Ready for Round 1 audit. -->
 
 ---
 
@@ -383,15 +386,15 @@ Result: parser returned `None`; fail-closed behavior held.
 |---:|---|---|---|
 | RT1 | `b301b16` | `fix(phase_9): R1-F1 — thread speaker identity through internal eval prompt + regression test` | `internal_relationship_prompts.py` + `internal_relationship.py` + `test_internal_relationship_prompts.py` + `test_internal_relationship_evaluator.py` |
 | RT2 | `2906ed3` | `docs(phase_9): R1-F2 — narrow Alicia-orbital remote-turn note to deferred future-phase scope` | `PHASE_9.md` only (canonical Pre-execution prose preserved verbatim; new R1-F2 closure callout above orbital sections + AC-9.11 inline parenthetical + new "Not in scope (deferred)" Closing Block section) |
-| RT3 | this commit | `docs(phase_9): R1-F3 + Step 4 governance — repair PHASE_9.md Step 1 record + Step 4 remediation log + downstream sync` | `PHASE_9.md` (Step 1 status + scheduler narrative reconcile + Step 4 Round 1 record + handshake row 6) + `Docs/IMPLEMENTATION_PLAN_v7.1.md §3` + `Docs/CHANGELOG.md` + `CLAUDE.md §19` + `Docs/ARCHITECTURE.md` (version bump) |
+| RT3 | `11a8af6` | `docs(phase_9): R1-F3 + Step 4 governance — repair PHASE_9.md Step 1 record + Step 4 remediation log + downstream sync` | `PHASE_9.md` (Step 1 status + scheduler narrative reconcile + Step 4 Round 1 record + handshake row 6) + `Docs/IMPLEMENTATION_PLAN_v7.1.md §3` + `Docs/CHANGELOG.md` + `CLAUDE.md §19` + `Docs/ARCHITECTURE.md` (version bump) |
 
 **Test suite delta:**
 
-- Before remediation: 1113 passed (post-Phase-9-Step-2 baseline; pre-existing residue_grep failure on untracked legacy `Characters/*.yaml` files is out of Phase 9 R1 scope and unchanged here).
-- After RT1 (F1 speaker identity + regression suite): 1118 passed (+5 new tests).
-- After RT2 (F2 doc-only): 1118 unchanged.
-- After RT3 (F3 governance + downstream sync): 1118 unchanged.
-- **Final: 1118 passed, 0 failed** (excluding the pre-existing residue_grep failure on untracked Characters files; with that included: 1118 passed, 1 failed — failure is pre-existing infrastructure debt, not introduced by Phase 9 R1).
+- Before remediation: 1113 passed (post-Phase-9-Step-2 baseline).
+- After RT1 (F1 speaker identity + regression suite): 1119 passed (+6 new tests).
+- After RT2 (F2 doc-only): 1119 unchanged.
+- After RT3 (F3 governance + downstream sync): 1119 unchanged.
+- **Final: 1119 passed, 0 failed.**
 - `ruff` + `mypy --strict` clean across **103 source files**.
 
 ### Per-finding closure table
@@ -400,7 +403,7 @@ Result: parser returned `None`; fail-closed behavior held.
 |---:|---|---|---|---|
 | F1 | High | The internal LLM prompt drops speaker identity. Same `bina_reina` text produced identical prompts whether the focal speaker was Bina or Reina, making directional pair signals ambiguous. | **FIXED** via RT1 (`b301b16`) | `build_internal_eval_prompt()` gains kw-only `speaker_id` parameter; `Speaker: {speaker_id}` line injected above `Dyad:` in the user prompt template; `_llm_propose_internal_deltas()` threads `character_id` through to the prompt builder. Two key regression tests pin the post-fix contract: `test_same_dyad_different_speaker_yields_different_prompts` (prompt-shape level) and `test_same_dyad_distinct_focal_speakers_yield_distinct_prompts` (integration-style with recording `StubBDOne` responder — replicates the exact Codex red-team probe). |
 | F2 | High | The canonical adelia×alicia remote-turn path described in the hand-authored pre-execution notes is unreachable in the shipped Phase 9 surface. | **FIXED** via RT2 (`2906ed3`) — Project Owner choice = Hybrid (canonical prose preserved, scope narrowed) | Canonical `Alicia-orbital note` blocks in §Pre-execution preserved verbatim per CLAUDE.md §19 quality directive. New R1-F2 closure callout immediately above the three Alicia-orbital pair sections clarifies the active-only runtime behavior. AC-9.11 row in Step 1 acceptance criteria gains an inline parenthetical. New "Not in scope (deferred to a future phase)" section in the Closing Block carries a future-phase implementation sketch (thread `communication_mode` from `PipelineResult.scene_state` through scheduler → evaluator; relax SQL gate for orbital dyads on remote turns). |
-| F3 | Medium | `PHASE_9.md` Step 1 inconsistencies: status `NOT STARTED` despite substantive plan body; scheduler-shape language ("one create_task per active dyad") contradicted Step 2 reality ("single task that fans out internally"); IMPLEMENTATION_PLAN overclaim. | **FIXED** via RT3 (this commit) | Step 1 status flipped to `[STATUS: COMPLETE]` with R1-F3 closure parenthetical. Placeholder line "Claude Code fills in the rest of this section" removed and replaced with real Estimated commits + Open questions subsections. Pending Step 1 handshake replaced with a real handshake referencing log row 3. Scheduler-shape language reconciled: now says "single `asyncio.create_task` for the focal character; the evaluator internally retrieves the focal character's active inter-woman dyads … and fans out one LLM call per active dyad". Build prompt narrative updated to mention the new `speaker_id` kw-only param. IMPLEMENTATION_PLAN_v7.1.md §3 Phase 9 bullet flipped to "Step 4 Round 1 Remediation COMPLETE 2026-04-15". CLAUDE.md §19 Open ship gate flipped from "Step 2 Execute COMPLETE" to "Step 4 Round 1 Remediation COMPLETE; handshake to Codex for Round 2 re-audit". CHANGELOG.md gets new top section. ARCHITECTURE.md version bumped 0.9.0 → 0.9.1. |
+| F3 | Medium | `PHASE_9.md` Step 1 inconsistencies: status `NOT STARTED` despite substantive plan body; scheduler-shape language ("one create_task per active dyad") contradicted Step 2 reality ("single task that fans out internally"); IMPLEMENTATION_PLAN overclaim. | **FIXED** via RT3 (`11a8af6`) | Step 1 status flipped to `[STATUS: COMPLETE]` with R1-F3 closure parenthetical. Placeholder line "Claude Code fills in the rest of this section" removed and replaced with real Estimated commits + Open questions subsections. Pending Step 1 handshake replaced with a real handshake referencing log row 3. Scheduler-shape language reconciled: now says "single `asyncio.create_task` for the focal character; the evaluator internally retrieves the focal character's active inter-woman dyads … and fans out one LLM call per active dyad". Build prompt narrative updated to mention the new `speaker_id` kw-only param. IMPLEMENTATION_PLAN_v7.1.md §3 Phase 9 bullet flipped to "Step 4 Round 1 Remediation COMPLETE 2026-04-15". CLAUDE.md §19 Open ship gate flipped from "Step 2 Execute COMPLETE" to "Step 4 Round 1 Remediation COMPLETE; handshake to Codex for Round 2 re-audit". CHANGELOG.md gets new top section. ARCHITECTURE.md version bumped 0.9.0 → 0.9.1. |
 
 ### Phase 8 R1-F4 lesson reapplied
 
@@ -414,39 +417,160 @@ None. All three commits landed as scoped in the approved playbook (`C:\Users\Why
 
 None outstanding. F1 closure ships substantive code change with the exact Codex-described red-team replicated as a regression test. F2 closure is the explicit Project Owner choice (Hybrid) — canonical prose preserved, scope narrowed, future-phase carry-forward documented. F3 closure repairs the canonical phase record so it is now an internally-consistent artifact.
 
-<!-- HANDSHAKE: Claude Code → Codex | Round 1 remediation complete; F1 substantive code fix (b301b16) + F2 doc-narrow (2906ed3) + F3 governance + Step 4 record (this commit). Test suite 1113 → 1118 (residue test failure pre-existing, out of Phase 9 R1 scope). Ready for Round 2 re-audit. -->
+<!-- HANDSHAKE: Claude Code → Codex | Round 1 remediation complete; F1 substantive code fix (b301b16) + F2 doc-narrow (2906ed3) + F3 governance + Step 4 record (11a8af6). Test suite 1113 → 1119. Ready for Round 2 re-audit. -->
 
 ---
 
 ## Step 3': Audit (Codex) — Round 2 (only if Path B)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE — gate PASS WITH MINOR FIXES]**
 
-<!-- HANDSHAKE: Codex → Claude Code | Audit Round 2 complete [PENDING, conditional] -->
+**Owner:** Codex
+**Invocation note:** Round 2 re-audit of the Phase 9 remediation chain `b301b16` + `2906ed3` + `11a8af6` against the Round 1 findings, the updated canonical phase record, and the downstream governance surfaces Claude Code claimed to sync in RT3.
+
+### Audit content
+
+**Scope:** Re-reviewed `Docs/_phases/PHASE_9.md`, `Docs/IMPLEMENTATION_PLAN_v7.1.md`, `Docs/ARCHITECTURE.md`, `CLAUDE.md`, `Docs/CHANGELOG.md`, `src/starry_lyfe/api/orchestration/internal_relationship_prompts.py`, `internal_relationship.py`, `tests/unit/api/test_internal_relationship_prompts.py`, and `test_internal_relationship_evaluator.py`.
+
+**Verification context:** Independent verification on the remediated Phase 9 state:
+
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/api/test_internal_relationship_prompts.py tests/unit/api/test_internal_relationship_evaluator.py tests/unit/api/test_post_turn.py -q` -> `68 passed`
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/api -q` -> `205 passed`
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_residue_grep.py -q` -> `2 passed`
+- `.\.venv\Scripts\python.exe -m pytest -q` -> `1119 passed`
+- `.\.venv\Scripts\ruff.exe check src tests` -> clean
+- `.\.venv\Scripts\python.exe -m mypy --strict src` -> clean
+
+**Executive assessment:** The substantive remediation is real. F1 is closed in code: the prompt now carries focal speaker identity all the way to the LLM surface, and the exact Round 1 red-team probe now produces distinct prompts for Bina vs Reina. F2 is also closed on the chosen scope path: the runtime remains active-only for Alicia-orbital dyads, but the canonical record now explicitly marks the remote-turn behavior as deferred rather than pretending the shipped surface can do it.
+
+What remains is documentation drift introduced by the remediation sweep itself. The shared phase record still has a duplicate Round 1 handshake row, several Phase 9 docs still report the old `1118` baseline and a residue-grep failure that no longer reproduces, and placeholder commit references (`this commit`, `<this commit>`, `[this governance sweep commit]`) remain in the canonical record and changelog. These are doc-only issues, so the gate moves from FAIL to **PASS WITH MINOR FIXES**.
+
+**Findings (numbered, severity-tagged):**
+
+| # | Severity | Finding | Evidence | Recommended fix |
+|---:|---|---|---|---|
+| 1 | Low | The canonical Phase 9 handshake log is still internally inconsistent. RT3 claimed the governance repair was complete, but the log now contains two different row-5 Codex audit entries, leaving the shared phase record out of sequence and duplicative. | [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:30), [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:33) | Remove the duplicate row and keep a single Round 1 Codex handshake entry so the phase log is a truthful chronological record. |
+| 2 | Low | The remediation verification story is stale across the canonical Phase 9 record and downstream sync docs. They still report `1118 passed`, `+5` tests, and a pre-existing residue-grep failure, but the live repo now verifies at `1119 passed`, `tests/unit/test_residue_grep.py` is green, and the RT1 test diff adds 6 tests (4 in `TestF1SpeakerIdentity`, 2 in `TestF1SpeakerThreading`). | [test_internal_relationship_prompts.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/tests/unit/api/test_internal_relationship_prompts.py:50), [test_internal_relationship_evaluator.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/tests/unit/api/test_internal_relationship_evaluator.py:436), [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:391), [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:394), [IMPLEMENTATION_PLAN_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/IMPLEMENTATION_PLAN_v7.1.md:40), [ARCHITECTURE.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/ARCHITECTURE.md:23), [CLAUDE.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/CLAUDE.md:383), [CHANGELOG.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/CHANGELOG.md:19) | Refresh the Phase 9 remediation baseline and downstream summaries to the actually verified `1119 passed` / residue-clean state, and correct the RT1 test delta from `+5` to `+6`. |
+| 3 | Low | Commit-traceability placeholders remain in Phase 9 governance surfaces. The shared phase record and changelog still use `this commit`, `<this commit>`, and `[this governance sweep commit]` in places where the real hash `11a8af6` is now known. | [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:8), [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:29), [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:251), [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:386), [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:417), [CHANGELOG.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/CHANGELOG.md:17) | Replace placeholder commit labels with the landed hash `11a8af6` anywhere the remediation/governance sweep is now being cited as evidence. |
+
+**Runtime probe summary:**
+
+- Prompt-surface probe: `build_internal_eval_prompt(..., speaker_id='bina')` now emits `Speaker: bina` above `Dyad:`, and the same dyad/text produces a different prompt when `speaker_id='reina'`.
+- Evaluator-level probe: capturing `StubBDOne` prompts from `evaluate_and_update_internal(... character_id='bina' ...)` vs `character_id='reina'` now yields two distinct user prompts; the Round 1 F1 failure no longer reproduces.
+- Dormant Alicia probe: inactive adelia/alicia still yields `0` updates on a remote-style text payload, which now matches the explicitly deferred scope recorded in the Phase 9 docs.
+- Verification probe: `tests/unit/test_residue_grep.py` passed (`2 passed`), so the remediation record’s “pre-existing residue failure” note is no longer true on the current working tree.
+
+**Drift against specification:**
+
+- Round 1 F1 is genuinely closed in code and tests.
+- Round 1 F2 is closed on the explicitly chosen governance path: the runtime remains active-only, and the canonical prose is now honestly marked as future-phase scope.
+- Round 1 F3’s core Step 1 inconsistency is closed, but the remediation sweep left behind new low-severity governance drift in the handshake log and downstream sync surfaces.
+
+**Verified resolved:**
+
+- F1 closed: the prompt builder now takes kw-only `speaker_id`, emits a `Speaker:` line, and the exact Codex red-team is pinned by [test_internal_relationship_prompts.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/tests/unit/api/test_internal_relationship_prompts.py:66) and [test_internal_relationship_evaluator.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/tests/unit/api/test_internal_relationship_evaluator.py:470).
+- F2 closed: the Phase 9 record now explicitly defers communication-mode-aware dormant Alicia-orbital updates instead of overclaiming that the shipped runtime supports them.
+- Parser/schema/prompt hardening from the original Phase 9 implementation still holds under re-audit: fail-closed non-object JSON handling, boolean rejection, and delimiter escaping all remained intact.
+
+**Adversarial scenarios constructed:**
+
+1. Same dyad, same text, different focal speaker (`bina_reina`, Bina vs Reina).
+Result: prompts now differ and carry the correct `Speaker:` line.
+2. Dormant adelia/alicia remote-style turn text.
+Result: still no update record, now matching the explicitly deferred scope.
+3. Prompt-injection payload containing `</response_text>`.
+Result: escaped correctly; wrapper remained intact.
+4. Residue-grep verification path.
+Result: `tests/unit/test_residue_grep.py` passed; the claimed pre-existing failure did not reproduce.
+
+**Recommended remediation order:**
+
+1. Fix the handshake-log duplication in `PHASE_9.md`.
+2. Refresh the Phase 9 test baseline / residue narrative to the actually verified `1119 passed` state across `PHASE_9.md`, `IMPLEMENTATION_PLAN_v7.1.md`, `ARCHITECTURE.md`, `CLAUDE.md`, and `CHANGELOG.md`.
+3. Replace remaining Phase 9 placeholder commit references with `11a8af6`.
+
+**Gate recommendation:** **PASS WITH MINOR FIXES**
+
+<!-- HANDSHAKE: Codex → Claude Code | Audit Round 2 complete on the remediation chain `b301b16` + `2906ed3` + `11a8af6`. Gate PASS WITH MINOR FIXES. All substantive/runtime findings are closed; remaining issues are low-severity Phase 9 doc-traceability drift only. -->
 
 ---
 
 ## Step 4': Remediate (Claude Code) — Round 2 (only if Round 2 audit fires)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: SKIPPED — no Claude Code Round 2 remediation pass occurred; the Round 2 low-severity findings were carried into Round 3 and later closed via Project Owner-authorized AGENTS.md Path C direct Codex doc-only remediation]**
 
-<!-- HANDSHAKE: Claude Code → {Codex / Claude AI} | Remediation Round 2 complete [PENDING, conditional] -->
+<!-- HANDSHAKE: SKIPPED | No Claude Code Round 2 remediation pass occurred. The Round 2 low-severity findings were closed in Step 3'' under Project Owner-authorized AGENTS.md Path C direct Codex doc-only remediation on 2026-04-15. -->
 
 ---
 
 ## Step 3'': Audit (Codex) — Round 3 (final before escalation)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE — gate PASS]**
 
-<!-- HANDSHAKE: Codex → Claude Code | Audit Round 3 complete [PENDING, conditional] -->
+**Owner:** Codex
+**Invocation note:** Round 3 re-audit of the current post-Round-2 Phase 9 state. The Project Owner explicitly authorized AGENTS.md Path C direct Codex doc-only remediation for the 3 low-severity documentation findings in this pass.
+
+### Audit content
+
+**Scope:** Re-reviewed `Docs/_phases/PHASE_9.md`, `Docs/CHANGELOG.md`, `Docs/ARCHITECTURE.md`, `Docs/IMPLEMENTATION_PLAN_v7.1.md`, `CLAUDE.md`, `src/starry_lyfe/api/orchestration/internal_relationship_prompts.py`, `src/starry_lyfe/api/orchestration/internal_relationship.py`, `tests/unit/api/test_internal_relationship_prompts.py`, `tests/unit/api/test_internal_relationship_evaluator.py`, and `tests/unit/test_residue_grep.py`.
+
+**Verification context:** Verification after the direct doc-only remediation:
+
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/api/test_internal_relationship_prompts.py tests/unit/api/test_internal_relationship_evaluator.py tests/unit/api/test_post_turn.py -q` -> `68 passed`
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_residue_grep.py -q` -> `2 passed`
+- `.\.venv\Scripts\python.exe -m pytest -q` -> `1119 passed`
+- `.\.venv\Scripts\ruff.exe check src tests` -> clean
+- `.\.venv\Scripts\python.exe -m mypy --strict src` -> clean
+
+**Executive assessment:** No new functional or architectural issue surfaced in Round 3. The remaining items from Round 2 were purely documentation-traceability drift, and they are directly remediated in this pass under the Project Owner-authorized AGENTS.md Path C exception: the duplicate Row 5 handshake is removed, all Phase 9 verification/status surfaces now reflect the live `1119 passed` / `+6` RT1 regression delta / residue-clean state, and the placeholder governance hashes are replaced with `11a8af6`. With those doc-only issues closed, the Phase 9 gate is **PASS** and the phase is ready for Claude AI Step 5 QA.
+
+**Findings (historical, directly remediated under Path C):**
+
+| # | Severity | Finding | Historical evidence | Disposition |
+|---:|---|---|---|---|
+| 1 | Low | Duplicate Round 1 Row 5 Codex handshake entry in the canonical Phase 9 record. | Step 3' Round 2 finding #1. | Directly remediated by Codex under Project Owner-authorized Path C: the duplicate Row 5 entry was removed from the handshake log, preserving a single truthful Round 1 Codex audit row. |
+| 2 | Low | Stale verification/count narrative (`1118 passed`, `+5`, residue-failure note) across the Phase 9 remediation surfaces. | Step 3' Round 2 finding #2. | Directly remediated by Codex under Project Owner-authorized Path C: `PHASE_9.md`, `Docs/CHANGELOG.md`, `CLAUDE.md`, `Docs/IMPLEMENTATION_PLAN_v7.1.md`, and `Docs/ARCHITECTURE.md` now all reflect `1119 passed`, `+6` RT1 regression tests, and no residue-grep failure claim. |
+| 3 | Low | Placeholder commit references (`this commit`, `<this commit>`, `[this governance sweep commit]`) remained in the Phase 9 governance surfaces after the landed hashes were known. | Step 3' Round 2 finding #3. | Directly remediated by Codex under Project Owner-authorized Path C: the placeholders are replaced with `4b50132` for the Step 2 governance commit and `11a8af6` for the RT3 governance sweep. |
+
+**Runtime probe summary:**
+
+- Functional behavior remains unchanged and green: the F1 speaker-identity fix is still live, and the dormant Alicia-orbital path remains explicitly deferred rather than overclaimed.
+- `tests/unit/test_residue_grep.py` remains green (`2 passed`), matching the corrected doc narrative.
+- No production code or test files changed in this Path C remediation pass.
+
+**Drift against specification:**
+
+- None remains after the direct doc-only remediation. The substantive Round 1 closures still hold, and the Round 2 documentation drifts are now corrected.
+
+**Verified resolved:**
+
+- Round 1 F1 remains closed in code and tests.
+- Round 1 F2 remains closed on the chosen deferred-scope governance path.
+- Round 1 F3 remains closed in the shared phase record and downstream governance sync surfaces.
+- Round 3 low-severity doc drifts are now closed directly under the Project Owner-authorized AGENTS.md Path C exception.
+
+**Adversarial scenarios constructed:**
+
+1. No-change remediation audit.
+Result: no new Phase 9 code commit was required; the remaining issues were doc-only and are now corrected directly in the canonical/doc surfaces.
+2. Residue-grep verification re-run.
+Result: `tests/unit/test_residue_grep.py` passed (`2 passed`), matching the corrected documentation.
+3. Downstream doc claim sweep.
+Result: stale `1118` / `+5` / placeholder-hash claims are removed from the Phase 9 governance surfaces.
+
+**Gate recommendation:** **PASS**
+
+**Path C remediation note:** The Project Owner explicitly authorized Codex to apply the three Round 3 low-severity documentation fixes directly under the AGENTS.md Path C exception. No production code or tests changed in this direct-remediation pass.
+
+<!-- HANDSHAKE: Codex → Claude AI | Audit Round 3 closed. Project Owner authorized AGENTS.md Path C direct Codex doc-only remediation for the three low-severity findings; fixes applied. Gate PASS. Ready for Step 5 QA. -->
 
 ---
 
 ## Step 4'': Remediate (Claude Code) — Round 3
 
-**[STATUS: NOT STARTED]**
+**[STATUS: SKIPPED — Project Owner authorized AGENTS.md Path C direct Codex doc-only remediation; no Claude Code Round 3 remediation required]**
 
-<!-- HANDSHAKE: Claude Code → {Project Owner if not converged / Claude AI if converged} | Remediation Round 3 complete [PENDING, conditional] -->
+<!-- HANDSHAKE: SKIPPED | Project Owner authorized AGENTS.md Path C direct Codex doc-only remediation on 2026-04-15; no Claude Code Round 3 remediation pass occurred. -->
 
 ---
 

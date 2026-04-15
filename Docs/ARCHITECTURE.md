@@ -1,6 +1,6 @@
 # Starry-Lyfe v7.1 Architecture
 
-**Version:** 0.9.1
+**Version:** 0.9.2
 **Date:** 2026-04-15
 **Status:** Concise architecture and module index. Canonical phase-completion status lives in `Docs/IMPLEMENTATION_PLAN_v7.1.md`.
 
@@ -18,9 +18,9 @@ Starry-Lyfe is a character AI backend for four v7.1 persona kernels (Adelia Raye
 - Phase 6: Dreams Engine (nightly batch life-simulation) — `src/starry_lyfe/dreams/`
 - Phase 7: HTTP service on port 8001 — `src/starry_lyfe/api/`
 - Phase 8: LLM Relationship Evaluator (Whyze-dyads) — **SEALED 2026-04-15** (Step 5 QA APPROVED FOR SHIP, 15/15 ACs PASS, all 6 Codex findings closed)
-- Phase 9: LLM Relationship Evaluator (DyadStateInternal — inter-woman dyads) — **Step 4 Round 1 Remediation complete** (2026-04-15; closes 3 Codex Round 1 findings: F1 speaker identity threaded into prompt + 5 regression tests; F2 Alicia-orbital remote-turn note narrowed to deferred future-phase scope per Project Owner Hybrid choice; F3 PHASE_9.md governance repair; Step 4 R1 commit chain `b301b16` + `2906ed3` + R1-F3 governance; handshake to Codex for Round 2 re-audit)
+- Phase 9: LLM Relationship Evaluator (DyadStateInternal — inter-woman dyads) — **Step 3'' Audit Round 3 complete / Path C direct Codex doc-only remediation applied** (2026-04-15; all 3 Codex Round 1 findings closed: F1 speaker identity threaded into prompt + 6 regression tests, F2 Alicia-orbital remote-turn note narrowed to deferred future-phase scope per Project Owner Hybrid choice, F3 PHASE_9.md governance repair via `11a8af6`; 3 Round 3 low doc-traceability drifts closed directly by Codex under Project Owner authorization; gate PASS; ready for Step 5 QA)
 
-**Test baseline:** 1118 passed, 0 failed (1013 unit + 60 integration + 45 fidelity). ruff clean. mypy `--strict` clean across 103 source files.
+**Test baseline:** 1119 passed, 0 failed (1014 unit + 60 integration + 45 fidelity). ruff clean. mypy `--strict` clean across 103 source files.
 
 ## Module Registry
 
