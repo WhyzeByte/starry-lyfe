@@ -4,8 +4,8 @@
 **Phase identifier:** `9`
 **Depends on:** Phase 8 SEALED 2026-04-15 (LLM evaluator pattern, `relationship_prompts.py` architecture, `BDOne` wiring, `_NumericValue`/`_reject_bool` Pydantic primitives)
 **Blocks:** None identified
-**Status:** STEP 2 EXECUTE COMPLETE — handshake to Codex for Round 1 audit
-**Last touched:** 2026-04-15 by Claude Code (Step 2 Execute chain committed: a3148f5 / 3449335 / governance sweep [this commit]; all 15 ACs MET pre-audit)
+**Status:** STEP 3 AUDIT ROUND 1 COMPLETE — gate FAIL
+**Last touched:** 2026-04-15 by Codex (Round 1 audit complete; 2 High findings + 1 Medium governance drift; ready for Claude Code remediation)
 
 ---
 
@@ -27,6 +27,7 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 2 | 2026-04-15 | Claude AI | Claude Code | Phase 9 file created with hand-authored per-pair register notes; ready for Step 1 Plan |
 | 3 | 2026-04-15 | Project Owner | Claude Code | Plan approved via ExitPlanMode; proceed to Step 2 Execute |
 | 4 | 2026-04-15 | Claude Code | Codex | Step 2 Execute COMPLETE. Three-commit chain on main: `a3148f5` + `3449335` + [this governance sweep commit]. Test suite 1058 → 1113 (+55). 15/15 ACs MET pre-audit. Phase 8 R1-F1/R1-F2/R1-F3 lessons applied proactively. Ready for Round 1 audit. |
+| 5 | 2026-04-15 | Codex | Claude Code | Audit Round 1 complete on the committed Phase 9 chain; gate FAIL. High: the LLM prompt drops speaker identity, and the canonical adelia×alicia remote-turn path is impossible under the shipped inactive-row gate. Medium: the shared phase record still shows Step 1 as not started and internally contradicts the shipped scheduler shape. |
 
 ---
 
@@ -89,6 +90,14 @@ The two loud halves of the house on different fuels. Adelia throws the impossibl
 **conflict+**: Adelia's scope lands and Reina's Ti cuts it before Adelia is ready to hear the cut; the sharpness is pointed at the person rather than the idea; neither one yielding past where they can yield honestly.
 **conflict−**: The argument was about the idea, not the person, and both of them know it; one of them calls it and the other concedes the specific load-bearing point.
 **repair+**: The argument ends with the idea stronger and both of them knowing it; the banter returns before the end of the exchange; one of them names what the other got right.
+
+---
+
+> **R1-F2 closure (2026-04-15) — scope clarification for the three Alicia-orbital sections that follow.**
+>
+> Each Alicia-orbital pair section below carries an **Alicia-orbital note** describing how the dyad should respond on remote turns (letter / phone / video) when `is_currently_active=false`. **Phase 9 ships the active-only behavior** described in AC-9.11: the SQL gate `is_currently_active.is_(True)` filters dormant orbital dyads out before any LLM call, so the remote-turn paths in the canonical prose below are **not yet reachable in the runtime**. The canonical prose is preserved verbatim per CLAUDE.md §19 quality directive (canonical content is never trimmed) and remains load-bearing for a future phase.
+>
+> **Deferred to future phase:** thread `communication_mode` from `PipelineResult.scene_state` through `schedule_post_turn_tasks` → `evaluate_and_update_internal`; relax the SQL gate for orbital dyads on remote turns; surface `intimacy+ (letter/phone/video)` register cues to the LLM. See the Closing Block "Not in scope (deferred)" bullet for the carry-forward record.
 
 ---
 
@@ -188,7 +197,7 @@ Apply the Phase 8 LLM evaluator pattern to the 6 inter-woman dyads tracked in `D
 | AC-9.8 | System prompt in `internal_relationship_prompts.py::INTERNAL_RELATIONSHIP_EVAL_SYSTEM` carries the hand-authored per-pair register notes from this file's pre-execution section, verbatim. Claude Code must not improvise, summarize, or paraphrase these notes. |
 | AC-9.9 | `parse_internal_eval_response()` returns `None` on malformed JSON, non-object JSON, missing fields, non-numeric/boolean fields. Parser fail-closed on all invalid shapes (R1-F1 lesson from Phase 8 applied proactively). |
 | AC-9.10 | `repair_history` clamps negative outputs to 0.0. `conflict` dimension has no positive-only constraint. |
-| AC-9.11 | Alicia-orbital gate: `evaluate_and_update_internal()` skips write (returns no update record) for any dyad where `is_currently_active=False`. |
+| AC-9.11 | Alicia-orbital gate: `evaluate_and_update_internal()` skips write (returns no update record) for any dyad where `is_currently_active=False`. *(R1-F2 closure 2026-04-15: active-only behavior; remote-turn handling for dormant Alicia-orbital dyads — described aspirationally in the canonical Pre-execution `Alicia-orbital note` blocks — is explicitly deferred to a future phase. The runtime gate is unconditional in Phase 9.)* |
 | AC-9.12 | Test baseline ≥ 1075 passed (1058 + ≥17 new). ruff + mypy --strict clean. |
 | AC-9.13 | No new Alembic migration required (`DyadStateInternal` schema unchanged). |
 | AC-9.14 | `OPERATOR_GUIDE.md §14` documents the 1 new env var + cost envelope (one extra BDOne round-trip per active inter-woman dyad per turn — up to 3 for a resident-continuous scene, 0-3 for scenes including Alicia). |
@@ -269,11 +278,76 @@ None outstanding. Phase 8 R1-F1 / R1-F2 / R1-F3 lessons were applied proactively
 
 ## Step 3: Audit (Codex) — Round 1
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE — gate FAIL]**
 
-_Codex fills in this section._
+**Owner:** Codex
+**Invocation note:** Round 1 audit of the committed Phase 9 execution chain `a3148f5` + `3449335` + `4b50132` against the shared phase record, the shipped implementation, and the Phase 8 hardening lessons Claude Code claimed were carried forward proactively.
 
-<!-- HANDSHAKE: Codex → Claude Code | Audit Round 1 complete [PENDING] -->
+### Audit content
+
+**Scope:** Reviewed `Docs/_phases/PHASE_9.md`, `Docs/IMPLEMENTATION_PLAN_v7.1.md`, `Docs/ARCHITECTURE.md`, `CLAUDE.md`, `Docs/OPERATOR_GUIDE.md`, `.env.example`, `src/starry_lyfe/api/orchestration/internal_relationship_prompts.py`, `internal_relationship.py`, `post_turn.py`, `pipeline.py`, `chat.py`, `memory_extraction.py`, `config.py`, `__init__.py`, `src/starry_lyfe/db/models/dyad_state_internal.py`, `tests/unit/api/test_internal_relationship_prompts.py`, `test_internal_relationship_evaluator.py`, and `test_post_turn.py`.
+
+**Verification context:** Independent verification on the committed Phase 9 state:
+
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/api/test_internal_relationship_prompts.py tests/unit/api/test_internal_relationship_evaluator.py tests/unit/api/test_post_turn.py -q` -> `62 passed`
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/api -q` -> `199 passed`
+- `.\.venv\Scripts\python.exe -m pytest -q` -> `1113 passed`
+- `.\.venv\Scripts\ruff.exe check src tests` -> clean
+- `.\.venv\Scripts\python.exe -m mypy --strict src` -> clean
+
+**Executive assessment:** Phase 9 successfully carries forward most of the Phase 8 parser/prompt hardening: the new parser fails closed on non-object JSON and booleans, the prompt surface escapes delimiter injection, the 5-dimension schema is live, the SQL-side active-row gate exists, and the full suite remains green at `1113 passed`.
+
+Two architectural gaps still block a PASS. First, the internal LLM prompt never tells the model which woman actually spoke, even though the evaluator has `character_id` and the phase plan explicitly says the user turn identifies which woman spoke. This makes the live prompt ambiguous for directional, actor-specific pair signals across all six dyads. Second, the canonical adelia×alicia remote-turn path described in the hand-authored pre-execution notes is impossible in the shipped design: dormant Alicia dyads are filtered out before evaluation, and no communication-mode signal reaches the post-turn evaluator. The shared phase record also still misstates its own Step 1 state and scheduler shape. Gate is therefore **FAIL**.
+
+**Findings (numbered, severity-tagged):**
+
+| # | Severity | Finding | Evidence | Recommended fix |
+|---:|---|---|---|---|
+| 1 | High | The internal LLM prompt drops speaker identity. `evaluate_and_update_internal()` receives `character_id`, but `_llm_propose_internal_deltas()` builds the user prompt with only `dyad_key`, `member_a`, `member_b`, and `response_text`. The plan text at `PHASE_9.md` says the user turn identifies which woman spoke, but the live prompt does not. In a runtime probe, the same `bina_reina` text produced identical prompts whether `character_id='bina'` or `character_id='reina'`. That makes many register cues directionally ambiguous in practice (for example who left the hall light on, who called the other “the witness,” who delivered the structural veto). | [internal_relationship.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/api/orchestration/internal_relationship.py:272), [internal_relationship.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/api/orchestration/internal_relationship.py:336), [internal_relationship_prompts.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/api/orchestration/internal_relationship_prompts.py:387), [internal_relationship_prompts.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/api/orchestration/internal_relationship_prompts.py:422), [internal_relationship_prompts.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/api/orchestration/internal_relationship_prompts.py:424), [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:200) | Thread the focal speaker through the live prompt surface. The minimal repair is to add a `speaker_id` argument to `build_internal_eval_prompt()` and include an explicit `Speaker:` line in the user prompt, then add a regression proving prompts differ for the same dyad/text when the speaker differs. |
+| 2 | High | The canonical adelia×alicia remote-turn path is impossible in the shipped Phase 9 surface. The hand-authored pre-execution note says that when Alicia is away and `is_currently_active=false`, evaluator outputs for this dyad should still fire on communication-mode turns (`letter`, `phone`, `video`). The shipped evaluator cannot do that: `evaluate_and_update_internal()` accepts no communication-mode input, the query hard-filters `is_currently_active.is_(True)`, and the post-turn scheduler passes only `full_response_text`. A runtime probe with letter/phone-style text while the dyad was dormant produced zero updates. | [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:99), [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:158), [internal_relationship.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/api/orchestration/internal_relationship.py:272), [internal_relationship.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/api/orchestration/internal_relationship.py:316), [post_turn.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/api/orchestration/post_turn.py:49), [post_turn.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/api/orchestration/post_turn.py:110), [chat.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/api/endpoints/chat.py:164) | Resolve the source-of-truth conflict explicitly. Either implement the remote exception for adelia×alicia by threading communication mode into post-turn evaluation and relaxing the dormant-row gate for that dyad on remote turns, or revise the canonical pre-execution note / AC language so the phase record no longer describes a path the runtime can never take. |
+| 3 | Medium | The canonical Phase 9 workflow record is internally inconsistent before audit. Step 1 contains a substantive plan body, but it is still marked `NOT STARTED`, still says Claude Code will fill estimated commits/open questions later, and still ends with the pending Step 1 handshake. The same Step 1 section also says `post_turn.py` should fire one `evaluate_and_update_internal()` create_task per active dyad, while Step 2 later says the shipped shape is a single task that fans out internally. Step 2 / the implementation plan then overclaim that `PHASE_9.md` already carries a complete Step 1 plan. | [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:144), [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:146), [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:202), [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:204), [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:206), [PHASE_9.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_9.md:259), [IMPLEMENTATION_PLAN_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/IMPLEMENTATION_PLAN_v7.1.md:40) | Repair the shared phase record before ship. Mark Step 1 complete with the real approval/handshake state, fill the deferred plan fields, and reconcile the Step 1 scheduler wording with the actual shipped single-task fan-out design. |
+
+**Runtime probe summary:**
+
+- Prompt-surface probe: `build_internal_eval_prompt('bina_reina', 'bina', 'reina', 'I left the hall light on for her when she got home.')` yields only `Dyad:` + `Members:` + `response_text`; there is no `Speaker:` field.
+- Speaker-identity red team: running `evaluate_and_update_internal(... character_id='bina' ...)` and `evaluate_and_update_internal(... character_id='reina' ...)` against the same `bina_reina` row and same text produced identical `user_prompt` strings captured by `StubBDOne`.
+- Dormant Alicia remote probe: a letter/phone-style adelia×alicia turn while the dyad was inactive produced `0` update records because the evaluator sees only rows selected through `is_currently_active.is_(True)`.
+- Hardening probes passed: delimiter-injection payloads remain escaped, non-object JSON returns `None`, and the parser still rejects boolean numerics through the shared `_NumericValue` validator.
+
+**Drift against specification:**
+
+- AC-9.5, AC-9.6, AC-9.7, AC-9.9, AC-9.10, AC-9.12, AC-9.14, and AC-9.15 are materially implemented as described.
+- AC-9.8 / Step 1’s prompt-shape explanation drift from reality: the plan text says the user turn identifies which woman spoke, but the live prompt does not.
+- The Phase 9 file contains an unresolved internal conflict between the hand-authored adelia×alicia remote-turn note and AC-9.11’s blanket inactive-row gate.
+- Governance drift remains in the canonical Step 1 record and the scheduler-shape narrative.
+
+**Verified resolved:**
+
+- Phase 8 R1-F1 lesson carried forward: `parse_internal_eval_response()` fails closed on malformed JSON, non-object JSON, missing fields, and boolean numerics via `isinstance(raw, dict)` + shared `_NumericValue`.
+- Phase 8 R1-F2 lesson carried forward: `InternalRelationshipEvalResponse.model_validate()` is the live validator, not dead schema code.
+- Phase 8 R1-F3 lesson carried forward: `build_internal_eval_prompt()` escapes interpolated `response_text`, so injected `</response_text>` content stays trapped inside the prompt frame.
+- The new env var, cost envelope, scheduler task count, and full-suite baseline are documented consistently in `OPERATOR_GUIDE.md`, `CHANGELOG.md`, `ARCHITECTURE.md`, and `CLAUDE.md`.
+
+**Adversarial scenarios constructed:**
+
+1. Same dyad, same text, different focal speaker (`bina_reina`, Bina vs Reina).
+Result: prompts were identical; the LLM cannot tell who spoke.
+2. Dormant adelia×alicia remote-turn text mentioning a letter / phone-style signal.
+Result: no update record; the inactive-row SQL gate makes the documented remote path unreachable.
+3. Prompt-injection payload containing `</response_text>`.
+Result: escaped correctly; wrapper stayed intact.
+4. Non-object JSON / boolean numerics from the LLM.
+Result: parser returned `None`; fail-closed behavior held.
+
+**Recommended remediation order:**
+
+1. Fix the speaker-identity gap in the live prompt surface and add regression coverage proving prompts differ by focal speaker.
+2. Resolve the adelia×alicia remote-turn conflict one way or the other: either implement communication-mode-aware dormant handling or explicitly narrow the canonical note/spec to the shipped active-only behavior.
+3. Repair the Step 1 workflow record so `PHASE_9.md` is a truthful canonical artifact before QA.
+
+**Gate recommendation:** **FAIL**
+
+<!-- HANDSHAKE: Codex → Claude Code | Audit Round 1 complete on the committed Phase 9 chain. Gate FAIL. Remediate F1 speaker identity in the live prompt surface, F2 the unreachable adelia×alicia remote path / source-of-truth conflict, and F3 the Step 1 governance drift. -->
 
 ---
 
@@ -355,6 +429,15 @@ _Claude AI fills in this section._
 - Phase 8 pattern files: `src/starry_lyfe/api/orchestration/relationship_prompts.py`, `relationship.py`
 - Target schema: `src/starry_lyfe/db/models/dyad_state_internal.py`
 - Canon dyad source: `src/starry_lyfe/canon/dyads.yaml`
+
+---
+
+## Not in scope (deferred to a future phase)
+
+- **Communication-mode-aware dormant Alicia-orbital dyad updates.** The hand-authored canonical `Alicia-orbital note` blocks in §Pre-execution describe how the three orbital dyads should respond on remote turns (letter / phone / video) when `is_currently_active=false`. **R1-F2 closure 2026-04-15** confirmed this path is unreachable in Phase 9's runtime: the SQL gate `is_currently_active.is_(True)` filters dormant orbital dyads out before any LLM call, and no `communication_mode` signal is threaded through the chat → scheduler → evaluator path. The canonical prose stays verbatim per CLAUDE.md §19 quality directive (canonical content is never trimmed) and remains load-bearing for a future phase. **Future-phase implementation sketch:** thread `communication_mode` from `PipelineResult.scene_state` (already populated at chat time) → `schedule_post_turn_tasks(communication_mode=...)` → `evaluate_and_update_internal(communication_mode=...)`; relax the SQL gate to `is_currently_active=True OR (dyad_key IN ALICIA_ORBITAL_DYAD_KEYS AND communication_mode IN ('phone', 'letter', 'video'))`; add `intimacy+ (letter/phone/video)` cues to the LLM prompt for those branches; add 4–6 regression tests covering the dormant-orbital-with-remote-mode path.
+- **Per-speaker Crew evaluator fan-out.** Already deferred per the Phase 9 original scope: a Crew multi-speaker turn currently fires one evaluator call per focal character, not one per speaker. Future-phase candidate; out of Phase 9 scope.
+- **Changes to the ±0.03 cap.** Project axiom per CLAUDE.md §16. Untouched in Phase 9.
+- **Changes to `DyadStateInternal` schema.** AC-9.13 invariant. No Alembic migration in Phase 9.
 
 ---
 
