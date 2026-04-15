@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Shipped (Phase 9 Step 2 Execute — DyadStateInternal LLM Evaluator — 2026-04-15)
+
+Phase 9 Step 2 Execute complete. Extends the Phase 8 LLM evaluator pattern to the 6 inter-woman dyads tracked in `DyadStateInternal`. 15/15 ACs MET pre-audit. Three-commit chain on main; gate clean (ruff + mypy --strict + pytest); ready for Codex Round 1 audit.
+
+**What shipped (3 commits):**
+
+- **C1 (`a3148f5`): `feat(phase_9): internal_relationship_prompts + evaluator modules + Pydantic schema + parser`.** New `src/starry_lyfe/api/orchestration/internal_relationship_prompts.py` carries `INTERNAL_RELATIONSHIP_EVAL_SYSTEM` with all 6 hand-authored per-pair register sections (verbatim from `PHASE_9.md §Pre-execution` — adelia×bina anchor_dynamic, bina×reina shield_wall marriage, adelia×reina kinetic_vanguard, plus the 3 Alicia-orbital friendships). 5-field `InternalRelationshipEvalResponse` Pydantic schema (adds `conflict` dimension to Phase 8's 4) reusing `_NumericValue` + `_reject_bool` from `relationship_prompts.py`. `build_internal_eval_prompt(dyad_key, member_a, member_b, response_text)` with `html.escape` injection defense (Phase 8 R1-F3 lesson applied proactively). `parse_internal_eval_response` with `isinstance(raw, dict)` fail-closed guard (Phase 8 R1-F1 lesson applied proactively). New `src/starry_lyfe/api/orchestration/internal_relationship.py` with `InternalDyadDeltaProposal` + `InternalRelationshipUpdate` audit record + `_propose_internal_deltas` heuristic (extends Phase 8 banks with `_CONFLICT_POSITIVE`/`_CONFLICT_NEGATIVE`) + `_llm_propose_internal_deltas` + `evaluate_and_update_internal`. Reuses `_clamp_delta` + `_bound01` from `relationship.py` (zero duplication). `ApiSettings.internal_relationship_eval_llm: bool = True` added. `.env.example` documents the new env var. +35 prompts tests.
+- **C2 (`3449335`): `feat(phase_9): wire evaluate_and_update_internal into post_turn + evaluator tests`.** `post_turn.py::schedule_post_turn_tasks` adds a third `asyncio.create_task` for `evaluate_and_update_internal` after the Whyze-dyad evaluator. Existing `test_returns_two_running_tasks` updated to `test_returns_three_running_tasks` for the new task count. +20 evaluator tests covering: heuristic signal banks, single-active-dyad / multi-active-dyad / no-active-dyads paths, Alicia-orbital active-gate (predicate text assertion + dormant-empty-result + active-orbital-updates-normally), 5 LLM fallback branches (toggle off, malformed JSON, non-object JSON, circuit open, no llm_client), LLM-primary parse-and-apply path, ±0.03 clamp invariant.
+- **C3 (this commit): `docs(phase_9): Step 2 execution log + OPERATOR_GUIDE §14 + CHANGELOG + CLAUDE.md §19 + IMPLEMENTATION_PLAN §3 + ARCHITECTURE.md`.** `PHASE_9.md §Step 2 Execute` populated with commits table, test deltas (1058 → 1093 → 1113), 15/15 AC self-assessment, handshake to Codex for Round 1. `OPERATOR_GUIDE.md §14.2` adds new env var; §14.4.1 cost envelope updated with per-active-dyad fan-out math; §14.5 Step 12 row updated to describe the third fire-and-forget task. CLAUDE.md §19 + IMPLEMENTATION_PLAN_v7.1.md §3 + ARCHITECTURE.md flipped Phase 8 to SHIPPED, added Phase 9 Step 2 Execute COMPLETE row, test baseline 1058 → 1113. Folds in the previously-uncommitted Phase 8 SHIP markers (CLAUDE.md §19 + PHASE_8.md SEALED status + Step 5 QA verdict APPROVED FOR SHIP) that were left dangling after the Phase 8 Path C close.
+
+**Test baseline:** 1058 → **1113 passed, 0 failed**. 55 new tests (35 prompts + 20 evaluator). `ruff` + `mypy --strict` clean across 103 source files (101 → 103; +2 for the new `internal_relationship_prompts.py` + `internal_relationship.py`).
+
+**Phase 8 lessons applied proactively:**
+
+- **R1-F1 parser fail-closed** — `parse_internal_eval_response` guards on `isinstance(raw, dict)` before `raw.keys()`; `TestR1F1ParserFailClosed` parametrizes 8 non-object JSON shapes (`[]`, arrays, int, float, string, `null`, `true`, `false`) plus boolean-field rejection.
+- **R1-F2 Pydantic schema activation** — `InternalRelationshipEvalResponse.model_validate` is the live validator path from day one; `TestR1F2PydanticSchemaActive` (3 tests) proves it.
+- **R1-F3 prompt injection defense** — `html.escape(response_text, quote=False)` applied before interpolation; `TestR1F3InjectionDefenseCarriesForward` proves `</response_text>` payloads cannot escape the frame.
+
+**Cost envelope addition:** Up to 3 extra `BDOne.complete()` calls per turn for resident-continuous focal characters with Alicia home; up to 2 with Alicia away on operational travel; 0 for Alicia herself when her three orbital dyads are dormant. Set `STARRY_LYFE__API__INTERNAL_RELATIONSHIP_EVAL_LLM=false` to suppress.
+
+**Planning artifact:** `C:\Users\Whyze\.claude\plans\declarative-exploring-stearns.md` (Phase 9 Step 2 Execute playbook, approved 2026-04-15).
+
+### Shipped (Phase 8 SEALED — LLM Relationship Evaluator — 2026-04-15)
+
+Phase 8 Step 5 QA APPROVED FOR SHIP (handshake row 11 in `PHASE_8.md`); Step 6 ship decision recorded (handshake row 12). Status flipped from `STEP 3'' AUDIT COMPLETE` to `SEALED 2026-04-15`. 15/15 ACs PASS. All 6 Codex findings (R1-F1, R1-F2, R1-F3, R1-F4, R3-L1, R3-L2) closed across the 4-commit Path B remediation chain plus 1 Path C direct doc remediation pass. 953 unit / 1058 total tests, 0 failed. ruff + mypy --strict clean across 101 source files. No code changes in this entry — solely the SHIP marker that was previously left uncommitted in CLAUDE.md §19 and PHASE_8.md when work moved straight into Phase 9.
+
 ### Shipped (Phase 8 Step 4 Round 1 Remediation — 2026-04-15)
 
 Closes the four findings from Codex Step 3 Round 1 + Round 2 audits (`Docs/_phases/PHASE_8.md §3` + `§3'`). Path B (substantive design changes); Codex Round 3 re-audit is the next step.

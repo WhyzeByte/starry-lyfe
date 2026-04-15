@@ -1,6 +1,6 @@
 # Starry-Lyfe v7.1 Architecture
 
-**Version:** 0.8.0
+**Version:** 0.9.0
 **Date:** 2026-04-15
 **Status:** Concise architecture and module index. Canonical phase-completion status lives in `Docs/IMPLEMENTATION_PLAN_v7.1.md`.
 
@@ -17,9 +17,10 @@ Starry-Lyfe is a character AI backend for four v7.1 persona kernels (Adelia Raye
 - Phase 5: Scene Director — `src/starry_lyfe/scene/`
 - Phase 6: Dreams Engine (nightly batch life-simulation) — `src/starry_lyfe/dreams/`
 - Phase 7: HTTP service on port 8001 — `src/starry_lyfe/api/`
-- Phase 8: LLM Relationship Evaluator — **Step 3 Round 3 audit complete** (2026-04-15; Project Owner authorized AGENTS.md Path C direct Codex doc-only remediation for the final two Round 3 low-severity findings; gate PASS; ready for Step 5 QA)
+- Phase 8: LLM Relationship Evaluator (Whyze-dyads) — **SEALED 2026-04-15** (Step 5 QA APPROVED FOR SHIP, 15/15 ACs PASS, all 6 Codex findings closed)
+- Phase 9: LLM Relationship Evaluator (DyadStateInternal — inter-woman dyads) — **Step 2 Execute complete** (2026-04-15; three-commit chain on main: `a3148f5` + `3449335` + governance sweep; 15/15 ACs MET pre-audit; handshake to Codex for Round 1)
 
-**Test baseline:** 1058 passed, 0 failed (953 unit + 60 integration + 45 fidelity). ruff clean. mypy `--strict` clean.
+**Test baseline:** 1113 passed, 0 failed (1008 unit + 60 integration + 45 fidelity). ruff clean. mypy `--strict` clean across 103 source files.
 
 ## Module Registry
 
@@ -113,8 +114,10 @@ Starry-Lyfe is a character AI backend for four v7.1 persona kernels (Adelia Raye
 | `api/routing/msty.py` | `preprocess_msty_request()` — Crew roster + prior response extraction; `MstyPreprocessed` | -- |
 | `api/orchestration/pipeline.py` | `run_chat_pipeline()` — 12-step flow; `_run_crew_turn()` — multi-speaker SSE loop | -- |
 | `api/orchestration/post_turn.py` | `schedule_post_turn_tasks()` — fire-and-forget memory extraction + relationship update | -- |
-| `api/orchestration/relationship.py` | `evaluate_and_update()` — per-turn dyad delta (±0.03 cap); heuristic `_propose_deltas()` fallback | -- |
-| `api/orchestration/relationship_prompts.py` | `RELATIONSHIP_EVAL_SYSTEM` (hand-authored, per-character register notes); `build_eval_prompt()`; `parse_eval_response()`; `RelationshipEvalResponse` — Phase 8 authored by Claude AI 2026-04-15 | -- |
+| `api/orchestration/relationship.py` | `evaluate_and_update()` — per-turn Whyze-dyad delta (±0.03 cap); LLM-primary with heuristic `_propose_deltas()` fallback; `_clamp_delta` + `_bound01` shared with Phase 9 | -- |
+| `api/orchestration/relationship_prompts.py` | `RELATIONSHIP_EVAL_SYSTEM` (hand-authored, per-character register notes); `build_eval_prompt()`; `parse_eval_response()`; `RelationshipEvalResponse`; `_NumericValue` + `_reject_bool` Pydantic primitives shared with Phase 9 — Phase 8 authored by Claude AI 2026-04-15 | -- |
+| `api/orchestration/internal_relationship.py` | `evaluate_and_update_internal()` — per-turn inter-woman dyad delta (Phase 9, ±0.03 cap, 5 dimensions); LLM-primary with heuristic `_propose_internal_deltas()` fallback; Alicia-orbital active-gate at SQL boundary | -- |
+| `api/orchestration/internal_relationship_prompts.py` | `INTERNAL_RELATIONSHIP_EVAL_SYSTEM` (hand-authored, 6 per-pair register notes); `build_internal_eval_prompt()` with `html.escape` injection defense; `parse_internal_eval_response()` with `isinstance(raw, dict)` fail-closed guard; `InternalRelationshipEvalResponse` 5-field Pydantic schema; `CANONICAL_DYAD_KEYS` + `ALICIA_ORBITAL_DYAD_KEYS` frozensets — Phase 9 authored by Claude AI 2026-04-15 | -- |
 | `api/orchestration/memory_extraction.py` | `extract_episodic()` — post-turn episodic memory extraction | BD-1 |
 | `api/orchestration/session.py` | `upsert_session()` — `chat_sessions` table management | R5 |
 | `api/schemas/chat.py` | OpenAI-compatible request/response schemas | -- |
@@ -150,4 +153,4 @@ Seven memory tiers in PostgreSQL schema `starry_lyfe`:
 - PostgreSQL 16 via Docker (pgvector/pgvector:pg16)
 - Alembic for migrations
 - mypy --strict, ruff, pytest, pytest-asyncio
-- Embedding via Ollama API (nomic-embed-text, 768 dimensions)
+- Embedding via LM Studio OpenAI-compatible `/v1/embeddings` endpoint (`text-embedding-nomic-embed-text-v1.5`, 768 dimensions)

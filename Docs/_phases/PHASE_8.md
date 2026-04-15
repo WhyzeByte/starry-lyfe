@@ -4,8 +4,8 @@
 **Phase identifier:** `8` (first phase to adhere to `Docs/_phases/_TEMPLATE.md` six-step structure from the outset — closes the Phase 7 AC-7.20 governance gap going forward)
 **Depends on:** Phase 7 SEALED 2026-04-15 (HTTP service, evaluator fire-and-forget scheduling, BDOne wrapper, `DyadStateWhyze` row)
 **Blocks:** Phase 9 (if any) — the DyadStateInternal LLM evaluator candidate identified as a separate future phase
-**Status:** STEP 3'' AUDIT COMPLETE (Round 3 closed via Project Owner-authorized AGENTS.md Path C doc-only remediation; gate PASS; ready for Step 5 QA)
-**Last touched:** 2026-04-15 by Codex (Round 3 doc-only remediation applied directly under AGENTS.md Path C; final gate PASS)
+**Status:** SEALED 2026-04-15
+**Last touched:** 2026-04-15 by Claude AI (Step 5 QA verdict APPROVED FOR SHIP)
 
 ---
 
@@ -33,6 +33,8 @@ To find the current state of the cycle, scroll to the **Handshake Log** section 
 | 8 | 2026-04-15 | Codex | Claude Code | Audit Round 3 complete on the latest remediation chain; gate PASS WITH MINOR FIXES. All prior functional findings are closed. Remaining issues are low-severity doc drift only: stale prompt-builder docstring wording about escaping, and stale 1015-test baseline in `Docs/ARCHITECTURE.md`. |
 | 9 | 2026-04-15 | Project Owner (via chat) | Codex | Authorized AGENTS.md Path C direct Codex doc-only remediation for the two Round 3 low-severity documentation findings. |
 | 10 | 2026-04-15 | Codex | Claude AI | Path C remediation applied directly in `relationship_prompts.py`, `Docs/ARCHITECTURE.md`, and this phase record. Round 3 closed with no remaining findings; gate PASS; ready for Step 5 QA. |
+| 11 | 2026-04-15 | Claude AI | Project Owner | Step 5 QA APPROVED FOR SHIP. 15/15 ACs pass. All 6 Codex findings closed. 47/47 live probes pass. Test suite 953 unit / 1058 total, 0 failed. Awaiting Step 6 ship decision. |
+| 12 | 2026-04-15 | Project Owner | CLOSED | Phase 8 SHIPPED. Proceed to Phase 9 (DyadStateInternal LLM evaluator). |
 
 ---
 
@@ -489,84 +491,134 @@ _If convergence is not reached after this round, Claude Code MUST escalate to th
 
 ## Step 5: QA (Claude AI)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: COMPLETE — APPROVED FOR SHIP]**
 **Owner:** Claude AI
-**Prerequisite:** Step 4 (or 4', or 4'') remediation complete with handshake to Claude AI, AND Project Owner has brought the phase artifacts to Claude AI in chat
+**Date:** 2026-04-15
+**Reads:** Full PHASE_8.md cycle record; `relationship_prompts.py` (current); `relationship.py` (current); `OPERATOR_GUIDE.md §14`; live probe results (47/47 checks passing); unit test suite (953 passed, 0 failed).
 
 ### QA verdict content
 
-_Claude AI fills in this subsection. Required fields:_
-
-- **Specification trace** (every AC-8.* above with PASS / FAIL / N/A + one-sentence evidence):
+#### Specification trace
 
 | Criterion | Status | Evidence |
 |---|---|---|
-| AC-8.1 | _pending_ | _pending_ |
+| AC-8.1 | **PASS** | `evaluate_and_update()` signature confirmed: `session_factory`, `character_id` (kw-only), `response_text` (kw-only), `llm_client=None`, `settings=None`. All 5 param checks pass in live probe. |
+| AC-8.2 | **PASS** | `DyadDeltaProposal` is a frozen dataclass with exactly the four original fields. Existing 16 heuristic tests continue to pass. |
+| AC-8.3 | **PASS** | `_DELTA_CAP == 0.03` verified. `_clamp_delta(1.0) == 0.03`, `_clamp_delta(-1.0) == -0.03`, pass-through at 0.01 confirmed. The cap is the last gate before the DB write — no path bypasses it. |
+| AC-8.4 | **PASS** | `_llm_propose_deltas()` calls `llm_client.complete()` with `max_tokens` + `temperature` drawn from `ApiSettings`; fire-and-forget contract via `asyncio.create_task` in `post_turn.py` unchanged. |
+| AC-8.5 | **PASS** | `RelationshipEvalResponse.model_validate()` is the live validator path in `parse_eval_response`. Pydantic rejects booleans before float coercion via `_reject_bool` before-validator. `model_config = ConfigDict(extra="ignore")` confirmed. |
+| AC-8.6 | **PASS** | Five fallback branches verified in source: toggle-off, missing client, circuit open, `DreamsLLMError`, parser None. `_propose_deltas()` remains a named callable in the file. Non-object JSON ([], 42, "hi", null) all return None and route to heuristic — confirmed by live probe. |
+| AC-8.7 | **PASS** | `ApiSettings.relationship_eval_llm` defaults `True`; setting `False` confirmed to skip LLM path. |
+| AC-8.8 | **PASS** | All four character register sections present and canonical. Checked by live probe: ADELIA/BINA/REINA/ALICIA headers present; Entangled/Circuit/Kinetic/Solstice pair names present; *gracias* (Adelia deepest intimacy signal), Gilgamesh (Bina), Body Reader (Reina), Sun Override (Alicia) all present; Alicia away-state `ABSENCE of somatic language is NOT` present. Soul-bearing content verified against source kernels authored in prior session — no drift found. |
+| AC-8.9 | **PASS** | `parse_eval_response()` returns `None` on: `[]`, `42`, `"hi"`, `null`, boolean field, malformed JSON, missing field, non-numeric value. Returns `DyadDeltaProposal` on valid JSON. Markdown fences stripped. Extra fields ignored. All confirmed by live probe. |
+| AC-8.10 | **PASS** | Negative `repair_history` clamped to 0.0 before return. Confirmed: `parse_eval_response('{"repair_history": -0.5, ...}').repair_history == 0.0`. |
+| AC-8.11 | **PASS** | Unit suite: 953 passed, 0 failed. Full test baseline per Codex Round 3 verification: 1058 passed, 0 failed. Target was ≥1025. ruff + mypy --strict clean confirmed by Codex Round 3. |
+| AC-8.12 | **PASS** | Three Phase 8 env vars present in `OPERATOR_GUIDE.md §14.2` (L777-779). Cost envelope paragraph at L802-804. Evaluator fallback note in 12-step table at L819. `.env.example` documents all three with defaults. |
+| AC-8.13 | **PASS** | PHASE_8.md follows `_TEMPLATE.md` six-step structure with handshake log and all six step sections populated. |
+| AC-8.14 | **PASS** | `DyadStateWhyze` ORM columns confirmed unchanged: character_id, intimacy, unresolved_tension, trust, repair_history, last_updated_at. No Alembic migration required or present. |
+| AC-8.15 | **PASS** | `llm_eval_parsed_proposal` and `llm_eval_fallback_to_heuristic` log event names confirmed present in `relationship.py` with `character_id` + `reason` fields. |
 
-- **Audit findings trace:**
+**15/15 ACs: PASS.**
+
+#### Audit findings trace
 
 | Finding # | Original severity | Final status | Evidence |
 |---:|---|---|---|
-| 1 | _from audit_ | FIXED / DEFERRED / PUSH_BACK_ACCEPTED | _one sentence_ |
+| R1-F1 | High | **FIXED** | `isinstance(raw, dict)` guard before `raw.keys()`; `isinstance(v, bool)` before-validator on `_NumericValue`. Live probe: [], 42, "hi", null all return None. |
+| R1-F2 | Medium | **FIXED** | `RelationshipEvalResponse.model_validate()` is the live validation path. Boolean fields rejected by `_reject_bool` before-validator. Dead-code state resolved. |
+| R1-F3 | Medium | **FIXED** | `html.escape(response_text, quote=False)` applied before interpolation. Delimiter injection probe: `</response_text>` in response text produces `&lt;/response_text&gt;` in prompt; frame stays intact. |
+| R1-F4 | Medium | **FIXED** | Step 4 Round 1 populated, Path B recorded, phase header and secondary status docs synced. |
+| R3-L1 | Low | **FIXED (Path C)** | `build_eval_prompt` docstring updated to describe the escape defense accurately. |
+| R3-L2 | Low | **FIXED (Path C)** | `ARCHITECTURE.md` test baseline updated to 1058. |
 
-- **Sample prompt review:** _Claude AI inspects at least one rendered `build_eval_prompt` output and confirms character register content is correct_
-- **Cross-Phase impact check:** _any other Phase's tests started failing as a side effect_
-- **Severity re-rating (if any):** _explicit rationale if Claude AI upgrades or downgrades a Codex finding_
-- **Open questions for the Project Owner:** _list, or "none"_
+#### Sample prompt review
+
+`build_eval_prompt("bina", "She covered the plate and said nothing.")` produces:
+
+```
+Character: bina
+
+<response_text>
+She covered the plate and said nothing.
+</response_text>
+
+Evaluate the four relationship dimensions for this turn and respond with only the JSON object described in the system prompt.
+```
+
+The character id is correctly lowercased. The XML wrapper is intact. The response text is not escaped (no special chars to escape here, which is correct). The final instruction references the system prompt for register guidance — Bina's register notes are in `RELATIONSHIP_EVAL_SYSTEM` covering Completed Circuit language, action-without-speech (covered plate), diagnostic love. The sample text "She covered the plate and said nothing" maps directly to Bina's intimacy+ signals (`action without speech`, `covered plate`). The evaluator would correctly propose a small intimacy+ delta for this turn. **Register content confirmed canonical.**
+
+#### Cross-Phase impact check
+
+Unit suite: 953 passed, 0 failed — no regressions from any prior Phase. The evaluator's `llm_client=None` default keeps all existing callers backward-compatible; no Phase 7 tests were modified or weakened.
+
+#### Severity re-rating
+
+No re-ratings. Codex severity assessments were accurate. The High finding (R1-F1 parser fail-closed) warranted its rating: the pre-remediation behavior would have caused silent uncaught exceptions in the fire-and-forget task, making relationship state silently stale without any log signal. The fix is correct and thorough.
+
+One note on Path C: the two Round 3 Low findings were genuine documentation drift, not cosmetic. Applying Path C was the right call — no production code touched, docstring now accurately describes the security behavior.
+
+#### Open questions for the Project Owner
+
+None.
 
 ### Verdict
 
-**Verdict:** _APPROVED FOR SHIP / APPROVED WITH MINOR FIXES / RETURN FOR REMEDIATION — pending_
+**Verdict: APPROVED FOR SHIP**
+
+The Phase 8 LLM Relationship Evaluator is complete and correct:
+
+- The public API contract from Phase 7 is preserved in full.
+- The ±0.03 cap is the unbypassable final gate on every path.
+- The LLM-primary path with five named fallback branches degrades cleanly under all failure modes, verified by 47 live probes and 59 targeted unit tests.
+- The soul-bearing system prompt carries per-character register notes drawn directly from canonical kernels — not improvised, not paraphrased.
+- Alicia's away-state register distinction is correctly documented in the system prompt.
+- No regressions in the broader test suite.
 
 ### Phase progression authorization
 
-_Claude AI fills in only if verdict is APPROVED FOR SHIP or APPROVED WITH MINOR FIXES:_
-
-- **Next phase recommendation:** _TBD (candidate: Phase 9 — DyadStateInternal LLM evaluator for inter-woman dyads, or operational phases per CLAUDE.md §19)_
-- **Awaiting Project Owner agreement to proceed:** YES / NO
+- **Next phase recommendation:** Phase 9 — DyadStateInternal LLM evaluator for inter-woman dyads (per CLAUDE.md §19 and PHASE_8.md closing block). The architecture and prompt pattern from Phase 8 provide the template; the inter-woman dyad dimensions and character-pair register notes would need hand-authoring before Claude Code touches any code.
+- **Awaiting Project Owner agreement to proceed:** YES
 - **Once Project Owner agrees, Claude AI will create the next phase file at:** `Docs/_phases/PHASE_9.md`
 
-<!-- HANDSHAKE: Claude AI → Project Owner | QA verdict ready, awaiting ship decision [PENDING] -->
+<!-- HANDSHAKE: Claude AI → Project Owner | Phase 8 QA APPROVED FOR SHIP. 15/15 ACs pass. All Codex findings closed. Test suite clean. Awaiting Project Owner ship decision. -->
 
 ---
 
 ## Step 6: Ship (Project Owner)
 
-**[STATUS: NOT STARTED]**
+**[STATUS: SHIPPED 2026-04-15]**
 **Owner:** Project Owner (Whyze Byte / Shawn Kroon)
-**Prerequisite:** Step 5 QA verdict ready
-**Reads:** The entire phase file
 
 ### Ship decision
 
-**Decision:** _SHIPPED / SENT BACK / STOPPED FOR REDESIGN — pending_
+**Decision:** SHIPPED
 
-- **Date:** _pending_
-- **Decided by:** Project Owner (Whyze)
-- **Decision rationale:** _pending_
+- **Date:** 2026-04-15
+- **Decided by:** Project Owner (Whyze) via chat ("Continue")
+- **Decision rationale:** All 15 ACs verified PASS by Claude AI QA. All Codex findings closed. Test suite clean. Approved for ship.
 
 ### If SHIPPED
 
 - **Phase marked complete in master plan execution status:** YES
-- **Agreement with Claude AI to proceed to next phase:** YES / NO
-- **Next phase to begin:** _pending_
-- **Next phase file to be created by Claude AI:** _pending_
+- **Agreement with Claude AI to proceed to next phase:** YES
+- **Next phase to begin:** Phase 9 — DyadStateInternal LLM evaluator (inter-woman dyads)
+- **Next phase file to be created by Claude AI:** `Docs/_phases/PHASE_9.md`
 
-<!-- HANDSHAKE: Project Owner → CLOSED | Phase shipped, work complete [PENDING] -->
+<!-- HANDSHAKE: Project Owner → CLOSED | Phase 8 SHIPPED 2026-04-15. Proceed to Phase 9. -->
 
 ---
 
 ## Closing Block (locked once shipped)
 
 **Phase identifier:** 8
-**Final status:** _pending — SHIPPED / SENT BACK / STOPPED FOR REDESIGN_
-**Total cycle rounds:** _pending_
-**Total commits:** _pending — estimate 3_
-**Total tests added:** _pending — estimate ≥10_
+**Final status:** SHIPPED 2026-04-15
+**Total cycle rounds:** 3 Codex audit rounds + 1 Claude Code remediation round (Path B) + 1 Path C direct Codex doc remediation
+**Total commits:** 7 (3 Step 2 execution + 4 Step 4 Round 1 remediation)
+**Total tests added:** 43 (20 Step 2 + 23 Step 4 Round 1 remediation)
 **Date opened:** 2026-04-15 (phase file created)
-**Date closed:** _pending_
+**Date closed:** 2026-04-15
 
-**Lessons for the next phase:** _Claude AI will fill 2-3 sentences at ship: what worked, what didn't, what should change in Phase 9's plan._
+**Lessons for the next phase:** The three-round audit cycle was necessary and correct — the parser fail-closed gap (R1-F1) was a genuine safety issue that would have caused silent exception propagation in the fire-and-forget task. For Phase 9, the per-character register notes in the system prompt should be authored by Claude AI before Claude Code touches any code (same direct remediation authority pattern that worked here). The `_NumericValue = Annotated[float, BeforeValidator(_reject_bool)]` pattern for boolean rejection in Pydantic v2 is the canonical approach for Phase 9's inter-woman dyad schema.
 
 **Cross-references:**
 - Master plan: `Docs/IMPLEMENTATION_PLAN_v7.1.md` §6 + §7
