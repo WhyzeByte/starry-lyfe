@@ -308,6 +308,15 @@ def build_eval_prompt(character_id: str, response_text: str) -> str:
     to a DB read that ``evaluate_and_update`` already owns. The text-alone
     form ships as the canonical shape.
 
+    Delimiter injection defense (Phase 8 R1-F3, 2026-04-15): the response
+    text is ``html.escape``'d before interpolation so a payload containing
+    ``</response_text>`` cannot break out of the wrapper block and inject
+    instructions into the evaluator prompt. ``<`` and ``>`` become ``&lt;``
+    and ``&gt;`` respectively; the LLM reads the escaped content correctly
+    (HTML entities are transparent to capable models) but can no longer
+    see a verbatim closing delimiter inside the user text. The ``quote=False``
+    flag leaves quotation marks alone so the response reads naturally.
+
     Args:
         character_id: Canonical lowercase character ID (adelia / bina /
             reina / alicia). Unrecognised IDs are passed through; the
@@ -321,9 +330,12 @@ def build_eval_prompt(character_id: str, response_text: str) -> str:
         evaluation API call.
     """
     cid = character_id.lower().strip() if character_id else _UNKNOWN_CHARACTER
+    # R1-F3 closure: escape < and > so the closing </response_text>
+    # delimiter cannot appear verbatim inside the user-supplied content.
+    safe_text = html.escape(response_text, quote=False)
     return (
         f"Character: {cid}\n\n"
-        f"<response_text>\n{response_text}\n</response_text>\n\n"
+        f"<response_text>\n{safe_text}\n</response_text>\n\n"
         "Evaluate the four relationship dimensions for this turn and respond "
         "with only the JSON object described in the system prompt."
     )
