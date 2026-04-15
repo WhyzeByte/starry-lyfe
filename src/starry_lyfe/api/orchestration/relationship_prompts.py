@@ -348,6 +348,18 @@ def parse_eval_response(text: str) -> DyadDeltaProposal | None:
         )
         return None
 
+    # R1-F1 fail-closed guard (2026-04-15): JSON can decode to any of the
+    # seven shapes (object / array / string / number / bool / null). Only
+    # the object shape has ``.keys()``; everything else raised
+    # AttributeError pre-remediation and propagated out of
+    # ``evaluate_and_update`` instead of falling back to the heuristic.
+    if not isinstance(raw, dict):
+        logger.warning(
+            "llm_eval_parse_non_object",
+            extra={"type": type(raw).__name__, "raw_prefix": cleaned[:120]},
+        )
+        return None
+
     # Validate field presence and numeric types before Pydantic clamping.
     required = {"intimacy", "unresolved_tension", "trust", "repair_history"}
     if not required.issubset(raw.keys()):
@@ -359,10 +371,15 @@ def parse_eval_response(text: str) -> DyadDeltaProposal | None:
         return None
 
     for field in required:
-        if not isinstance(raw[field], (int, float)):
+        value = raw[field]
+        # R1-F1 boolean rejection (2026-04-15): ``bool`` is a subclass of
+        # ``int`` in Python, so ``isinstance(True, (int, float))`` is
+        # True. We intend numeric-only per AC-8.9 — reject booleans
+        # explicitly before the int/float check.
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
             logger.warning(
                 "llm_eval_parse_non_numeric",
-                extra={"field": field, "value": raw[field]},
+                extra={"field": field, "value": value, "type": type(value).__name__},
             )
             return None
 

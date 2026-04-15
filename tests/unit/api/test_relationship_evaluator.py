@@ -408,3 +408,64 @@ class TestEvaluateAndUpdateLLMPath:
         )
         assert result is not None
         assert result.applied.intimacy > 0
+
+
+class TestR1F1EvaluatorFallbackOnNonObjectJSON:
+    """R1-F1 closure (evaluator level): fallback fires without exception.
+
+    Pre-remediation, an LLM returning ``[]`` (or any non-object JSON)
+    propagated an ``AttributeError`` out of the fire-and-forget task.
+    The heuristic path never ran. This class proves the fail-closed
+    contract at the live evaluator boundary.
+    """
+
+    @pytest.mark.parametrize(
+        "bad_json", ["[]", "42", '"hi"', "null", "true"],
+    )
+    async def test_non_object_json_falls_back_to_heuristic(
+        self, bad_json: str
+    ) -> None:
+        from starry_lyfe.dreams.llm import StubBDOne
+
+        def _responder(_sys: str, _user: str) -> str:
+            return bad_json
+
+        stub = StubBDOne(responder=_responder)
+        row = _seed_row()
+        factory = _FakeFactory(row)
+        # Text contains heuristic-positive intimacy signals so a successful
+        # fallback produces a non-zero proposal. The key behavior: no
+        # exception escapes; a result is returned.
+        result = await evaluate_and_update(
+            factory,  # type: ignore[arg-type]
+            character_id="adelia",
+            response_text="we were warm and close and tender",
+            llm_client=stub,
+            settings=_StubSettings(),  # type: ignore[arg-type]
+        )
+        assert result is not None
+        assert result.applied.intimacy > 0
+
+    async def test_boolean_field_falls_back_to_heuristic(self) -> None:
+        """JSON boolean in a numeric field: parser rejects → heuristic runs."""
+        from starry_lyfe.dreams.llm import StubBDOne
+
+        def _responder(_sys: str, _user: str) -> str:
+            return (
+                '{"intimacy": true, "unresolved_tension": 0.0, '
+                '"trust": 0.0, "repair_history": 0.0}'
+            )
+
+        stub = StubBDOne(responder=_responder)
+        row = _seed_row()
+        factory = _FakeFactory(row)
+        result = await evaluate_and_update(
+            factory,  # type: ignore[arg-type]
+            character_id="adelia",
+            response_text="we were warm and close",
+            llm_client=stub,
+            settings=_StubSettings(),  # type: ignore[arg-type]
+        )
+        assert result is not None
+        # Heuristic fired because LLM path returned None.
+        assert result.applied.intimacy > 0

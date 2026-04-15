@@ -9,6 +9,8 @@ Pure unit tests: no async, no DB, no BDOne.
 
 from __future__ import annotations
 
+import pytest
+
 from starry_lyfe.api.orchestration import (
     RELATIONSHIP_EVAL_SYSTEM,
     build_eval_prompt,
@@ -141,3 +143,41 @@ class TestParseEvalResponse:
         result = parse_eval_response(raw)
         assert result is not None
         assert result.intimacy == 0.1
+
+
+class TestR1F1ParserFailClosed:
+    """R1-F1 closure: parser fails closed on non-object JSON + booleans.
+
+    Pre-remediation: `parse_eval_response('[]')` raised AttributeError
+    on `raw.keys()`, and the same exception propagated through
+    ``evaluate_and_update`` instead of falling back to the heuristic.
+    JSON booleans were silently coerced to 1.0/0.0 because ``bool`` is
+    a subclass of ``int`` in Python.
+    """
+
+    @pytest.mark.parametrize(
+        "raw",
+        ["[]", "[1, 2, 3]", "42", "3.14", '"hi"', "null", "true", "false"],
+        ids=[
+            "empty_array", "number_array", "integer", "float",
+            "string", "null", "bool_true", "bool_false",
+        ],
+    )
+    def test_parse_non_object_json_returns_none(self, raw: str) -> None:
+        """Any valid JSON that is NOT an object must return None, not raise."""
+        assert parse_eval_response(raw) is None
+
+    def test_parse_boolean_field_value_returns_none(self) -> None:
+        """AC-8.9: JSON booleans are non-numeric per spec; reject explicitly."""
+        raw = (
+            '{"intimacy": true, "unresolved_tension": 0.0, '
+            '"trust": 0.0, "repair_history": 0.0}'
+        )
+        assert parse_eval_response(raw) is None
+
+    def test_parse_boolean_false_field_returns_none(self) -> None:
+        raw = (
+            '{"intimacy": 0.1, "unresolved_tension": 0.0, '
+            '"trust": 0.0, "repair_history": false}'
+        )
+        assert parse_eval_response(raw) is None
