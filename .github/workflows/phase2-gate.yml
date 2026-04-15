@@ -53,14 +53,16 @@ jobs:
         run: python -m starry_lyfe.db.seed
 
       - name: Run integration tests
-        # --tb=long + junit XML so the failure lands in a downloadable
-        # artifact. Required while CI log access is admin-only.
-        run: python -m pytest tests/integration -v --tb=long --junit-xml=pytest-report.xml --maxfail=1
+        # --tb=long so the traceback lands in stdout; tee to file so the
+        # Step Summary can echo it below even when this step exits non-zero.
+        run: |
+          set -o pipefail
+          python -m pytest tests/integration -v --tb=long --maxfail=1 2>&1 | tee pytest-output.txt
 
-      - name: Upload pytest report
+      - name: Echo pytest output to Step Summary
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: pytest-report-${{ github.sha }}
-          path: pytest-report.xml
-          if-no-files-found: warn
+        run: |
+          echo "## Integration test output" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -c 30000 pytest-output.txt >> "$GITHUB_STEP_SUMMARY" || echo "(no pytest-output.txt found)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
