@@ -46,6 +46,15 @@ APPLICATION_TABLES = (
     "open_loops",
     "transient_somatic_states",
     "chat_sessions",
+    # Phase 6 Tier 8 (Dreams-written): truncate at session setup so rows
+    # from previous runs do not leak into subsequent integration tests.
+    # Without this, a Dreams activity row with a still-future expires_at
+    # from an earlier local run can silently satisfy the assertion in
+    # ``test_retrieve_memories_includes_dreams_written_tiers`` on fresh
+    # DBs (e.g. CI), masking a real test bug.
+    "activities",
+    "life_states",
+    "consolidation_log",
 )
 REQUIRED_TABLES = frozenset((*APPLICATION_TABLES, "alembic_version"))
 

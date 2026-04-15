@@ -180,14 +180,23 @@ async def test_retrieve_memories_includes_dreams_written_tiers(
     dreams_session_factory: Any, canon: Any
 ) -> None:
     """F3 / AC-R1.8: MemoryBundle exposes activities + life_state after a
-    Dreams run. Proves Tier 8 is wired into the retrieval path."""
+    Dreams run. Proves Tier 8 is wired into the retrieval path.
+
+    ``now`` is anchored to real wall-clock time rather than a fixed
+    2026-04-14 date because ``_retrieve_activities`` filters by
+    ``Activity.expires_at > datetime.now(UTC)``. A fixed simulated
+    ``now`` would leave the row's ``expires_at = sim_now + 24h`` in the
+    past relative to the real clock on CI, where the DB is fresh. See
+    conftest ``APPLICATION_TABLES`` for the truncation-leak companion
+    fix that would otherwise mask this bug on repeated local runs.
+    """
     stub = StubBDOne(
         default_text=(
             "Today's reflection.\n"
             "Branch: opt one.\nBranch: opt two."
         )
     )
-    now = datetime(2026, 4, 14, 3, 30, tzinfo=UTC)
+    now = datetime.now(UTC)
 
     await run_dreams_pass(
         session_factory=dreams_session_factory,
@@ -349,7 +358,10 @@ async def test_dreams_activity_surfaces_into_assembler_layer_6(
             "Branch: Adelia opens the order book first."
         )
     )
-    now = datetime(2026, 4, 14, 3, 30, tzinfo=UTC)
+    # Anchor to real wall-clock time so Activity.expires_at (now + 24h)
+    # stays in the future at retrieval time. A fixed simulated ``now``
+    # would produce expires_at < real now on a fresh DB (e.g. CI).
+    now = datetime.now(UTC)
 
     await run_dreams_pass(
         session_factory=dreams_session_factory,
