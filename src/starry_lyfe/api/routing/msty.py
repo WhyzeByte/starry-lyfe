@@ -43,12 +43,12 @@ class PriorResponse:
 
 @dataclass(frozen=True)
 class MstyPreprocessed:
-    """Narrowed view of a raw Msty/OWUI chat-completion request body.
+    """Narrowed view of a raw Msty chat-completion request body.
 
     Attributes:
-        user_message: The latest user-role message (Msty or OWUI strips
-            inline override markers itself in some versions; the chat
-            endpoint runs ``strip_inline_override`` again to be safe).
+        user_message: The latest user-role message (Msty strips inline
+            override markers itself in some versions; the chat endpoint
+            runs ``strip_inline_override`` again to be safe).
         scene_characters: Crew roster intersected with canonical IDs.
             Empty for single-character (non-Crew) requests.
         prior_responses: Past persona turns extracted from the messages
@@ -79,7 +79,7 @@ def _extract_prior_responses(messages: list[ChatMessage]) -> list[PriorResponse]
         if message.role != "assistant":
             continue
         # Msty Crew turns carry the persona id in the ``name`` field;
-        # OWUI Crew turns sometimes prefix the content with
+        # Some Crew flows prefix the content with
         # ``"<character>:" `` as a fallback.
         if message.name and message.name.lower() in _CANONICAL_IDS:
             out.append(PriorResponse(character_id=message.name.lower(), text=message.content))

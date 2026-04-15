@@ -1451,7 +1451,7 @@ Layered top-down, the backend looks like this:
 | **Validation layer** | Two-tier Whyze-Byte pipeline with sequential multi-speaker gating | COMPLETE (Phase 4) | Phase A'' communication-mode constraints are part of the validator contract |
 | **Orchestration layer** | Scene Director for next-speaker selection in Crew mode | COMPLETE (Phase 5) | Consumes Phase F scene type infrastructure; rule-based classifier + Talk-to-Each-Other scoring |
 | **Simulation layer** | Nightly Dreams batch process for life continuity | COMPLETE (Phase 6) | Phase G prose rendering, Phase A'' Alicia-away tagging, Phase H regression bundle all wired retroactively |
-| **Service surface** | HTTP service on port 8001, consumed by Msty + OWUI | COMPLETE (Phase 7) | Phase I (authority split: Msty system prompts blank in production) |
+| **Service surface** | HTTP service on port 8001, consumed by Msty AI | COMPLETE (Phase 7) | Phase I (authority split: Msty system prompts blank in production) |
 | **Per-character remediation** | Soul cards, voice mode coverage, regression bundles | NEW | **Phase J.1, J.2, J.3, J.4** |
 | **Verification** | Regression tests, subjective success proxies | NEW | **Phase H, Phase K** |
 

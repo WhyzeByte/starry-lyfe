@@ -753,7 +753,7 @@ Dreams output passes through three retroactive invariants:
 
 ## 14. HTTP Service (Phase 7)
 
-The HTTP service exposes the Starry-Lyfe backend on **port 8001** as an OpenAI-compatible chat API. Consumed by Msty Studio (direct) and Open WebUI (via pipe function). SHIPPED 2026-04-15.
+The HTTP service exposes the Starry-Lyfe backend on **port 8001** as an OpenAI-compatible chat API. Consumed by Msty AI (direct). SHIPPED 2026-04-15.
 
 ### 14.1 Boot
 
@@ -789,7 +789,7 @@ python -m starry_lyfe.api
 
 `api/routing/character.py::resolve_character_id` resolves the focal character in this order:
 
-1. `X-SC-Force-Character` header (Open WebUI pipe path)
+1. `X-SC-Force-Character` header (optional force-character override for any client)
 2. Inline `/<char>` or `/all` override at user message start
 3. `model` field matching a canonical id (Msty path)
 4. `STARRY_LYFE__API__DEFAULT_CHARACTER` (default `adelia`)
@@ -833,7 +833,7 @@ curl -N -X POST http://localhost:8001/v1/chat/completions \
   -H "X-API-Key: $STARRY_LYFE__API__API_KEY" \
   -d '{"model":"adelia","messages":[{"role":"user","content":"morning"}],"stream":true}'
 
-# OWUI pipe path (force character via header)
+# Force-character via header (any client)
 curl -N -X POST http://localhost:8001/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $STARRY_LYFE__API__API_KEY" \

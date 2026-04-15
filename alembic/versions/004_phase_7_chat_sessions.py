@@ -5,7 +5,7 @@ Revises: 003
 Create Date: 2026-04-15
 
 Creates the ``chat_sessions`` table that the Phase 7 HTTP service uses
-to track one row per Msty / OWUI / curl operator session. Per
+to track one row per Msty / curl operator session. Per
 CLAUDE.md §13. Single-operator deployment so contention is not a
 concern.
 """

@@ -3,7 +3,7 @@
 Implements the IMPLEMENTATION_PLAN_v7.1 §10 contract from Msty message
 to validated SSE response. The full sequence:
 
-    1.  Msty/OWUI sends OpenAI-compatible request
+    1.  Msty sends OpenAI-compatible request
     2.  Msty Crew preprocessing + scene classification
     3.  Memory retrieval (canon + episodic + tier 8 Dreams state)
     4.  Activity-context auto-population from MemoryBundle.activities
@@ -161,7 +161,7 @@ def _is_crew_mode(ctx: PipelineContext) -> bool:
     Crew mode fires when either:
 
     1. The routing decision raised the ``all_override`` flag (inline
-       ``/all`` marker in the user message — OWUI pipe path), or
+       ``/all`` marker in the user message — any client), or
     2. The Msty preprocessor detected ≥2 canonical women in the roster
        AND at least one prior persona response exists (Msty Crew
        Conversations replay prior turns; an empty prior_responses list

@@ -1,6 +1,6 @@
 """OpenAI-compatible chat completion schemas.
 
-Only the subset of the OpenAI shape that Msty + Open WebUI actually send
+Only the subset of the OpenAI shape that Msty actually sends
 is modeled. Stream responses use ``ChatCompletionChunk`` per OpenAI's SSE
 contract: each ``data:`` line carries one chunk; the stream terminates
 with ``data: [DONE]``.
@@ -42,7 +42,7 @@ class ChatCompletionRequest(BaseModel):
     top_p: float | None = None
     frequency_penalty: float | None = None
     presence_penalty: float | None = None
-    # OpenAI permits arbitrary extra fields; Msty/OWUI sometimes attach
+    # OpenAI permits arbitrary extra fields; Msty sometimes attaches
     # ``user``, ``stop``, etc. Capture them so observability can log them
     # without requiring an explicit schema entry.
     user: str | None = None

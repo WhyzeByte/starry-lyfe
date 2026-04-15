@@ -13,7 +13,7 @@ the type system makes contamination impossible.
 
 Per CLAUDE.md §14, the priority order is:
 
-1. ``X-SC-Force-Character`` header (Open WebUI pipe path)
+1. ``X-SC-Force-Character`` header (optional force-character override for any client)
 2. Inline ``/<char>`` or ``/all`` override at start of user message
 3. ``model`` field matching a canonical character name (Msty path)
 4. Settings ``default_character`` fallback

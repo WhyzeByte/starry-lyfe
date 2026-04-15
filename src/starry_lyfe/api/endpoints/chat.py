@@ -42,7 +42,7 @@ def _resolve_session_id(provided: str | None, openai_user: str | None) -> uuid.U
 
     Priority: explicit X-Session-ID header > OpenAI ``user`` field
     (hashed into a UUID5) > random UUID4. The header is the canonical
-    OWUI/Msty session token surface; the OpenAI ``user`` field is a
+    Msty session token surface; the OpenAI ``user`` field is a
     documented OpenAI hook for tracking end users.
     """
     if provided:
@@ -58,7 +58,7 @@ def _resolve_session_id(provided: str | None, openai_user: str | None) -> uuid.U
 def _detect_client_type(user_agent: str | None, has_force_header: bool) -> str:
     """Coarse client classification for observability.
 
-    Msty uses model field + assistant.name; OWUI uses the
+    Msty uses model field + assistant.name; any other client uses the
     X-SC-Force-Character header. Anything else (curl, custom scripts)
     reports as "other".
     """

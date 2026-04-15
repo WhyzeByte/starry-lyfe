@@ -268,7 +268,7 @@ Every service defines a `ServiceError` base exception. Custom exceptions inherit
 | OpenRouter / Anthropic endpoint | BD-1 | `STARRY_LYFE__EXT__SFW_PROVIDER_URL` |
 | Embedding Provider | BD-1 | Configured via GNK |
 
-**Consumed by:** Open WebUI via `/v1/chat/completions` (OpenAI-compatible pipe function). Msty via `/v1/chat/completions` (direct OpenAI-compatible, Crew Conversations for multi-character).
+**Consumed by:** Msty AI via `/v1/chat/completions` (direct OpenAI-compatible — Persona Conversations per-character, Crew Conversations multi-character). Msty is the only client; the service is not exposed to other UIs.
 
 ---
 
@@ -290,7 +290,7 @@ Schema: `starry_lyfe`. Tables: `chat_sessions`, `character_responses`, `canon_fa
 
 OpenAI-compatible format: `{"model": "...", "messages": [...], "stream": true}` → SSE `data: {"choices": [{"delta": {"content": "..."}}]}`. No separate metadata channel.
 
-Character routing priority: (1) `X-SC-Force-Character` header (OWUI pipe path), (2) `model` field matching character name `adelia|bina|reina|alicia` (Msty path), (3) pipeline default fallback. Msty Crew Conversations are preprocessed: system prompt stripped, prior persona responses extracted, crew roster parsed into scene_characters. When Alicia is routed, the pipeline should account for her frequent operational travel; scenes set during periods when she is away on a consular operation should reflect her absence naturally rather than forcing her presence.
+Character routing priority: (1) `X-SC-Force-Character` header (optional force-character override for any client), (2) `model` field matching character name `adelia|bina|reina|alicia` (Msty path), (3) pipeline default fallback. Msty Crew Conversations are preprocessed: system prompt stripped, prior persona responses extracted, crew roster parsed into scene_characters. When Alicia is routed, the pipeline should account for her frequent operational travel; scenes set during periods when she is away on a consular operation should reflect her absence naturally rather than forcing her presence.
 
 ---
 
@@ -327,7 +327,7 @@ See `.env.example` for the full variable list covering: API host, DB port, loggi
 **Pipeline rules:**
 - Whyze-Byte is mandatory on all outputs. Deliberate bypass is never permitted. If unavailable, deliver with warning flag.
 - Request-driven pipeline. Each message = full pipeline run. No persistent background processes except Dreams (nightly batch).
-- Forced-only routing from OWUI: Adelia, Bina, Reina, Alicia, Starry-Lyfe. No auto-routing. Inline overrides: `/adelia`, `/bina`, `/reina`, `/alicia`, `/all`. The `/alicia` override should note if Alicia is currently away on an operation.
+- Forced-only routing via `X-SC-Force-Character` header or model field: Adelia, Bina, Reina, Alicia, Starry-Lyfe. No auto-routing. Inline overrides: `/adelia`, `/bina`, `/reina`, `/alicia`, `/all`. The `/alicia` override should note if Alicia is currently away on an operation.
 - Msty routing via model name: `adelia`, `bina`, `reina`, `alicia` model IDs map to characters. Crew Conversations preprocessed (system prompt stripped, prior responses extracted, roster parsed).
 - Per-character model parameters (temperature, top_p, penalties) in `personas/registry.py`. Temperature spread across the four characters: Adelia 0.82 > Alicia 0.75 > Reina 0.72 > Bina 0.58. Alicia's parameters sit between Reina's tactical sharpness and Adelia's warmth; see `Docs/IMPLEMENTATION_PLAN_v7.1.md` for the full inference parameter table.
 - Relationship evaluator fires every turn via `evaluate_and_update`. Deltas capped ±0.03 per dimension. Fire-and-forget, never blocks streaming.
@@ -381,8 +381,8 @@ These corrections override any conflicting content in project files. Apply befor
 ## 19. CURRENT PHASE STATUS (2026-04-15)
 
 **Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13), F (2026-04-13), G (2026-04-13), J.1–J.4 (2026-04-13), H (2026-04-13), K (2026-04-13), Phase 4 (Whyze-Byte Validation Pipeline, 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, 2026-04-14), Phase 5 (Scene Director, 2026-04-14; R1 2026-04-14 closes Codex F1/F2/F3; R2 2026-04-14 closes Codex R2-F1/R2-F2; R3 2026-04-14 doc-only closes R3-F1/R3-F2), Phase 6 (Dreams Engine, 2026-04-15; 3 Codex audit rounds + 2 Claude Code remediation rounds + 2 Codex direct doc remediation passes + 1 Claude AI Step 5 QA pass with 1 inline direct remediation; closes F1-F6 + R3-F1/R3-F2/R3-F3/R3-F4 + addendum A1/A2/A3 + Famaillá diacritic), Phase 7 (HTTP Service on Port 8001, 2026-04-15; 9 commits P1-P9; **post-ship audit remediation 2026-04-15 closes F1-F5 via `PHASE_7.md §10`; Round 2 re-audit remediation 2026-04-15 closes R2-F1 + R2-F2 via `PHASE_7.md §12`; Direct Codex R3 remediation 2026-04-15 closes R3-F1 validated-only carry-forward + R3-F2 metric label wording via `PHASE_7.md §14`**). Lettered-phase remediation complete (2026-04-13). Phase doc housekeeping (PHASE_I closure + PHASE_J retrospective + 5 closing blocks finalized) complete (2026-04-14).
-**Open ship gate:** None. All architectural phases (1-7) shipped; Phase 7 post-ship audit remediation closed with PASS.
-**Next phase:** TBD — backend is now end-to-end production-ready. Future work would be operational (deployment, observability dashboards, OWUI pipe function authoring) rather than architectural.
+**Open ship gate:** Phase 8 (LLM Relationship Evaluator) — Step 1 Plan APPROVED 2026-04-15; awaiting Step 2 Execute. Spec: `Docs/_phases/PHASE_8.md`. Scope: swap heuristic `_propose_deltas()` in `api/orchestration/relationship.py` for a BDOne-backed LLM evaluator without changing the public API or the ±0.03 cap. First phase to adhere to `Docs/_phases/_TEMPLATE.md` six-step structure from the outset (closes the Phase 7 AC-7.20 governance gap going forward).
+**Next phase:** Phase 8 as above. Phase 9 candidate: DyadStateInternal LLM evaluator (inter-woman dyads). Operational work (deployment runbooks, observability dashboards) remains open outside the architectural track. Msty AI is the only consumer.
 
 ### Project-wide Quality Directive (Project Owner, 2026-04-13)
 
@@ -523,4 +523,4 @@ See `Docs/_audits/PHASE_2_AUDIT_2026-04-13.md` and `Docs/_phases/REMEDIATION_202
 - Phase 6: Dreams Engine — SHIPPED 2026-04-15 (3 Codex audit rounds + 2 Claude Code remediation rounds + 2 Codex direct doc remediation passes + 1 Claude AI Step 5 QA pass with 1 inline direct remediation). `src/starry_lyfe/dreams/`. Closes the Dreams write/retrieve path and the assembler consumer path; automatic Scene Director `activity_context` population was closed by Phase 7. 152 new tests added (748 → 900). Spec: `Docs/_phases/PHASE_6.md`.
 - Phase 7: HTTP Service on Port 8001 — SHIPPED 2026-04-15 (9 commits P1-P9). `src/starry_lyfe/api/`. FastAPI app factory + uvicorn boot + 5 endpoints (/health/{live,ready}, /v1/models, /v1/chat/completions SSE, /metrics) + 12-step request flow orchestrator + post-turn fire-and-forget memory extraction + relationship evaluator (±0.03 cap). Closes the deferred Phase 6 → Phase 7 Dreams glue: Dreams-written Activity rows auto-populate Layer 6 on the next chat turn (verified by `tests/integration/test_http_dreams_glue.py`). New `chat_sessions` table (Alembic migration 004 applied to live DB). 95 new tests added (900 → 995). Spec: `Docs/_phases/PHASE_7.md`.
 
-**Backend status:** All architectural phases (1-7) shipped end-to-end. Future work is operational (deployment automation, observability dashboards, OWUI pipe function authoring) rather than architectural.
+**Backend status:** Architectural phases (1-7) shipped end-to-end. Phase 8 (LLM relationship evaluator) is architectural and in-flight. Operational work (deployment automation, observability dashboards, Msty persona/crew model-card authoring) remains open outside the architectural track.

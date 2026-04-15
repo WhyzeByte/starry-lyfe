@@ -24,8 +24,8 @@ auto-populate Layer 6 on the next chat turn via the existing
 `MemoryBundle.activities` consumer path).
 
 Per CLAUDE.md §11, the service runs at port 8001 with five endpoints
-and is consumed by Msty (direct OpenAI-compatible) and Open WebUI
-(via pipe function). Single-operator deployment; contention is
+and is consumed by Msty AI (direct OpenAI-compatible). Msty is the
+sole production client. Single-operator deployment; contention is
 out-of-scope.
 
 Project Owner scope decisions accepted before execution:
@@ -119,7 +119,7 @@ async def stream_complete(
 
 | # | Step | Phase 7 seam |
 |---|------|--------------|
-| 1 | Msty/OWUI POST | `endpoints/chat.py::chat_completions` |
+| 1 | Msty POST | `endpoints/chat.py::chat_completions` |
 | 2 | Classify intent/tone/context | `routing/msty.preprocess_msty_request` + `scene/classify_scene` |
 | 3 | Retrieve memory tiers | `assemble_context` calls `retrieve_memories` (Tier 8 included) |
 | 4 | Activity context auto-populate | `MemoryBundle.activities` → Layer 6 (Phase 6 R3-F2 path) |
@@ -138,12 +138,12 @@ async def stream_complete(
 
 Per CLAUDE.md §14, `resolve_character_id` resolves in this order:
 
-1. **`X-SC-Force-Character` header** — Open WebUI pipe path. Values:
-   `adelia|bina|reina|alicia|starry-lyfe`. The `starry-lyfe` legacy
-   alias routes to the deployment default.
+1. **`X-SC-Force-Character` header** — optional force-character override
+   for any client. Values: `adelia|bina|reina|alicia|starry-lyfe`. The
+   `starry-lyfe` legacy alias routes to the deployment default.
 2. **Inline `/<char>` or `/all` override at user message start** —
-   Open WebUI convenience. `/all` captures the multi-character intent
-   in the `all_override` flag for downstream Crew expansion.
+   convenience override for any client. `/all` captures the multi-character
+   intent in the `all_override` flag for downstream Crew expansion.
 3. **`model` field** — Msty path. Canonical IDs match character names
    exactly.
 4. **Settings default** (`STARRY_LYFE__API__DEFAULT_CHARACTER`,
@@ -234,7 +234,7 @@ End-to-end gates met at ship:
 ## Closing block (LOCKED — SHIPPED 2026-04-15)
 
 **Phase identifier:** 7
-**Final status:** SHIPPED 2026-04-15. All 20 acceptance criteria MET. The HTTP service is the canonical entry point for Msty + Open WebUI consumption.
+**Final status:** SHIPPED 2026-04-15. All 20 acceptance criteria MET. The HTTP service is the canonical entry point for Msty AI consumption.
 **Total commits:** 9 (P1-P9).
 **Total tests added:** 95 (88 unit + 7 integration). Pre-Phase-7 baseline: 900. Post-Phase-7: **995 passed, 0 failed**.
 **Ruff:** clean. **mypy --strict:** clean across 100 source files (75 → 100, +25 new api modules).
@@ -657,6 +657,6 @@ Only one item carries: the relationship evaluator's heuristic-based ±0.03 delta
 
 ### Sealing statement
 
-Phase 7 is sealed. The HTTP service on port 8001 is the canonical entry point for Msty Studio and Open WebUI. All architectural phases (0, A, A', A'', B, C, D, E, F, G, H, J.1–J.4, K, 4, F-Fidelity, 5, 6, 7) are shipped. Backend is end-to-end production-ready.
+Phase 7 is sealed. The HTTP service on port 8001 is the canonical entry point for Msty AI (the sole production client). All architectural phases (0, A, A', A'', B, C, D, E, F, G, H, J.1–J.4, K, 4, F-Fidelity, 5, 6, 7) are shipped. Backend is end-to-end production-ready.
 
 The edges are necessary. The soul is the point. This is the Way.

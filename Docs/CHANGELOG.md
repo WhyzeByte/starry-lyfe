@@ -46,7 +46,7 @@ Closes all 5 Codex post-ship audit findings from `Docs/_phases/PHASE_7.md §9`. 
 
 ### Shipped (Phase 7: HTTP Service on Port 8001 — 2026-04-15)
 
-Phase 7 SHIPPED 2026-04-15. Lands the FastAPI HTTP service on port 8001 that exposes the Starry-Lyfe backend as an OpenAI-compatible chat API consumed by Msty + Open WebUI.
+Phase 7 SHIPPED 2026-04-15. Lands the FastAPI HTTP service on port 8001 that exposes the Starry-Lyfe backend as an OpenAI-compatible chat API consumed by Msty AI (the sole production client).
 
 **Endpoints (5):**
 - `GET /health/live` — liveness (always 200)

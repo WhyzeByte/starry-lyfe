@@ -5,7 +5,7 @@ session. The HTTP service upserts on first turn (creates) and on
 each subsequent turn (updates ``last_turn_at`` + bumps ``turn_count``).
 
 The session is keyed by an opaque ``id`` chosen by the HTTP layer
-(typically the OWUI/Msty session token if exposed, otherwise a
+(typically the Msty session token if exposed, otherwise a
 random UUID). Single-operator deployment means contention is
 out-of-scope; the table is small and read-light.
 """
@@ -24,7 +24,7 @@ from ..base import Base, TZDateTime
 
 
 class ChatSession(Base):
-    """One row per chat session opened by Msty / OWUI / a curl operator."""
+    """One row per chat session opened by Msty / a curl operator."""
 
     __tablename__ = "chat_sessions"
     __table_args__ = (

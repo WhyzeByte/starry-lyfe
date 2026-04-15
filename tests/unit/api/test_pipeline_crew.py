@@ -163,7 +163,7 @@ class TestCrewFlow:
     def test_slash_all_expands_multi_speaker(self, crew_app: TestClient) -> None:
         """F1 core contract: `/all` produces ≥2 attribution markers.
 
-        Msty/OWUI populate the roster via the system prompt; naming the
+        Msty populates the roster via the system prompt; naming the
         women there lets the Msty preprocessor fill ``scene_characters``
         before the pipeline runs. `/all` then flips ``all_override`` so
         Crew mode engages even with no prior turns.
