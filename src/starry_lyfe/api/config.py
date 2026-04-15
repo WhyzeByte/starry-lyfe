@@ -34,6 +34,12 @@ class ApiSettings(BaseSettings):
     relationship_eval_llm: bool = True
     relationship_eval_max_tokens: int = 200
     relationship_eval_temperature: float = 0.2
+    # Phase 9 AC-9.7: inter-woman (internal) relationship evaluator toggle.
+    # Reuses the Phase 8 max_tokens / temperature settings above; this
+    # boolean is the only new knob. When False, the post-turn per-active-
+    # dyad evaluator forces the heuristic path across all 6 inter-woman
+    # dyads in `DyadStateInternal`.
+    internal_relationship_eval_llm: bool = True
 
     model_config = {
         "env_prefix": "STARRY_LYFE__API__",
