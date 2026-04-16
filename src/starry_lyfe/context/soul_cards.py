@@ -90,10 +90,37 @@ def load_soul_card(path: Path | str) -> SoulCard:
 
 
 def load_all_soul_cards() -> list[SoulCard]:
-    """Load all soul cards from the canonical directory."""
+    """Load all soul cards from the rich per-character YAMLs (Phase 10.3b).
+
+    Previously read from ``src/starry_lyfe/canon/soul_cards/*.md``. Phase
+    10.3b embedded each card's frontmatter + body into the per-character
+    YAML under the ``soul_cards`` block. This function now iterates
+    ``RichCharacter.soul_cards`` and converts each entry to the same
+    ``SoulCard`` dataclass shape the rest of the system consumes.
+    """
+    from starry_lyfe.canon.rich_loader import load_all_rich_characters
+
     cards: list[SoulCard] = []
-    for md_file in sorted(SOUL_CARDS_DIR.rglob("*.md")):
-        cards.append(load_soul_card(md_file))
+    for cid, rc in load_all_rich_characters().items():
+        if not rc.soul_cards:
+            continue
+        for yc in rc.soul_cards:
+            act_data = {
+                "always": yc.activation.always,
+                "communication_mode": yc.activation.communication_mode or [],
+                "with_character": yc.activation.with_character or [],
+                "scene_keyword": yc.activation.scene_keyword or [],
+            }
+            cards.append(SoulCard(
+                character=cid,
+                card_type=yc.card_type,
+                source=yc.source or "",
+                budget_tokens=yc.budget_tokens,
+                activation=SoulCardActivation.model_validate(act_data),
+                required_concepts=list(yc.required_concepts or []),
+                body=yc.body,
+                file_path=yc.source_file,
+            ))
     return cards
 
 
