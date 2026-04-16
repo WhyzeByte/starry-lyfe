@@ -320,6 +320,26 @@ def _load_raw_kernel(character_id: str) -> str:
     return full_path.read_text(encoding="utf-8")
 
 
+def _rich_yaml_mtime(character_id: str) -> float:
+    """Return the mtime of the focal character's rich YAML (0.0 on miss).
+
+    Phase 10.5b RT3: cache-key component that makes ``load_kernel``
+    invalidate when the canonical source on disk changes. On Windows,
+    the YAML file lives on OneDrive and may be transiently unavailable
+    during cloud sync — falling back to 0.0 keeps the cache key stable
+    in that case rather than raising a FileNotFoundError mid-request.
+    """
+    from starry_lyfe.canon.rich_loader import CHARACTERS_DIR, RICH_YAML_FILES
+
+    filename = RICH_YAML_FILES.get(character_id)
+    if filename is None:
+        return 0.0
+    try:
+        return (CHARACTERS_DIR / filename).stat().st_mtime
+    except OSError:
+        return 0.0
+
+
 def load_kernel(
     character_id: str,
     budget: int = 2000,
@@ -336,10 +356,16 @@ def load_kernel(
 
     The cache key includes ``profile_name`` to prevent silent collisions
     when two scene profiles resolve to the same numeric budget for the
-    same character. (C2 remediation.)
+    same character (C2 remediation) AND the focal character's rich YAML
+    mtime so edits to ``Characters/{name}.yaml`` invalidate the cache
+    (Phase 10.5b RT3).
     """
     promo_key = tuple(sorted(promote_sections)) if promote_sections else ()
-    cache_key = f"{character_id}:{budget}:{profile_name or 'default'}:{promo_key}"
+    yaml_mtime = _rich_yaml_mtime(character_id)
+    cache_key = (
+        f"{character_id}:{budget}:{profile_name or 'default'}:"
+        f"{promo_key}:{yaml_mtime}"
+    )
     if cache_key in _kernel_cache:
         return _kernel_cache[cache_key]
     text = compile_kernel_with_soul(character_id, budget, promote_sections)

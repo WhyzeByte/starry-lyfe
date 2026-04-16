@@ -51,9 +51,9 @@ class TestPairCanonicalNames:
         for cid in WOMAN_IDS:
             rc = chars[cid]
             pa = rc.pair_architecture
-            if not isinstance(pa, dict):
+            if pa is None:
                 continue
-            name = pa.get("name")
+            name = pa.name
             if name and name not in shared_names:
                 errors.append(
                     f"{cid}: pair_architecture.name = {name!r} does not "

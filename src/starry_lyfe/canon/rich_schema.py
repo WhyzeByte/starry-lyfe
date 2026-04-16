@@ -96,6 +96,63 @@ class SoulCardActivation(_Permissive):
     scene_keyword: list[str] | None = None
 
 
+class WhyzePartnerProfile(_Permissive):
+    """Per-character view of Whyze within ``pair_architecture``.
+
+    Each woman's YAML surfaces different facets of Whyze (what she sees,
+    what her pair-interlock emphasizes). The declared fields here are
+    the minimum load-bearing anchors. Additional keys are accepted via
+    ``extra="allow"`` — heterogeneous content is a feature of per-POV
+    authoring, not a schema violation.
+    """
+
+    legal_name: str | None = None
+    handle: str | None = None
+    mbti: str | None = None
+
+
+class PairArchitecture(_Permissive):
+    """Typed ``pair_architecture`` block (Phase 10.5b RT2 hardening).
+
+    Replaces the permissive ``dict[str, object]`` shape. ``name`` is the
+    single canonical anchor that MUST resolve to a
+    ``shared_canon.yaml.pairs[*].canonical_name`` entry; all other fields
+    are authored from the focal woman's POV. The Adelia YAML uses the
+    singular ``core_metaphor`` shape; the other three women use the list
+    ``core_metaphors`` shape — both are valid. The ``what_she_provides``
+    / ``what_he_provides`` fields accept either a string (legacy shape)
+    or a list of strings (rich YAML shape).
+
+    ``callbacks`` is the short-form canonical-phrase list rendered as a
+    dedicated Layer 1 block by ``format_pair_callbacks_from_rich`` (Phase
+    10.6 remediation). ``whyze_partner_profile`` is structured POV
+    content; the deeper nested shapes remain permissive.
+    """
+
+    name: str
+    classification: str | None = None
+    mechanism: str | None = None
+    shared_functions: str | None = None
+    cadence: str | None = None
+    core_metaphor: str | None = None
+    core_metaphors: list[str] | None = None
+    what_she_provides: list[str] | str | None = None
+    what_he_provides: list[str] | str | None = None
+    callbacks: list[str] | None = None
+    whyze_partner_profile: WhyzePartnerProfile | None = None
+
+
+class KnowledgeStackSection(_Permissive):
+    """A single knowledge-stack section (Phase 10.5b RT2 typed wrapper).
+
+    ``knowledge_stack`` is a dict of free-shape per-POV knowledge
+    sections (e.g., Bina's ``assyrian_iranian_reference``, Alicia's
+    diplomat/polyglot layers). The Pydantic wrapper ensures each value
+    parses as a mapping; individual leaf fields remain permissive
+    because per-POV authoring deliberately uses heterogeneous shapes.
+    """
+
+
 class SoulCardYaml(_Permissive):
     """A single soul card embedded in the rich YAML."""
 
@@ -187,11 +244,17 @@ class RichCharacter(_Permissive):
     kernel_sections: list[KernelSection] | None = None
 
     # --- Woman-specific (optional for Shawn) ---
-    pair_architecture: dict[str, object] | None = None
+    # Phase 10.5b RT2: pair_architecture and knowledge_stack are now typed.
+    # family_and_other_dyads is the de facto ``relationships.{X}`` surface
+    # (keys of shape ``with_{X}``). The ``relationships.{X}`` rename from
+    # the Phase 10.1 plan is deferred — current shape is architecturally
+    # equivalent and renaming incurs a 13-file blast radius without any
+    # semantic or quality gain. Option (b) per the RT2 playbook.
+    pair_architecture: PairArchitecture | None = None
     scene_engine: dict[str, object] | None = None
     intimacy_architecture: dict[str, object] | None = None
     family_and_other_dyads: dict[str, InterWomanDyad] | None = None
-    knowledge_stack: dict[str, object] | None = None
+    knowledge_stack: dict[str, KnowledgeStackSection] | None = None
 
     # --- Soul cards (Phase 10.3b) ---
     soul_cards: list[SoulCardYaml] | None = None

@@ -214,6 +214,64 @@ class TestCrossReferenceValidator:
         pair_errors = [e for e in errors if "pair_architecture" in e]
         assert not pair_errors
 
+    def test_all_six_dyads_diverge_against_live_yamls(self) -> None:
+        """Phase 10.5b RT2 / AC-10.21: every inter-woman dyad must diverge.
+
+        Live rich YAMLs must not fail the all-6-dyads divergence check.
+        Byte-identical POVs would indicate drift toward agreeable mush.
+        """
+        chars = load_all_rich_characters()
+        shared = load_shared_canon()
+        errors = validate_rich_cross_references(chars, shared)
+        divergence_errors = [e for e in errors if "byte-identical" in e.lower()]
+        assert not divergence_errors, (
+            f"All-six-dyads divergence failed: {divergence_errors}"
+        )
+
+    def test_validator_rejects_synthetic_identical_pov_dyad(self) -> None:
+        """Phase 10.5b RT2: synthetic identical-POV pair MUST emit divergence error.
+
+        Proves the validator actually enforces AC-10.21 — a regression
+        where the check quietly accepted identical blocks would bypass
+        the divergence gate entirely.
+        """
+        from starry_lyfe.canon.rich_schema import RichCharacter
+
+        def _stub(cid: str, dyads: dict[str, dict[str, object]]) -> RichCharacter:
+            return RichCharacter.model_validate({
+                "version": "7.1-rich",
+                "character_id": cid,
+                "meta": {"full_name": cid.title()},
+                "identity": {},
+                "soul_substrate": {
+                    "identity_blocks": [{"label": "test", "text": "test"}],
+                },
+                "voice": {"baseline": "test"},
+                "behavioral_framework": {},
+                "canon_facts": [{"fact_text": "test"}],
+                "family_and_other_dyads": dyads,
+            })
+
+        identical_block: dict[str, object] = {
+            "interlock_name": "Agreeable Mush",
+            "description": "We get along fine.",
+            "tone": "warm",
+            "truths": ["We are friends.", "Nothing is complicated."],
+        }
+        chars = {
+            "adelia": _stub("adelia", {"with_bina": identical_block}),
+            "bina": _stub("bina", {"with_adelia": identical_block}),
+        }
+        shared = load_shared_canon()
+        errors = validate_rich_cross_references(chars, shared)
+        divergence_errors = [e for e in errors if "byte-identical" in e.lower()]
+        assert divergence_errors, (
+            "Validator accepted identical POV blocks — AC-10.21 bypass."
+        )
+        assert any("adeliaxbina" in e.lower() for e in divergence_errors), (
+            f"Error message should name the offending dyad: {divergence_errors}"
+        )
+
 
 class TestDivergenceRequired:
     """AC-10.21 precursor: at least one inter-woman dyad has divergent POVs.

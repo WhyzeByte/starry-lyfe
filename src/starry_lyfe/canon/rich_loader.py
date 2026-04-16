@@ -140,14 +140,104 @@ def format_pair_callbacks_from_rich(rc: RichCharacter) -> str:
     callbacks block (e.g., Shawn).
     """
     pa = rc.pair_architecture
-    if not isinstance(pa, dict):
+    if pa is None:
         return ""
-    callbacks = pa.get("callbacks")
-    if not isinstance(callbacks, list) or not callbacks:
+    callbacks = pa.callbacks
+    if not callbacks:
         return ""
     lines = ["## Canonical Callbacks (pair architecture)"]
     for cb in callbacks:
         lines.append(f"- {cb}")
+    return "\n".join(lines)
+
+
+def format_pair_metadata_from_rich(character_id: str) -> str:
+    """Layer 5 pair metadata block sourced from rich YAML + shared_canon.
+
+    Phase 10.5b RT1 cutover: replaces the legacy
+    ``pairs_loader.format_pair_metadata`` runtime path. The block is
+    focal-POV-specific — when ``character_id`` is Bina, the emitted
+    block reflects Bina's read on the Circuit Pair (from her YAML),
+    not a neutral merge of the objective shared_canon anchor alone.
+
+    Output shape mirrors the legacy 6-field block for assembled-prompt
+    continuity. The canonical pair name is resolved from
+    ``shared_canon.yaml.pairs`` (objective anchor) so typos or future
+    drift in the per-character ``pair_architecture.name`` still render
+    the authoritative pair name. All other fields are drawn from the
+    focal character's ``pair_architecture`` (her POV). The
+    ``HOW SHE BREAKS HIS SPIRAL`` line is sourced from
+    ``floor_defaults.ambiguity_resolution.when_whyze_is_spiraling`` —
+    the canonical location in every woman's rich YAML.
+
+    Raises CharacterNotFoundError if the character has no
+    ``pair_architecture`` block (Shawn by design).
+    """
+    rc = load_rich_character(character_id)
+    pa = rc.pair_architecture
+    if pa is None:
+        from .schemas.enums import CharacterNotFoundError
+        msg = f"No pair_architecture for character {character_id!r}"
+        raise CharacterNotFoundError(msg)
+
+    shared = load_shared_canon()
+    authored_name = pa.name
+    canonical_name = authored_name
+    if authored_name and shared.pairs:
+        for entry in shared.pairs:
+            if entry.canonical_name == authored_name:
+                canonical_name = entry.canonical_name
+                break
+
+    classification = str(pa.classification or "").strip()
+    mechanism = str(pa.mechanism or "").strip()
+
+    metaphors = pa.core_metaphors
+    if metaphors:
+        metaphor_text = "; ".join(str(m).strip() for m in metaphors if str(m).strip())
+    else:
+        metaphor_text = str(pa.core_metaphor or "").strip()
+
+    provides = pa.what_she_provides
+    if isinstance(provides, list) and provides:
+        provides_text = "; ".join(str(p).strip() for p in provides if str(p).strip())
+    else:
+        provides_text = str(provides or "").strip()
+
+    spiral_text = ""
+    extras = getattr(rc, "__pydantic_extra__", None) or {}
+    floor_defaults = extras.get("floor_defaults")
+    if isinstance(floor_defaults, dict):
+        ar = floor_defaults.get("ambiguity_resolution")
+        if isinstance(ar, dict):
+            candidate = ar.get("when_whyze_is_spiraling")
+            if isinstance(candidate, str):
+                spiral_text = candidate.strip()
+    if not spiral_text:
+        bf = rc.behavioral_framework or {}
+        if isinstance(bf, dict):
+            for parent_key in ("regulation_loop", "anxiety_anchoring"):
+                parent = bf.get(parent_key)
+                if isinstance(parent, dict):
+                    candidate = parent.get("when_whyze_is_spiraling")
+                    if isinstance(candidate, str) and candidate.strip():
+                        spiral_text = candidate.strip()
+                        break
+                elif parent_key == "anxiety_anchoring" and isinstance(parent, str):
+                    spiral_text = parent.strip()
+                    break
+
+    lines = [f"PAIR: {canonical_name or 'Unknown'}"]
+    if classification:
+        lines.append(f"CLASSIFICATION: {classification}")
+    if mechanism:
+        lines.append(f"MECHANISM: {mechanism}")
+    if metaphor_text:
+        lines.append(f"CORE METAPHOR: {metaphor_text}")
+    if provides_text:
+        lines.append(f"WHAT SHE PROVIDES: {provides_text}")
+    if spiral_text:
+        lines.append(f"HOW SHE BREAKS HIS SPIRAL: {spiral_text}")
     return "\n".join(lines)
 
 
@@ -287,17 +377,60 @@ def _get_inter_woman_dyad_keys(rc: RichCharacter) -> set[str]:
     return {k.removeprefix("with_") for k in fad if k.startswith("with_")}
 
 
+_INTER_WOMAN_DYADS: tuple[tuple[str, str], ...] = (
+    ("adelia", "bina"),
+    ("adelia", "reina"),
+    ("adelia", "alicia"),
+    ("bina", "reina"),
+    ("bina", "alicia"),
+    ("reina", "alicia"),
+)
+
+
+def _dyad_pov_prose_signature(rc: RichCharacter, other_id: str) -> tuple[str, ...] | None:
+    """Return a normalized prose tuple for comparing two POVs on one dyad.
+
+    Returns ``None`` if the POV block is absent. The tuple packs the
+    load-bearing prose fields (``interlock_name``, ``description``,
+    ``tone``, joined ``truths``) in a stable order so two POVs can be
+    compared component-wise.
+    """
+    fad = rc.family_and_other_dyads
+    if fad is None:
+        return None
+    block = fad.get(f"with_{other_id}")
+    if block is None:
+        return None
+    truths = block.truths
+    if isinstance(truths, list):
+        truths_text = "\n".join(str(t) for t in truths)
+    elif isinstance(truths, str):
+        truths_text = truths
+    else:
+        truths_text = ""
+    return (
+        str(block.interlock_name or ""),
+        str(block.description or ""),
+        str(block.tone or ""),
+        truths_text,
+    )
+
+
 def validate_rich_cross_references(
     chars: dict[str, RichCharacter],
     shared: SharedCanon,
 ) -> list[str]:
-    """Cross-reference validator for the per-POV model (Phase 10.1 WI4).
+    """Cross-reference validator for the per-POV model.
 
     Checks:
     1. Perspective symmetry: every ``family_and_other_dyads.with_{X}``
        block in character A must have a matching ``with_{A}`` in X.
     2. Pair POV: every woman with ``pair_architecture`` must have a
        matching pair entry in ``shared_canon.yaml.pairs``.
+    3. All-six-dyads divergence (AC-10.21, Phase 10.5b RT2): for every
+       one of the 6 inter-woman dyads, the two POV blocks must differ
+       in at least one prose field. Byte-identical POVs indicate drift
+       toward agreeable mush and FAIL the validator.
 
     Returns a list of error strings (empty = all pass).
     """
@@ -322,11 +455,36 @@ def validate_rich_cross_references(
         pa = rc.pair_architecture
         if pa is None:
             continue
-        pair_name = pa.get("name") if isinstance(pa, dict) else None
+        pair_name = pa.name
         if pair_name and pair_name not in shared_pair_names:
             errors.append(
                 f"{cid}: pair_architecture.name {pair_name!r} "
                 f"not found in shared_canon.yaml pairs"
+            )
+
+    for dyad_a, dyad_b in _INTER_WOMAN_DYADS:
+        rc_x = women.get(dyad_a)
+        rc_y = women.get(dyad_b)
+        if rc_x is None or rc_y is None:
+            continue
+        sig_a = _dyad_pov_prose_signature(rc_x, dyad_b)
+        sig_b = _dyad_pov_prose_signature(rc_y, dyad_a)
+        if sig_a is None or sig_b is None:
+            continue
+        diverges = any(
+            a and b and a != b
+            for a, b in zip(sig_a, sig_b, strict=False)
+        )
+        asymmetric = any(
+            bool(a) != bool(b)
+            for a, b in zip(sig_a, sig_b, strict=False)
+        )
+        if not (diverges or asymmetric):
+            errors.append(
+                f"Dyad {dyad_a}x{dyad_b}: POV prose blocks are byte-identical "
+                f"across interlock_name/description/tone/truths. "
+                f"AC-10.21 requires per-POV divergence on at least one "
+                f"lived-mechanic prose field."
             )
 
     return errors

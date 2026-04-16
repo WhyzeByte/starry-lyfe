@@ -413,9 +413,9 @@ def format_voice_directives(
     sections: list[str] = []
     remaining = budget
 
-    from starry_lyfe.canon.pairs_loader import format_pair_metadata
+    from starry_lyfe.canon.rich_loader import format_pair_metadata_from_rich
 
-    pair_block = format_pair_metadata(character_id)
+    pair_block = format_pair_metadata_from_rich(character_id)
     pair_tokens = estimate_tokens(pair_block)
     sections.append(pair_block)
     remaining = max(0, remaining - pair_tokens - 3)

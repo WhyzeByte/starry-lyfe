@@ -121,14 +121,21 @@ class TestErrorHandling:
             get_pair_metadata("nonexistent")
 
     def test_layer_5_propagates_pair_error(self) -> None:
-        """F1: Layer 5 must not silently swallow pair loading errors."""
+        """F1: Layer 5 must not silently swallow pair loading errors.
+
+        Post-Phase-10.5b RT1 cutover, Layer 5 sources pair metadata from
+        ``rich_loader.format_pair_metadata_from_rich`` rather than the
+        legacy ``pairs_loader.format_pair_metadata``. The F1 invariant
+        — Layer 5 must not swallow errors — is preserved against the
+        new runtime path.
+        """
         from unittest.mock import patch
 
         from starry_lyfe.context.layers import format_voice_directives
 
         with patch(
-            "starry_lyfe.canon.pairs_loader.format_pair_metadata",
-            side_effect=FileNotFoundError("pairs.yaml missing"),
+            "starry_lyfe.canon.rich_loader.format_pair_metadata_from_rich",
+            side_effect=FileNotFoundError("rich YAML missing"),
         ):
             import pytest
 

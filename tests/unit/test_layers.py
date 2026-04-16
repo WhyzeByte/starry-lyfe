@@ -799,3 +799,95 @@ class TestLiveLayer5:
         assert "intimate" not in layer.text.lower()
         assert "escalation" not in layer.text.lower()
         assert "solo_pair" not in layer.text.lower()
+
+
+# ---------------------------------------------------------------------------
+# Phase 10.5b RT1: Layer 5 pair metadata sourced from rich YAML (focal-POV)
+# ---------------------------------------------------------------------------
+
+class TestLayer5PairMetadataFocalPOV:
+    """RT1 regression: Layer 5 pair block reads from rich YAML pair_architecture.
+
+    The block MUST be focal-POV-specific (AC-10.23 spirit): when Bina is
+    focal, the block reflects Bina's read on the Circuit Pair — not a
+    neutral shared_canon-only merge and not another character's POV.
+    """
+
+    def test_bina_block_is_circuit_pair_and_carries_bina_pov_content(self) -> None:
+        from starry_lyfe.canon.rich_loader import format_pair_metadata_from_rich
+
+        block = format_pair_metadata_from_rich("bina")
+        assert block.startswith("PAIR: The Circuit Pair"), block
+        assert "Orthogonal Opposition" in block
+        assert "Cybernetic homeostasis" in block
+        assert "Citadel and Circuit" in block
+        assert "micro-level operational execution" in block
+
+    def test_adelia_block_is_entangled_pair_and_carries_adelia_pov_content(self) -> None:
+        from starry_lyfe.canon.rich_loader import format_pair_metadata_from_rich
+
+        block = format_pair_metadata_from_rich("adelia")
+        assert block.startswith("PAIR: The Entangled Pair"), block
+        assert "Intuitive Symbiosis" in block
+        assert "Gravity and Space" in block
+        assert "emotional buoyancy" in block
+
+    def test_focal_pov_does_not_leak_other_characters_pair_content(self) -> None:
+        """Negative: Bina's block does not carry Reina/Adelia/Alicia POV content."""
+        from starry_lyfe.canon.rich_loader import format_pair_metadata_from_rich
+
+        bina_block = format_pair_metadata_from_rich("bina")
+        assert "Kinetic Pair" not in bina_block
+        assert "Entangled Pair" not in bina_block
+        assert "Solstice Pair" not in bina_block
+        assert "strategy-tactics dyad" not in bina_block
+        assert "Intuitive Symbiosis" not in bina_block
+        assert "Gravity and Space" not in bina_block
+
+    def test_reina_block_is_kinetic_pair(self) -> None:
+        from starry_lyfe.canon.rich_loader import format_pair_metadata_from_rich
+
+        block = format_pair_metadata_from_rich("reina")
+        assert block.startswith("PAIR: The Kinetic Pair"), block
+
+    def test_alicia_block_is_solstice_pair(self) -> None:
+        from starry_lyfe.canon.rich_loader import format_pair_metadata_from_rich
+
+        block = format_pair_metadata_from_rich("alicia")
+        assert block.startswith("PAIR: The Solstice Pair"), block
+
+    def test_layer5_renders_pair_block_from_rich_yaml_not_pairs_loader(self) -> None:
+        """Proves the runtime Layer 5 path calls the rich-YAML function.
+
+        Patches the legacy ``pairs_loader.format_pair_metadata`` and
+        ``rich_loader.format_pair_metadata_from_rich`` and asserts that
+        ``format_voice_directives`` invokes the rich path, not the legacy
+        path.
+        """
+        from unittest.mock import patch
+
+        from starry_lyfe.context.layers import format_voice_directives
+
+        clear_kernel_cache()
+        with patch(
+            "starry_lyfe.canon.rich_loader.format_pair_metadata_from_rich",
+            return_value="PAIR: RICH_YAML_SENTINEL",
+        ) as rich_mock, patch(
+            "starry_lyfe.canon.pairs_loader.format_pair_metadata",
+            return_value="PAIR: LEGACY_SENTINEL",
+        ) as legacy_mock:
+            layer = format_voice_directives("bina", baseline=None)
+
+        clear_kernel_cache()
+        assert rich_mock.called, "rich-YAML pair metadata path was not called"
+        assert not legacy_mock.called, "legacy pairs_loader path should not be used"
+        assert "RICH_YAML_SENTINEL" in layer.text
+        assert "LEGACY_SENTINEL" not in layer.text
+
+    def test_missing_pair_architecture_raises_character_not_found(self) -> None:
+        """Shawn has no pair_architecture — function must fail loud."""
+        from starry_lyfe.canon.rich_loader import format_pair_metadata_from_rich
+        from starry_lyfe.canon.schemas.enums import CharacterNotFoundError
+
+        with pytest.raises(CharacterNotFoundError):
+            format_pair_metadata_from_rich("shawn")

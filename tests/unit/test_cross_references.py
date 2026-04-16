@@ -52,8 +52,8 @@ class TestPairPOVResolution:
         for cid in WOMAN_IDS:
             rc = chars[cid]
             pa = rc.pair_architecture
-            assert pa is not None and isinstance(pa, dict)
-            assert pa.get("name"), f"{cid}: pair_architecture.name missing"
+            assert pa is not None, f"{cid}: pair_architecture is None"
+            assert pa.name, f"{cid}: pair_architecture.name missing"
 
 
 class TestSignatureSceneAnchorResolution:
