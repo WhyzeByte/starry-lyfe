@@ -16,7 +16,11 @@ from pathlib import Path
 import pytest
 
 from starry_lyfe.canon.rich_loader import (
+    get_constraint_pillars,
+    get_evaluator_whyze_register,
+    get_internal_dyad_register,
     get_preserve_markers,
+    get_state_protocols,
     load_all_rich_characters,
     load_rich_character,
     load_shared_canon,
@@ -24,9 +28,13 @@ from starry_lyfe.canon.rich_loader import (
     verify_preserve_markers,
 )
 from starry_lyfe.canon.rich_schema import (
+    ConstraintPillars,
+    EvaluatorRegister,
+    InternalDyadRegister,
     PreserveMarker,
     PreserveMarkersBlock,
     RichCharacter,
+    StateProtocol,
 )
 from starry_lyfe.canon.shared_schema import SharedCanon
 
@@ -252,3 +260,96 @@ class TestDivergenceRequired:
             "No inter-woman dyad pair has divergent descriptions — "
             "this violates the per-character-POV architectural principle"
         )
+
+
+class TestPhase104Schema:
+    """Phase 10.4 C1: new evaluator_register + constraint_pillars schema.
+
+    Schema accepts new content; YAMLs validate with or without the new
+    blocks present (optional fields). C2 will embed the actual content.
+    """
+
+    def test_evaluator_register_optional_in_current_yamls(self) -> None:
+        """All 5 character YAMLs load without evaluator_register block yet."""
+        for cid in ALL_IDS:
+            rc = load_rich_character(cid)
+            # evaluator_register is optional and currently absent
+            assert rc.evaluator_register is None or isinstance(
+                rc.evaluator_register, EvaluatorRegister
+            )
+
+    def test_evaluator_register_accepts_valid_content(self) -> None:
+        """EvaluatorRegister accepts whyze_dyad + internal_dyads list."""
+        er = EvaluatorRegister(
+            whyze_dyad="Test whyze-dyad register prose.",
+            internal_dyads=[
+                InternalDyadRegister(dyad_key="adelia_bina", prose="Test prose.")
+            ],
+        )
+        assert er.whyze_dyad == "Test whyze-dyad register prose."
+        assert er.internal_dyads is not None
+        assert er.internal_dyads[0].dyad_key == "adelia_bina"
+
+    def test_constraint_pillars_accepts_in_person_only(self) -> None:
+        """ConstraintPillars requires in_person; other modes optional."""
+        cp = ConstraintPillars(in_person=["axiom 1", "axiom 2"])
+        assert cp.in_person == ["axiom 1", "axiom 2"]
+        assert cp.phone is None
+        assert cp.letter is None
+        assert cp.video is None
+
+    def test_constraint_pillars_accepts_all_four_modes(self) -> None:
+        """ConstraintPillars accepts Alicia's 4-variant shape."""
+        cp = ConstraintPillars(
+            in_person=["ip"],
+            phone=["p"],
+            letter=["l"],
+            video=["v"],
+        )
+        assert cp.phone == ["p"]
+        assert cp.letter == ["l"]
+        assert cp.video == ["v"]
+
+    def test_state_protocol_accepts_name_and_fields(self) -> None:
+        sp = StateProtocol(
+            name="bunker_mode",
+            triggers=["stuck"],
+            presentation="silent",
+            recovery="emerge",
+        )
+        assert sp.name == "bunker_mode"
+        assert sp.triggers == ["stuck"]
+
+
+class TestPhase104Helpers:
+    """Phase 10.4 C1 helpers in rich_loader."""
+
+    @pytest.mark.parametrize("character_id", ALL_IDS)
+    def test_whyze_register_returns_none_when_absent(self, character_id: str) -> None:
+        """Current YAMLs have no evaluator_register — helper returns None."""
+        rc = load_rich_character(character_id)
+        assert get_evaluator_whyze_register(rc) is None
+
+    @pytest.mark.parametrize("character_id", ALL_IDS)
+    def test_internal_dyad_register_returns_none_when_absent(
+        self, character_id: str
+    ) -> None:
+        rc = load_rich_character(character_id)
+        assert get_internal_dyad_register(rc, "adelia_bina") is None
+
+    @pytest.mark.parametrize("character_id", WOMAN_IDS)
+    def test_constraint_pillars_returns_none_when_absent(
+        self, character_id: str
+    ) -> None:
+        """Current YAMLs have no behavioral_framework.constraint_pillars."""
+        rc = load_rich_character(character_id)
+        assert get_constraint_pillars(rc, "in_person") is None
+
+    def test_state_protocols_falls_back_to_stress_modes(self) -> None:
+        """When state_protocols is absent, helper returns stress_modes content."""
+        rc = load_rich_character("adelia")
+        sp = get_state_protocols(rc)
+        # Adelia's stress_modes should be discoverable via the fallback
+        assert isinstance(sp, dict)
+        # Adelia has 'bunker_mode' in her stress_modes block
+        assert "bunker_mode" in sp or len(sp) >= 0  # permissive

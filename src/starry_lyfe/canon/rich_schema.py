@@ -108,6 +108,65 @@ class SoulCardYaml(_Permissive):
     body: str
 
 
+class InternalDyadRegister(_Permissive):
+    """A single inter-woman dyad register section (Phase 9 evaluator).
+
+    Phase 10.4 C1 schema. Each entry maps a canonical dyad_key (e.g.,
+    ``adelia_bina``) to the register prose the Phase 9 evaluator uses
+    when scoring that dyad. Content-identity in 10.4; per-POV split
+    deferred to 10.4b.
+
+    Field ``prose`` (not ``register``) to avoid Pydantic's parent-class
+    attribute shadow warning.
+    """
+
+    dyad_key: str
+    prose: str
+
+
+class EvaluatorRegister(_Permissive):
+    """Per-character evaluator register prose (Phase 8 + Phase 9).
+
+    - ``whyze_dyad``: the prose block the Phase 8 evaluator uses when
+      scoring THIS character's dyad with Whyze. Corresponds to one of
+      the 4 per-character sections in the legacy hardcoded
+      ``RELATIONSHIP_EVAL_SYSTEM`` (ADELIA/BINA/REINA/ALICIA).
+    - ``internal_dyads``: a list of per-dyad register entries the Phase 9
+      evaluator uses when scoring inter-woman dyads this character is a
+      member of. Each entry carries the full dyad prose.
+    """
+
+    whyze_dyad: str | None = None
+    internal_dyads: list[InternalDyadRegister] | None = None
+
+
+class ConstraintPillars(_Permissive):
+    """Mode-keyed constraint pillar variants (Phase A'' Alicia + others).
+
+    ``in_person`` is the default/required variant for every character.
+    The three remote modes are authored only for Alicia in the legacy
+    constraints.py; other characters omit them.
+    """
+
+    in_person: list[str]
+    phone: list[str] | None = None
+    letter: list[str] | None = None
+    video: list[str] | None = None
+
+
+class StateProtocol(_Permissive):
+    """A single named state-protocol entry (Phase 10.4 C1 schema).
+
+    Source-aligned to the current YAML ``behavioral_framework.stress_modes``
+    shape. Fields permissive; migrations normalize content.
+    """
+
+    name: str
+    triggers: list[str] | None = None
+    presentation: str | None = None
+    recovery: str | None = None
+
+
 class Meta(_Permissive):
     full_name: str
     preserve_markers: list[PreserveMarker] | PreserveMarkersBlock | None = None
@@ -136,6 +195,9 @@ class RichCharacter(_Permissive):
 
     # --- Soul cards (Phase 10.3b) ---
     soul_cards: list[SoulCardYaml] | None = None
+
+    # --- Evaluator register (Phase 10.4 C1) ---
+    evaluator_register: EvaluatorRegister | None = None
 
     # --- Shawn-specific (optional for women) ---
     continuity_layers: dict[str, object] | None = None

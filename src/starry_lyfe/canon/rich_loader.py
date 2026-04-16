@@ -135,6 +135,60 @@ def soul_essence_token_estimate_from_rich(character_id: str) -> int:
     return estimate_tokens(text)
 
 
+def get_evaluator_whyze_register(rc: RichCharacter) -> str | None:
+    """Return the Phase 8 per-character evaluator register prose (or None)."""
+    if rc.evaluator_register is None:
+        return None
+    return rc.evaluator_register.whyze_dyad
+
+
+def get_internal_dyad_register(rc: RichCharacter, dyad_key: str) -> str | None:
+    """Return the Phase 9 per-dyad register prose for a given dyad_key (or None)."""
+    if rc.evaluator_register is None or rc.evaluator_register.internal_dyads is None:
+        return None
+    for entry in rc.evaluator_register.internal_dyads:
+        if entry.dyad_key == dyad_key:
+            return entry.prose
+    return None
+
+
+def get_constraint_pillars(rc: RichCharacter, mode: str) -> list[str] | None:
+    """Return the constraint pillars list for a communication mode.
+
+    Reads ``behavioral_framework.constraint_pillars[mode]`` with fallback
+    to ``in_person`` if the requested mode is missing. Returns None if
+    the YAML does not carry the block.
+    """
+    bf = rc.behavioral_framework or {}
+    pillars_block = bf.get("constraint_pillars") if isinstance(bf, dict) else None
+    if not isinstance(pillars_block, dict):
+        return None
+    direct = pillars_block.get(mode)
+    if isinstance(direct, list):
+        return [str(x) for x in direct]
+    in_person = pillars_block.get("in_person")
+    if isinstance(in_person, list):
+        return [str(x) for x in in_person]
+    return None
+
+
+def get_state_protocols(rc: RichCharacter) -> dict[str, object]:
+    """Return the behavioral_framework.state_protocols block (or empty dict).
+
+    Initially sourced from ``stress_modes`` when ``state_protocols`` is
+    not yet embedded. Phase 10.4 C2 migration may normalize the key.
+    """
+    bf = rc.behavioral_framework or {}
+    if isinstance(bf, dict):
+        sp = bf.get("state_protocols")
+        if isinstance(sp, dict):
+            return sp
+        sm = bf.get("stress_modes")
+        if isinstance(sm, dict):
+            return sm
+    return {}
+
+
 def get_preserve_markers(rc: RichCharacter) -> list[PreserveMarker]:
     """Extract a flat list of preserve markers from any character YAML shape."""
     pm = rc.meta.preserve_markers
