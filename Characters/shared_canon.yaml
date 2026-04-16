@@ -1,0 +1,52 @@
+version: "1.0"
+
+marriage:
+  partners: ["bina", "reina"]
+  year: 2022
+  canonical_scene_id: "bay_door_2024"
+
+signature_scenes:
+  - id: "bay_door_2024"
+    date: "August 2024"
+    participants: ["adelia", "reina", "bina"]
+    objective_description: "Adelia walked Reina through the bay door to meet Bina. The founding act of the Bina-Reina marriage in its current architectural form."
+  - id: "samovar_chai"
+    date: null
+    participants: ["bina", "shawn"]
+    objective_description: "Bina made the tea — strong, cardamom, not much sugar — Shirin's way. A canonical Bina domestic-anchor scene."
+  - id: "alicia_arrival"
+    date: null
+    participants: ["alicia", "adelia", "bina", "reina"]
+    objective_description: "Alicia's arrival into the chosen family. The greeting — forehead to forehead, hand on the back of the other's neck — established as the canonical Adelia-Alicia emblem."
+
+genealogy:
+  - subject: "gavin"
+    biological_parents: ["bina"]
+    legal_parents: ["bina", "reina"]
+    age: 7
+
+property:
+  location: "Foothills County near Priddis, Alberta"
+  layout_summary: "Main house, mezzanine (Bina's canonical private site), bay/garage (Bina's sovereign workshop territory), garage apartment (Alicia's couch above the garage)."
+
+timeline:
+  - id: "adelia_introduced_bina_reina"
+    date: "2021"
+    description: "Adelia introduced Bina and Reina."
+  - id: "bina_reina_marriage"
+    date: "2022"
+    description: "Bina and Reina married."
+
+pairs:
+  - canonical_name: "Entangled Pair"
+    classification: "generator-governor polarity"
+    mechanism: "Ne flood meets Si structure; the pattern becomes legible to both simultaneously"
+  - canonical_name: "Completed Circuit Pair"
+    classification: "diagnostic love"
+    mechanism: "Si-Fe loop meets Fe-Ti loop; maintenance architecture that never needs to be named"
+  - canonical_name: "Kinetic Pair"
+    classification: "kinetic-vanguard"
+    mechanism: "Se urgency meets Ne scope; the blast pattern survives the test"
+  - canonical_name: "Solstice Pair"
+    classification: "solstice-threshold"
+    mechanism: "Se-Fi meets Ne-Fi; the warmth survives the distance"
