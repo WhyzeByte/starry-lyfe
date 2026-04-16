@@ -322,34 +322,77 @@ class TestPhase104Schema:
 
 
 class TestPhase104Helpers:
-    """Phase 10.4 C1 helpers in rich_loader."""
-
-    @pytest.mark.parametrize("character_id", ALL_IDS)
-    def test_whyze_register_returns_none_when_absent(self, character_id: str) -> None:
-        """Current YAMLs have no evaluator_register — helper returns None."""
-        rc = load_rich_character(character_id)
-        assert get_evaluator_whyze_register(rc) is None
-
-    @pytest.mark.parametrize("character_id", ALL_IDS)
-    def test_internal_dyad_register_returns_none_when_absent(
-        self, character_id: str
-    ) -> None:
-        rc = load_rich_character(character_id)
-        assert get_internal_dyad_register(rc, "adelia_bina") is None
+    """Phase 10.4 helpers in rich_loader — verified against post-C2 YAML state."""
 
     @pytest.mark.parametrize("character_id", WOMAN_IDS)
-    def test_constraint_pillars_returns_none_when_absent(
+    def test_whyze_register_present_post_c2(self, character_id: str) -> None:
+        """After C2 content embed, every woman has a whyze_dyad register."""
+        rc = load_rich_character(character_id)
+        prose = get_evaluator_whyze_register(rc)
+        assert prose is not None
+        assert len(prose) > 100  # real prose, not placeholder
+
+    def test_whyze_register_absent_for_shawn(self) -> None:
+        """Shawn has no evaluator_register block."""
+        rc = load_rich_character("shawn")
+        assert get_evaluator_whyze_register(rc) is None
+
+    @pytest.mark.parametrize(
+        "character_id,dyad_key",
+        [
+            ("adelia", "adelia_bina"),
+            ("bina", "adelia_bina"),  # both members carry the same dyad
+            ("adelia", "adelia_reina"),
+            ("reina", "bina_reina"),
+            ("alicia", "adelia_alicia"),
+        ],
+    )
+    def test_internal_dyad_register_present_post_c2(
+        self, character_id: str, dyad_key: str
+    ) -> None:
+        """After C2 content embed, each woman has registers for her 3 dyads."""
+        rc = load_rich_character(character_id)
+        prose = get_internal_dyad_register(rc, dyad_key)
+        assert prose is not None
+        assert len(prose) > 100
+
+    def test_internal_dyad_register_absent_when_not_member(self) -> None:
+        """Adelia is NOT a member of bina_reina — should return None."""
+        rc = load_rich_character("adelia")
+        assert get_internal_dyad_register(rc, "bina_reina") is None
+
+    @pytest.mark.parametrize("character_id", WOMAN_IDS)
+    def test_constraint_pillars_in_person_present_post_c2(
         self, character_id: str
     ) -> None:
-        """Current YAMLs have no behavioral_framework.constraint_pillars."""
+        """After C2 content embed, every woman has in_person pillars."""
         rc = load_rich_character(character_id)
-        assert get_constraint_pillars(rc, "in_person") is None
+        pillars = get_constraint_pillars(rc, "in_person")
+        assert pillars is not None
+        assert len(pillars) >= 3
+
+    def test_constraint_pillars_alicia_has_all_four_modes(self) -> None:
+        """Alicia has distinct phone, letter, and video pillars (Phase A'')."""
+        rc = load_rich_character("alicia")
+        in_person = get_constraint_pillars(rc, "in_person")
+        phone = get_constraint_pillars(rc, "phone")
+        letter = get_constraint_pillars(rc, "letter")
+        video = get_constraint_pillars(rc, "video")
+        assert in_person != phone
+        assert in_person != letter
+        assert in_person != video
+        assert phone != letter
+
+    def test_constraint_pillars_non_alicia_fall_back_to_in_person(self) -> None:
+        """Adelia has no phone pillar; get_constraint_pillars falls back."""
+        rc = load_rich_character("adelia")
+        in_person = get_constraint_pillars(rc, "in_person")
+        phone = get_constraint_pillars(rc, "phone")
+        assert phone == in_person
 
     def test_state_protocols_falls_back_to_stress_modes(self) -> None:
         """When state_protocols is absent, helper returns stress_modes content."""
         rc = load_rich_character("adelia")
         sp = get_state_protocols(rc)
-        # Adelia's stress_modes should be discoverable via the fallback
         assert isinstance(sp, dict)
-        # Adelia has 'bunker_mode' in her stress_modes block
         assert "bunker_mode" in sp or len(sp) >= 0  # permissive
