@@ -15,7 +15,6 @@ from starry_lyfe.context.soul_cards import (
     find_activated_cards,
     format_soul_cards,
     load_all_soul_cards,
-    load_soul_card,
 )
 from starry_lyfe.context.types import CommunicationMode, SceneState
 
@@ -61,18 +60,6 @@ def _make_bina_bundle() -> SimpleNamespace:
 
 class TestSoulCardLoader:
     """WI1: Soul card loader parses YAML frontmatter + markdown body."""
-
-    @pytest.mark.skip(reason="P10.5: markdown soul_card loader archived")
-    def test_soul_card_loader_parses_frontmatter(self) -> None:
-        from starry_lyfe.context.soul_cards import SOUL_CARDS_DIR
-
-        path = SOUL_CARDS_DIR / "pair" / "bina_circuit.md"
-        card = load_soul_card(path)
-        assert card.character == "bina"
-        assert card.card_type == "pair"
-        assert card.budget_tokens == 850  # raised from 700 to match authored body size
-        assert card.activation.always is True
-        assert "Circuit Pair" in card.required_concepts
 
     def test_all_soul_cards_load_without_error(self) -> None:
         cards = load_all_soul_cards()

@@ -29,13 +29,6 @@ from starry_lyfe.context.types import CommunicationMode, SceneState
 
 WOMAN_IDS = ("adelia", "bina", "reina", "alicia")
 
-# Characters whose preserve_markers all live in rendered Layer 1 blocks
-# (soul_substrate, kernel_sections). Others have some markers in
-# pair_architecture.callbacks or similar list blocks that the current
-# assembler doesn't render as Layer 1 prose — tracked as a Phase 10.2/10.4
-# assembler coverage gap, not a 10.6 enforcement regression.
-_KNOWN_LAYER1_GAP_CHARACTERS: frozenset[str] = frozenset({"bina", "reina", "alicia"})
-
 
 class _StubEmbeddingService:
     async def embed(self, text: str) -> list[float]:
@@ -90,10 +83,13 @@ def _build_scene_state(character_id: str, profile: dict[str, Any]) -> SceneState
     for extra in profile.get("extra_present", []):
         if extra != character_id and extra not in present:
             present.append(extra)
+    # Alicia in-person assembly requires alicia_home=True (P3-02 contract).
+    alicia_home = character_id == "alicia" or "alicia" in present
     return SceneState(
         present_characters=present,
         scene_description=str(profile["scene_description"]).format(character=character_id),
         communication_mode=profile["communication_mode"],
+        alicia_home=alicia_home,
     )
 
 
@@ -113,18 +109,9 @@ class TestPreserveMarkersInAssembledLayer1:
 
         Asserts the full canonical promise: not just that the anchor
         exists in YAML, but that it survives Phase A trim + soul essence
-        + soul card activation and reaches the LLM prompt.
+        prepend + pair-architecture callbacks block + soul card
+        activation and reaches the LLM prompt.
         """
-        if character_id in _KNOWN_LAYER1_GAP_CHARACTERS:
-            pytest.xfail(
-                f"Phase 10.6: {character_id} has preserve_markers in "
-                "pair_architecture.callbacks (and similar short-list blocks) "
-                "that the current assembler does not render as Layer 1 prose. "
-                "Closure requires Phase 10.2/10.4 assembler enhancement to "
-                "render callback lists. Adelia is the positive case (all "
-                "markers in soul_substrate)."
-            )
-
         async def stub_retrieve_memories(*args: object, **kwargs: object) -> Any:
             return _empty_bundle()
 

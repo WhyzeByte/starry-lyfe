@@ -1,6 +1,6 @@
 # PHASE 10: YAML Source-of-Truth Migration
 
-**Status:** Step 1 APPROVED 2026-04-15. **Phase 10.0 COMPLETE + RATIFIED 2026-04-15** (gap audit + 9 preserve_marker remediations + fact/perception classification ratified under Project Owner "highest quality option" directive — see `Docs/_phases/PHASE_10_GAP_AUDIT.md` §7). **Phase 10.1 authorized to begin** pending Phase 9 ship. Test baseline: 1182 passed, 0 failed.
+**Status:** **Phases 10.0–10.5 SHIPPED 2026-04-16.** Step 3 Codex Round 1 audit: **FAIL** (6 findings — F1 Critical PermissionError transient-resolved, F2 High soul cards cutover landed, F3 High Layer 5 pair metadata still legacy, F4 Medium schema/validator gaps, F5 Medium cache key missing mtime, F6 Low governance staleness being remediated). 9/9 preserve_marker failures from gap audit remediated by Claude AI (62/62 pass). Fact/perception classification RATIFIED. Test baseline: **1190 passed, 7 skipped, 0 failed**. Awaiting Step 4 remediation for F3/F4/F5, then Step 5 QA.
 **Authority:** Project Owner directive 2026-04-15. Vision v7.1 §A principle (architecture vs life separation). Anti-regeneration directive: *"If a soul_essence.py file is causing quality issues, then we can just edit that file. Rather than changing a YAML file, then regenerating a million things."*
 **Quality gate:** Project Owner directive — *"We always default to the best outcome, quality, soul, and essence of the system over time/speed/budget."* This phase takes as long as it needs. No sub-phase ships until assembled prompts are bit-for-bit equivalent in soul content to the pre-migration baseline.
 
@@ -396,7 +396,7 @@ Per CLAUDE.md direct remediation authority: any soul-bearing prose drift that su
 
 ## Step 2 — Execute
 
-**[STATUS: IN PROGRESS — 10.0 + 10.1 + 10.2 + 10.3 + 10.3b COMPLETE]**
+**[STATUS: COMPLETE — 10.0 + 10.1 + 10.2 + 10.3 + 10.3b + 10.4 + 10.5 SHIPPED; Codex Round 1 audit FAIL; Step 4 remediation pending]**
 
 Commit ledger (chronological):
 
@@ -425,19 +425,13 @@ Commit ledger (chronological):
 - ⏳ Evaluator register sections (Phase 8/9 LLM prompts) — Phase 10.4 scope
 - ⏳ Layer 6 focal-POV dyad rendering — Phase 10.4 scope
 
-Test baseline: **1182 passed, 0 failed**. ruff + mypy --strict clean across 106 source files.
+Test baseline: **1190 passed, 7 skipped, 0 failed** (post-10.5). ruff + mypy --strict clean across 106 source files.
 
-**Remaining pre-10.4 gates:**
+**Pre-10.4 gates — all CLOSED:**
 
-1. **5 voice-judgment preserve_marker items** (Claude AI / PO decision, blocks Phase 10.6 enforcement, does NOT block 10.4):
-   - `bina_malek.yaml::kernel_core_identity_paragraph` — body leads with "Red Seal mechanic"; anchor says "First-generation Assyrian-Iranian Canadian"
-   - `reina_torres.yaml::kernel_opening_declaration` — body says "Barcelona born. Gracia raised"; anchor says "Thirty-six. Criminal defence lawyer, solo practice in Okotoks"
-   - `reina_torres.yaml::rafa_otra_vez` — body uses tighter prose; anchor carries `was`, `When`, quoted `otra vez`
-   - `reina_torres.yaml::complete_life_pre_whyze` — body uses "I have" anaphora; anchor uses comma-list
-   - `reina_torres.yaml::the_knowing_changed_the_temperature` — body expanded with extra sentence
-   - Test `test_all_content_anchors_found_in_body` in `test_rich_loader.py` currently excludes these 5 via `VOICE_JUDGMENT_MARKERS` set. Phase 10.6 enforces all markers unconditionally.
+1. **5 voice-judgment preserve_marker items** — **COMPLETED 2026-04-15 by Claude AI.** All 9 initial gap-audit failures (4 mechanical + 5 voice-judgment) remediated. 62/62 pass. Decision log at `PHASE_10_GAP_AUDIT.md §3.3`. The `VOICE_JUDGMENT_MARKERS` exclusion set was removed from `test_rich_loader.py::test_all_content_anchors_found_in_body` — all 62 markers enforced unconditionally.
 
-2. **Fact/perception classification ratification** — `PHASE_10_GAP_AUDIT.md §4` table drafted; awaiting Project Owner approval.
+2. **Fact/perception classification ratification** — **RATIFIED 2026-04-15 by Claude AI** under Project Owner "take whatever is the highest quality option" directive. BOTH pattern extended to general rule. Authority chain recorded in `PHASE_10_GAP_AUDIT.md §7`.
 
 3. **AC-10.15 criterion** — revised 2026-04-16 above to acknowledge richer-by-design YAML soul essence; no code action needed.
 
@@ -522,7 +516,82 @@ Result: the kernel cache key still lacked any rich-YAML mtime component, so the 
 
 ## Step 4 — Remediation
 
-*Pending Step 3.*
+**[STATUS: PLAYBOOK AUTHORED 2026-04-16 by Claude AI — awaiting Claude Code execution]**
+
+### Live finding status (verified 2026-04-16 by Claude AI Step 5 pre-scan)
+
+| # | Sev | Finding | Live status 2026-04-16 |
+|---:|---|---|---|
+| F1 | Critical | PermissionError on 4 YAMLs | **RESOLVED** — transient OneDrive sync lock. All 5 `load_rich_character()` calls succeed; `load_shared_canon()` succeeds. Full suite: **1190 passed, 7 skipped, 0 failed**. No code fix needed. |
+| F2 | High | Soul Cards still from markdown | **RESOLVED** — `load_all_soul_cards()` in `soul_cards.py` now reads from `RichCharacter.soul_cards` (Phase 10.3b commits `73cfcb4` + `5c75672` landed after audit baseline). The `SOUL_CARDS_DIR` constant remains as dead code. |
+| F3 | High | Layer 5 pair metadata still from legacy `pairs_loader.py` | **OPEN** — `layers.py:416-418` still imports from `pairs_loader.py`. This is Phase 10.5b scope. |
+| F4 | Medium | Schema/validator overstated | **OPEN** — permissive `dict[str, object]` in `rich_schema.py`; divergence test checks 1 dyad not all 6 |
+| F5 | Medium | Cache key missing rich-YAML mtime | **OPEN** — `kernel_loader.py:330` cache key lacks YAML mtime |
+| F6 | Low | Governance doc staleness | **RESOLVED** — Claude AI updated PHASE_10.md header + Step 2 pre-10.4 gates + CLAUDE.md §19 ship gate description on 2026-04-16 |
+
+**Summary: F1, F2, F6 resolved. F3, F4, F5 require Claude Code remediation.**
+
+### Remediation playbook for Claude Code
+
+#### RT1: F3 — Layer 5 pair metadata cutover to rich YAML (Phase 10.5b)
+
+**Scope:** Replace `pairs_loader.py` runtime path with rich YAML `pair_architecture.her_pov` + `shared_canon.yaml.pairs`.
+
+**Steps:**
+1. In `layers.py`, replace the import `from starry_lyfe.canon.pairs_loader import format_pair_metadata` with a new function that:
+   - Loads the focal character's `RichCharacter` via `load_rich_character(character_id)`
+   - Reads `pair_architecture` from the character's YAML (the `her_pov` / `his_pov` block)
+   - Reads the objective pair classification anchor from `load_shared_canon().pairs`
+   - Formats the Layer 5 pair metadata block from these two sources
+2. The rendered pair block MUST be focal-POV-specific (AC-10.23): when Bina is focal, the pair block is Bina's read on the Circuit Pair, not a neutral merge.
+3. Add regression test in `test_layers.py` that asserts the pair block contains focal-character POV content (not legacy neutral metadata).
+4. `pairs_loader.py` becomes dead code — do NOT delete yet (Phase 10.5 archive handles retirement).
+5. Verify `pairs.yaml` is no longer on the runtime hot path (only `pairs_loader.py` reads it; once `layers.py` stops calling it, it's orphaned).
+
+**Tests:** ≥3 new tests (focal-POV pair block for at least 2 characters + negative test that the other character's POV is NOT in the block).
+
+#### RT2: F4 — Schema and validator hardening
+
+**Scope:** Bring `rich_schema.py` and the cross-reference validator up to the Step 1 spec.
+
+**Steps:**
+1. Replace permissive `dict[str, object]` blocks in `rich_schema.py` with typed Pydantic models where the Step 1 plan specifies them (at minimum: `pair_architecture`, `knowledge_stack`).
+2. Extend `validate_rich_cross_references()` in `rich_loader.py` to enforce:
+   - Every `family_and_other_dyads.with_{X}` in character A has a matching `with_{A}` in character X (already done per audit)
+   - Every pair POV resolves to a `shared_canon.yaml.pairs` entry (already done per audit)
+   - **NEW:** AC-10.21 all-six-dyads divergence — assert each of the 6 inter-woman dyads has ≥1 prose block that differs between the two POVs. The current test only checks "at least one dyad diverges"; it must check "all six diverge."
+3. Update `test_rich_loader.py::TestCrossReferenceValidator` to exercise the all-six-dyads requirement.
+
+**Tests:** ≥2 new tests (all-six divergence + synthetic identical-POV-pair failure).
+
+**Note on `relationships.{X}` surface:** The Step 1 plan calls for explicit `relationships.{X}` keyed blocks. The current YAMLs use `family_and_other_dyads.with_{X}` instead. Either (a) rename the YAML keys to `relationships.{X}` and update the schema, or (b) document the `family_and_other_dyads.with_{X}` pattern as the de facto schema and narrow the AC-10.2 language to match. Per CLAUDE.md §16 highest-quality-default: option (a) is preferred because it matches the architectural intent and makes the per-POV model self-documenting. But if renaming creates a large blast radius, option (b) is acceptable with explicit documentation.
+
+#### RT3: F5 — Cache key includes rich-YAML mtime
+
+**Scope:** Add YAML file mtime to `compile_kernel_with_soul()` cache key.
+
+**Steps:**
+1. In `kernel_loader.py`, modify the cache key construction (around line 330) to include `rich_yaml_path.stat().st_mtime` for the focal character's YAML (and `shared_canon_path.stat().st_mtime` if shared_canon content materially affects the output).
+2. Add a regression test that:
+   - Compiles a kernel (populates cache)
+   - Touches the YAML file (updates mtime)
+   - Recompiles and asserts the cache was invalidated (different result or cache miss logged)
+
+**Tests:** ≥1 new test (cache invalidation on YAML mtime change).
+
+#### RT4: F2 dead code cleanup (optional, low priority)
+
+The `SOUL_CARDS_DIR` constant at `soul_cards.py:21` is now dead code — `load_all_soul_cards()` no longer reads from that directory. Remove the constant and any remaining markdown-path references. This is cleanup, not a gate.
+
+### Post-remediation verification
+
+After Claude Code ships RT1 + RT2 + RT3:
+1. Full suite must pass: `pytest -q` → 1190+ passed, 0 failed
+2. `ruff check src tests` clean
+3. `mypy --strict src` clean
+4. Regenerate 4 assembled prompt samples for Step 5 QA comparison
+
+<!-- HANDSHAKE: Claude AI -> Claude Code | Step 4 remediation playbook authored. F1/F2/F6 already resolved. Execute RT1 (F3 Layer 5 pair cutover) + RT2 (F4 schema/validator hardening) + RT3 (F5 cache mtime). Submit for Codex Round 2 audit on completion. -->
 
 ## Step 5 — Claude AI QA
 

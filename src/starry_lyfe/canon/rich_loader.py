@@ -125,6 +125,50 @@ def format_soul_essence_from_rich(rc: RichCharacter) -> str:
     return result
 
 
+def format_pair_callbacks_from_rich(rc: RichCharacter) -> str:
+    """Format ``pair_architecture.callbacks`` as a Layer 1 canonical block.
+
+    Phase 10.6 remediation: pair-architecture callbacks are load-bearing
+    short-form canonical phrases (e.g., "The plate will always be
+    covered.", "Neither of us is the load the other carries."). They
+    are authored as list items that the main kernel/voice assembly
+    does not render as prose. This helper renders them as a dedicated
+    Layer 1 block so preserve_marker anchors targeting these phrases
+    reach the assembled prompt.
+
+    Returns an empty string when the character has no pair_architecture
+    callbacks block (e.g., Shawn).
+    """
+    pa = rc.pair_architecture
+    if not isinstance(pa, dict):
+        return ""
+    callbacks = pa.get("callbacks")
+    if not isinstance(callbacks, list) or not callbacks:
+        return ""
+    lines = ["## Canonical Callbacks (pair architecture)"]
+    for cb in callbacks:
+        lines.append(f"- {cb}")
+    return "\n".join(lines)
+
+
+def pair_callbacks_token_estimate_from_rich(character_id: str) -> int:
+    """Estimate token count for the pair_architecture.callbacks Layer 1 block.
+
+    Phase 10.6 remediation: the callbacks block prepended to Layer 1 via
+    ``compile_kernel_with_soul`` is a guaranteed surcharge (not trimmed).
+    The effective Layer 1 ceiling therefore grows by this amount on top
+    of ``kernel_budget + soul_essence_token_estimate_from_rich``.
+    """
+    from starry_lyfe.context.budgets import estimate_tokens
+
+    try:
+        rc = load_rich_character(character_id)
+    except ValueError:
+        return 0
+    text = format_pair_callbacks_from_rich(rc)
+    return estimate_tokens(text) if text else 0
+
+
 def soul_essence_token_estimate_from_rich(character_id: str) -> int:
     """Estimate token count for soul essence sourced from rich YAML.
 

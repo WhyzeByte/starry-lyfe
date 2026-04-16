@@ -8,7 +8,6 @@ from starry_lyfe.context.kernel_loader import (
     _extract_voice_examples,
     _extract_voice_guidance,
     clear_kernel_cache,
-    load_voice_guidance,
 )
 from starry_lyfe.context.layers import (
     _compact_voice_guidance_item,
@@ -278,20 +277,6 @@ class TestBackwardCompatibility:
     def test_guidance_extraction_works_with_mode_tagged_file(self) -> None:
         items = _extract_voice_guidance(SYNTHETIC_VOICE_MD)
         assert len(items) >= 3  # At least the examples with teaching prose
-
-    @pytest.mark.skip(reason="P10.5: Voice.md parser archived")
-    def test_load_voice_guidance_returns_for_all_characters(self) -> None:
-        clear_kernel_cache()
-        for char_id in ("adelia", "bina", "reina", "alicia"):
-            result = load_voice_guidance(char_id)
-            assert result is not None, f"load_voice_guidance returned None for {char_id}"
-            assert len(result) > 0, f"No guidance items for {char_id}"
-        clear_kernel_cache()
-
-
-# ---------------------------------------------------------------------------
-# E8: Abbreviated fallback — when abbreviated_text is None, compact teaching note
-# ---------------------------------------------------------------------------
 
 class TestAbbreviatedFallback:
     """E8: When abbreviated_text is None, fall back to compacted teaching note."""

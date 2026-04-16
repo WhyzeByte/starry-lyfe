@@ -6,7 +6,11 @@ import logging
 import re
 from pathlib import Path
 
-from ..canon.rich_loader import format_soul_essence_from_rich, load_rich_character
+from ..canon.rich_loader import (
+    format_pair_callbacks_from_rich,
+    format_soul_essence_from_rich,
+    load_rich_character,
+)
 from ..canon.schemas.enums import CharacterNotFoundError, _assert_complete_character_keys
 from .budgets import estimate_tokens, trim_text_to_budget
 from .types import SceneType, VoiceExample, VoiceMode
@@ -292,7 +296,15 @@ def compile_kernel_with_soul(
     kernel_body = compile_kernel(character_id, budget, promote_sections)
     rc = load_rich_character(character_id)
     soul = format_soul_essence_from_rich(rc)
-    return soul + "\n\n" + kernel_body
+    # Phase 10.6: pair_architecture.callbacks are short-form canonical
+    # phrases (preserve_marker targets) that must reach Layer 1. Render
+    # as a dedicated block alongside soul essence — not trimmed.
+    callbacks = format_pair_callbacks_from_rich(rc)
+    parts = [soul]
+    if callbacks:
+        parts.append(callbacks)
+    parts.append(kernel_body)
+    return "\n\n".join(parts)
 
 
 def _load_raw_kernel(character_id: str) -> str:

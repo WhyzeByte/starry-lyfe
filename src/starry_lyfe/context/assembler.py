@@ -13,7 +13,10 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from starry_lyfe.canon.loader import Canon, load_all_canon
-from starry_lyfe.canon.rich_loader import soul_essence_token_estimate_from_rich
+from starry_lyfe.canon.rich_loader import (
+    pair_callbacks_token_estimate_from_rich,
+    soul_essence_token_estimate_from_rich,
+)
 from starry_lyfe.db.embed import EmbeddingService
 from starry_lyfe.db.retrieval import MemoryBundle, retrieve_memories
 
@@ -190,7 +193,11 @@ async def assemble_context(
     # budget overruns surface in logs rather than silently degrading
     # downstream layers.
     layer_1_actual = estimate_tokens(layer_1.text)
-    layer_1_ceiling = kernel_budget + soul_essence_token_estimate_from_rich(character_id)
+    layer_1_ceiling = (
+        kernel_budget
+        + soul_essence_token_estimate_from_rich(character_id)
+        + pair_callbacks_token_estimate_from_rich(character_id)
+    )
     if layer_1_actual > layer_1_ceiling:
         logger.warning(
             "layer_1_budget_overrun",

@@ -28,7 +28,6 @@ from starry_lyfe.context.kernel_loader import (
     clear_kernel_cache,
     load_kernel,
     load_kernel_body_only,
-    load_voice_guidance,
 )
 from starry_lyfe.context.layers import format_scene_blocks, format_voice_directives
 from starry_lyfe.context.types import (
@@ -352,17 +351,6 @@ def test_scene_state_rejects_unknown_communication_mode() -> None:
         SceneState(communication_mode=cast(Any, "sms"))
 
 
-@pytest.mark.skip(reason="P10.5: Voice.md parser archived")
-def test_load_voice_guidance_strips_raw_msty_artifacts() -> None:
-    """Backend voice guidance must exclude Msty instructions and raw few-shot blocks."""
-    clear_kernel_cache()
-    guidance = load_voice_guidance("bina")
-    assert guidance is not None
-    joined = "\n".join(guidance)
-    assert "Msty Persona Studio" not in joined
-    assert "**User:**" not in joined
-    assert "**Assistant:**" not in joined
-
 
 def test_bina_kernel_uses_malek_and_circuit_pair() -> None:
     """Bina's runtime kernel should carry the corrected family and pair names."""
@@ -601,32 +589,6 @@ def test_a_double_prime_2_alicia_phone_has_substituted_pillar() -> None:
     assert "voice carries the regulation" in block.lower()
 
 
-@pytest.mark.skip(reason="P10.5: Voice.md parser archived")
-def test_a_double_prime_3_phone_filters_in_person_exemplars() -> None:
-    """A''3: In-person examples do NOT appear in phone-mode voice guidance."""
-    clear_kernel_cache()
-    phone_items = load_voice_guidance("alicia", communication_mode="phone")
-    in_person_items = load_voice_guidance("alicia", communication_mode="in_person")
-    assert phone_items is not None
-    assert in_person_items is not None
-    assert len(phone_items) < len(in_person_items)
-    phone_text = " ".join(phone_items)
-    assert "Example 3" not in phone_text
-    assert "Example 5" not in phone_text
-
-
-@pytest.mark.skip(reason="P10.5: Voice.md parser archived")
-def test_a_double_prime_4_phone_tagged_exemplar_appears() -> None:
-    """A''4: Phone-tagged exemplar appears in phone mode, NOT in in-person mode."""
-    clear_kernel_cache()
-    phone_items = load_voice_guidance("alicia", communication_mode="phone")
-    in_person_items = load_voice_guidance("alicia", communication_mode="in_person")
-    assert phone_items is not None
-    assert in_person_items is not None
-    phone_text = " ".join(phone_items)
-    in_person_text = " ".join(in_person_items)
-    assert "Example 11" in phone_text or "Phone Call" in phone_text
-    assert "Example 11" not in in_person_text
 
 
 def test_a_double_prime_5_bina_phone_mode_is_noop() -> None:
@@ -688,15 +650,6 @@ def test_reina_phone_mode_is_noop() -> None:
     )
     assert build_constraint_block("reina", scene_ip) == build_constraint_block("reina", scene_phone)
 
-
-@pytest.mark.skip(reason="P10.5: Voice.md parser archived")
-def test_adelia_voice_guidance_multiple_modes() -> None:
-    """Finding 2: Voice guidance should cover more than just the first 2 examples."""
-    clear_kernel_cache()
-    guidance = load_voice_guidance("adelia")
-    assert guidance is not None
-    # Should have more than 2 items to cover diverse voice modes
-    assert len(guidance) >= 3
 
 
 def test_adelia_voice_layer_prioritizes_handoff_and_cultural_surface() -> None:
@@ -823,14 +776,6 @@ def test_bina_kernel_preserves_behavioral_tier() -> None:
     kernel = load_kernel("bina", budget=DEFAULT_BUDGETS.kernel)
     assert "Tier" in kernel or "behavioral" in kernel.lower()
 
-
-@pytest.mark.skip(reason="P10.5: Voice.md parser archived")
-def test_bina_voice_guidance_multiple_modes() -> None:
-    """Bina's voice guidance should cover diverse modes, not just compression and veto."""
-    clear_kernel_cache()
-    guidance = load_voice_guidance("bina")
-    assert guidance is not None
-    assert len(guidance) >= 3
 
 
 def test_bina_whyze_scene_no_talk_mandate() -> None:
