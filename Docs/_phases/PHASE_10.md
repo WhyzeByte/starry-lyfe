@@ -1,6 +1,6 @@
 # PHASE 10: YAML Source-of-Truth Migration
 
-**Status:** **Phases 10.0–10.5 SHIPPED 2026-04-16.** Step 3 Codex Round 1 audit: **FAIL** (6 findings — F1 Critical PermissionError transient-resolved, F2 High soul cards cutover landed, F3 High Layer 5 pair metadata still legacy, F4 Medium schema/validator gaps, F5 Medium cache key missing mtime, F6 Low governance staleness being remediated). 9/9 preserve_marker failures from gap audit remediated by Claude AI (62/62 pass). Fact/perception classification RATIFIED. Test baseline: **1190 passed, 7 skipped, 0 failed**. Awaiting Step 4 remediation for F3/F4/F5, then Step 5 QA.
+**Status:** **Phases 10.0–10.6 SHIPPED 2026-04-16** (10.6 commits `31c9924`/`195b9fa`/`28560ad` + remediation commit `47f1416`). Step 3 Codex Round 1 audit: **FAIL** (6 findings — F1 Critical PermissionError transient-resolved, F2 High soul cards cutover landed, F3 High Layer 5 pair metadata still legacy, F4 Medium schema/validator gaps, F5 Medium cache key missing mtime, F6 Low governance staleness remediated). 9/9 preserve_marker failures from gap audit remediated by Claude AI (62/62 pass). Fact/perception classification RATIFIED. Test baseline: **1239 passed, 0 failed, 0 skipped, 0 xfailed** (post-10.6-remediation). Awaiting Step 4 RT1/RT2/RT3 remediation (Phase 10.5b narrow canon loader rewire + schema hardening + cache key mtime), then Step 5 QA.
 **Authority:** Project Owner directive 2026-04-15. Vision v7.1 §A principle (architecture vs life separation). Anti-regeneration directive: *"If a soul_essence.py file is causing quality issues, then we can just edit that file. Rather than changing a YAML file, then regenerating a million things."*
 **Quality gate:** Project Owner directive — *"We always default to the best outcome, quality, soul, and essence of the system over time/speed/budget."* This phase takes as long as it needs. No sub-phase ships until assembled prompts are bit-for-bit equivalent in soul content to the pre-migration baseline.
 
@@ -414,18 +414,26 @@ Commit ledger (chronological):
 | 10.3 C1 | `e85d528` | format_soul_essence_from_rich() + token estimator; compile_kernel_with_soul + assembler rewired |
 | 10.3b A1 | `73cfcb4` | Embed 15 soul cards (11 knowledge + 4 pair) into 4 women's YAMLs + SoulCardYaml schema |
 | 10.3b A2 | `5c75672` | load_all_soul_cards() reads from RichCharacter.soul_cards |
+| 10.4 | (earlier commit chain) | Constraint pillars + Phase 8/9 evaluator register sections rewired to YAML |
+| 10.5 C1+C2 | `069db4b` | Archive retired sources + SHA256 manifest + test skip updates |
+| 10.5 C3 | `509b0ff` | Governance sweep declaring rich YAML as canonical authority |
+| 10.6 C1 | `31c9924` | preserve_marker hardening + unconditional enforcement + Layer 1 coverage |
+| 10.6 C2 | `195b9fa` | Five invariant test files — voice mode, pillars, cross-ref, divergence, purity |
+| 10.6 C3 | `28560ad` | normalization_notes canonical ledger + governance sweep |
+| 10.6 remediation | `47f1416` | Delete 7 retired-parser tests + render `pair_architecture.callbacks` in Layer 1 + widen Layer 1 budget ceiling |
 
-**Runtime YAML-sourced content (post-10.3b):**
+**Runtime YAML-sourced content (post-10.6):**
 - ✅ Kernel body (Layer 1) — from `RichCharacter.kernel_sections`
 - ✅ Voice exemplars (Layer 5) — from `RichCharacter.voice.few_shots.examples`
 - ✅ Soul essence (Layer 1 guaranteed-surcharge) — from `RichCharacter.soul_substrate`
+- ✅ Pair callbacks (Layer 1 guaranteed-surcharge, post-10.6 remediation) — from `RichCharacter.pair_architecture.callbacks` via `format_pair_callbacks_from_rich()`
 - ✅ Soul cards (Layer 1 pair + Layer 6 knowledge, conditional) — from `RichCharacter.soul_cards`
-- ⏳ Narrow canon (characters, pairs, dyads, protocols, interlocks, voice_parameters) — Phase 10.4 scope
-- ⏳ Constraint pillars — Phase 10.4 scope
-- ⏳ Evaluator register sections (Phase 8/9 LLM prompts) — Phase 10.4 scope
-- ⏳ Layer 6 focal-POV dyad rendering — Phase 10.4 scope
+- ✅ Constraint pillars (Layer 7) — from `RichCharacter.behavioral_framework.constraint_pillars`
+- ✅ Evaluator register sections (Phase 8/9 LLM prompts) — from `RichCharacter.evaluator_register`
+- ⏳ Narrow canon (characters, pairs, dyads, protocols, interlocks, voice_parameters) — Phase 10.5b scope
+- ⏳ Layer 6 focal-POV dyad rendering — Phase 10.5b / 10.4b scope
 
-Test baseline: **1190 passed, 7 skipped, 0 failed** (post-10.5). ruff + mypy --strict clean across 106 source files.
+Test baseline progression: **1190 passed, 7 skipped, 0 failed** (post-10.5) → **1231 passed, 7 skipped, 6 xfailed, 0 failed** (post-10.6 ship) → **1239 passed, 0 failed, 0 skipped, 0 xfailed** (post-10.6 remediation commit `47f1416`, verified live 2026-04-16). ruff + mypy --strict clean across 105 source files.
 
 **Pre-10.4 gates — all CLOSED:**
 
@@ -586,12 +594,28 @@ The `SOUL_CARDS_DIR` constant at `soul_cards.py:21` is now dead code — `load_a
 ### Post-remediation verification
 
 After Claude Code ships RT1 + RT2 + RT3:
-1. Full suite must pass: `pytest -q` → 1190+ passed, 0 failed
+1. Full suite must pass: `pytest -q` → 1239+ passed, 0 failed
 2. `ruff check src tests` clean
 3. `mypy --strict src` clean
 4. Regenerate 4 assembled prompt samples for Step 5 QA comparison
 
-<!-- HANDSHAKE: Claude AI -> Claude Code | Step 4 remediation playbook authored. F1/F2/F6 already resolved. Execute RT1 (F3 Layer 5 pair cutover) + RT2 (F4 schema/validator hardening) + RT3 (F5 cache mtime). Submit for Codex Round 2 audit on completion. -->
+### Phase 10.6 closeout remediation (SHIPPED 2026-04-16, commit `47f1416`)
+
+Before RT1/RT2/RT3 begin, the post-10.6 test suite carried **7 skipped + 6 xfailed** markers:
+
+- **7 skipped:** all exercised retired markdown parsers (`load_voice_guidance`, `load_soul_card`) archived in Phase 10.5. Deleted in commit `47f1416`.
+- **6 xfailed:** the Layer 1 preserve_marker test for 3 characters × 2 scene profiles. These marked a genuine coverage gap — `pair_architecture.callbacks` in YAML (short-form canonical phrases like "The plate will always be covered.", "Neither of us is the load the other carries.") are authored as list items that the main kernel/voice assembly does not render as prose, so preserve_marker anchors targeting them never reached the assembled prompt.
+
+**Root-cause fix (per CLAUDE.md §19 highest-quality default):**
+1. New helper `format_pair_callbacks_from_rich(rc)` in `rich_loader.py` renders `pair_architecture.callbacks` as a dedicated Layer 1 block (`## Canonical Callbacks (pair architecture)`).
+2. New helper `pair_callbacks_token_estimate_from_rich(character_id)` for budget accounting.
+3. `compile_kernel_with_soul()` in `kernel_loader.py` now prepends the callbacks block alongside soul essence — not trimmed.
+4. `assembler.py` Layer 1 ceiling widened to `kernel_budget + soul_essence_token_estimate + pair_callbacks_token_estimate` so the budget-overrun warning does not false-positive on the newly-rendered block.
+5. `test_preserve_markers.py` xfail gate removed; `alicia_home=True` added to `_build_scene_state()` to satisfy the P3-02 AliciaAwayError contract.
+
+**Gate:** 1239 passed, 0 failed, 0 skipped, 0 xfailed. ruff + mypy `--strict` clean (105 source files). This remediation closes the Phase 10.6 xfail debt cleanly before RT1/RT2/RT3 begin.
+
+<!-- HANDSHAKE: Claude AI -> Claude Code | Step 4 remediation playbook authored. F1/F2/F6 already resolved. Phase 10.6 closeout (skipped + xfailed) SHIPPED 2026-04-16. Execute RT1 (F3 Layer 5 pair cutover) + RT2 (F4 schema/validator hardening) + RT3 (F5 cache mtime). Submit for Codex Round 2 audit on completion. -->
 
 ## Step 5 — Claude AI QA
 
