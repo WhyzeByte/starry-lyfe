@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Version:** U1.3-P2.10 | **Format:** U{universal}.{minor}-P{project}.{minor}
+**Version:** U1.3-P2.11 | **Format:** U{universal}.{minor}-P{project}.{minor}
 
 > Universal sections (Part 1) are identical across all repositories.
 > Project sections (Part 2) are customized per service.
@@ -119,20 +119,7 @@ Required: `install`, `lint`, `type-check`, `test`, `test-integration`, `format`,
 
 ### 3.4 Working Directory For Temporary Scripts
 
-Temporary helper scripts, patch scripts, inspection scripts, verification sweeps, and any other ephemeral automation files you create during a session MUST be written to `C:\Users\Whyze\.claude\scripts\` (POSIX equivalent: `~/.claude/scripts/`). Never write them directly to the user's home directory root (`C:\Users\Whyze\`), to the project root, or to any other location not explicitly designated for the script's purpose.
-
-| Rule | Detail |
-|------|--------|
-| Canonical working directory | `C:\Users\Whyze\.claude\scripts\` — all temporary scripts go here |
-| Scope | Helper Python scripts, patch/sweep scripts, file inspection utilities, verification scripts, hex-dump scripts, any `.py`/`.ps1`/`.sh`/`.js` files created for one-off automation during a session |
-| Forbidden locations | `C:\Users\Whyze\` (home directory root), the project root, the project's own `scripts/` folder (which is for committed codebase only), or any other ad-hoc location |
-| Subdirectory pattern | You may create further subdirectories under `.claude\scripts\` when a task produces many related scripts (e.g., `.claude\scripts\starry-lyfe-v7\`), but the base must always be `.claude\scripts\` |
-| Cleanup | Scripts in `.claude\scripts\` are working files, not deliverables. Leftover scripts from prior sessions may be moved, deleted, or overwritten as needed |
-| Exception | Scripts that are intentionally part of the project's committed codebase (build tools, migration helpers, deployment automation) belong in the project's own `scripts/` folder per Section 4. This rule only applies to ephemeral automation scripts created for one-off tasks during a working session |
-
-**Why this rule exists.** The user's home directory is for user data, not for AI-generated working files. Polluting `C:\Users\Whyze\` with leftover `.py` files creates noise in backups, file explorers, cloud sync, and search results. The `.claude\scripts\` location keeps all session-scoped working files in one discoverable place that is clearly scoped to Claude. The `.claude\` parent directory is already Claude Code's own config root, so this is where Claude-generated content belongs.
-
-**Cleanup mandate.** If you encounter leftover scripts in `C:\Users\Whyze\` from prior sessions (prior to this rule being established), move them to `C:\Users\Whyze\.claude\scripts\` before starting new work. Do not leave them in the home root.
+All ephemeral automation scripts (patches, sweeps, inspections, one-off `.py`/`.ps1`/`.sh`) MUST go in `C:\Users\Whyze\.claude\scripts\` (POSIX: `~/.claude/scripts/`). Never write to `C:\Users\Whyze\` root, the project root, or the project's `scripts/` folder (which is for committed codebase only). Full rule and rationale live in the user's global CLAUDE.md — this project inherits it unchanged.
 
 ---
 
@@ -453,15 +440,6 @@ Four layers of canonical soul content now reach the model on every assembled pro
 
 4. **Soul cards** — `Characters/{name}.yaml::soul_cards[]` (post-10.3b, 15 cards embedded: 4 pair always-activated for focal character in Layer 1 + 11 knowledge cards scene-conditional in Layer 6 via `scene_keyword`, `communication_mode`, `with_character`, `always`). Runtime API: `soul_cards.load_all_soul_cards()` iterates `RichCharacter.soul_cards`. Legacy `src/starry_lyfe/canon/soul_cards/*.md` markdowns archived 2026-04-16.
 
-### Phase-by-phase delivery summary
-
-- **Phase 0** — Canon verification. Baseline established.
-- **Phase A** — Structure-preserving compilation (block-aware markdown trim). 91 tests.
-- **Phase A'** — Runtime correctness fixes (Talk-to-Each-Other gate, `recalled_dyads` field). 96 tests.
-- **Phase A''** — Communication-mode-aware pruning (Alicia phone/letter/video gating). 104 tests.
-- **Phase B** — Budget elevation 5300 -> 11300, per-character scaling (Adelia 1.05, Bina 1.20, Reina 1.15, Alicia 0.85), scene profiles (default, pair_intimate, multi_woman_group, solo). Soul essence wiring. 127 tests.
-- **Phase C** — 15 soul cards hand-authored from Pair files + Knowledge Stacks. Loader + assembler integration. Pair labels added to soul essence for redundancy (A6 Vision). Quality audit: 34/34 essence phrases verbatim, 54/54 card phrases present, 11/11 A5 pre-Whyze-autonomy markers, 4/4 A6 pair names now present in BOTH essence and cards. 127 tests pass.
-
 ### Budget semantic (post-Phase-B)
 
 - `kernel_budget` governs the **trimmable kernel body** only.
@@ -479,73 +457,15 @@ Four layers of canonical soul content now reach the model on every assembled pro
 | Reina | 6,900 | ~1,750 | ~8,650 |
 | Alicia | 5,100 | ~2,050 | ~7,150 |
 
-### Phase D (SHIPPED 2026-04-12)
-### Phase E (SHIPPED 2026-04-13)
-
-**What:** Surface 5 canonical pair fields (`full_name`, `classification`, `mechanism`, `what_she_provides`, `how_she_breaks_spiral`, `core_metaphor`) from `src/starry_lyfe/canon/pairs.yaml` as a structured metadata block at the top of Layer 5 (Voice Directives).
-
-**Spec:** `Docs/_phases/PHASE_D.md` (full 6-step cycle template with 6 work items, 8 acceptance criteria).
-
-**Guardrail:** AC-8 explicitly forbids deduplicating Layer 1 soul essence pair labels. The three registers (essence prose / soul card narrative / Layer 5 metadata) are intentionally redundant, not waste.
-
-**Resolved open questions:** `shared_functions` and `cadence` excluded from structured block per Project Owner approval on handoff.
-
-### Samples on disk
-
-- `Docs/_phases/_samples/PHASE_B_assembled_{adelia,bina,reina,alicia}_elevated_2026-04-12.txt`
-- `Docs/_phases/_samples/PHASE_C_assembled_{adelia,bina,reina,alicia}_2026-04-12.txt`
-
-All 8 samples show terminal anchoring at `</WHYZE_BYTE_CONSTRAINTS>`, zero PRESERVE marker leak, full soul essence + soul card coverage.
-
-### Deletions 2026-04-12 (Project Owner directed, backed up to `%Temp%\sl_backups_20260409_173037\`)
-
-Removed: `Vision/{Adelia Raye,Alicia Marin,Bina Malek,Reina Torres}.md`, `Docs/_archive/`, `Msty/`, `Characters/Shawn/`, `Docs/Claude_Code_Handoff_v7.1.md`, `Docs/CHARACTER_CONVERSION_PIPELINE.md`, `Docs/Msty_Studio_Comprehensive_Analysis.md`, `Docs/Phase_0_Verification_Report_2026-04-11.md`, `Backups/`. Phase B INH-1 (stale v7.0 artifacts) closed via deletion.
-
-### Carry-forward items
-
-- **INH-2** (master plan "VERIFIED RESOLVED" audit) — CLOSED. Claude Code live-probed all claims during Phase C pre-execution. WI1 Gavin fix live, WI2 `recalled_dyads` live, WI3 Vision A5 clean. One false-positive in Appendix A changelog only.
-- **INH-8** (AGENTS.md Path C amendment) — LANDED. Restrictive amendment committed (`d6b20cc`). Path C = Round 2+ doc-only cleanup only, max 1 use per phase, Codex hard-refusal on template Step 1/2/4 R1.
-
 ### Test baseline
 
-**1058 passed, 0 failed** as of 2026-04-15 post-Phase-8-Step-4-Round-1-Remediation (953 unit + 60 integration + 45 fidelity). Phase 9 adds +61 tests (55 Step 2 + 6 R1 remediation) → **1119** pre-scanner-fix; +3 scanner normalization_notes exclusion tests → **1122 passed, 0 failed** verified live 2026-04-15. Phase 10.0 adds +60 tests (gap audit infrastructure: preserve_marker verification, v7.0 residue exclusion, YAML structure validation) → **1182 passed, 0 failed** verified live 2026-04-15. Phase 10.6 adds +49 tests net (preserve_marker Layer 1 + 5 invariant files + normalization_notes ledger) → **1231 passed, 7 skipped, 6 xfailed, 0 failed** live 2026-04-16 post-10.6-ship. Phase 10.6 remediation (commit `47f1416`, 2026-04-16) deletes 7 retired-parser tests and fixes the 6 xfailed Layer 1 preserve_marker cases via `pair_architecture.callbacks` rendering + budget-ceiling update → **1239 passed, 0 failed, 0 skipped, 0 xfailed** verified live 2026-04-16. Phase 7 audit remediation totals: R1 +15 tests (F1 Crew 7, F3 BD-1 probe 4, F2 alicia_home 2, F5 counter 2); R2 +4 (R2-F1 carry-forward 3, R2-F2 exact counter 1); Direct R3 +1. Phase 8 Step 2 Execute +20 tests (13 prompts + 7 evaluator LLM-path). Phase 8 Step 4 Round 1 +23 tests (10 R1-F1 parser fail-closed + 6 R1-F1 evaluator fallback + 4 R1-F2 Pydantic schema + 3 R1-F3 prompt injection defense). ruff clean. mypy `--strict` clean across 105 source files.
+**1239 passed, 0 failed, 0 skipped, 0 xfailed** as of 2026-04-16 post-10.6-remediation (commit `47f1416`). ruff clean. mypy `--strict` clean across 105 source files. Historical per-phase test deltas live in the phase reports under `Docs/_phases/`.
 
-### Phase 2 end audit (2026-04-13)
+### Historical phase records
 
-Full audit report: `Docs/_audits/PHASE_2_AUDIT_2026-04-13.md`. Drift audit of 4 Phase F samples passed all 8 dimensions (voice distinctness, diacritic preservation, canonical markers, pair metadata, terminal anchoring, soul essence, Layer 7 modifiers).
+Detailed per-phase delivery notes, audit remediation logs, test-delta history, and samples live in `Docs/_phases/` (per-phase specs and reports) and `Docs/_audits/` (audit records). Do not re-duplicate that history here. Notable pointers:
+- Phase 2 end audit + C1–C4 / H1–H5 / M1–M4 / L1 remediation: `Docs/_audits/PHASE_2_AUDIT_2026-04-13.md` + `Docs/_phases/REMEDIATION_2026-04-13.md`. L2 (prose.py dead-branch review) is the only deferred item.
+- Operator runtime walkthrough (markdown → 7-layer assembled prompt): `Docs/OPERATOR_GUIDE.md`.
+- Architectural phases 4–7 shipped end-to-end; Phase 8/9 sealed; Phase 10.0–10.6 shipped. Next open: Phase 10.5b (narrow canon loader rewire — RT1/RT2/RT3 playbook in `Docs/_phases/PHASE_10.md`), then Phase 10.7 (Dreams Consistency QA).
 
-**4 Critical findings fixed in commit `583a68e`:**
-- **C1** — `format_soul_essence()` raises `ValueError` on missing character (was silently returning empty string, threatening Vision V6-V9 character fidelity).
-- **C2** — `load_kernel()` cache key now includes `profile_name` threaded through from `assemble_context()`, preventing silent profile-collision caching.
-- **C3** — `load_all_canon(validate=True)` by default. Validator refactored to accept a `Canon` parameter for recursion safety. Invalid canon now fails loud at startup.
-- **C4** — `assert_complete_character_coverage()` helper (in `canon/schemas/enums.py`) wired at module load in 6 locations: `budgets.py`, `kernel_loader.py`, `pairs_loader.py`, `prose.py`, `constraints.py`, `soul_essence.py`. `canonical_women` in constraints.py now derived from `CharacterID` enum.
-
-**Tier 2 (High) findings — all SHIPPED 2026-04-13/14:** H1-H5 silent-fallback cleanup (custom exceptions `SoulEssenceNotFoundError`, `CanonValidationError`, `DecayConfigIncompleteError`, `CharacterNotFoundError` replace silent fallbacks / generic `ValueError`).
-
-**Tier 4 (Polish) findings — all SHIPPED 2026-04-13/14:** M1-M4 (doc/type polish) and L1 (dead-branch removal). **L2 deferred only** pending a follow-up review of dead-branch detection in `prose.py` (non-blocking for Phase 5).
-
-See `Docs/_audits/PHASE_2_AUDIT_2026-04-13.md` and `Docs/_phases/REMEDIATION_2026-04-13.md` for full remediation record.
-
-### Operator guide
-
-`Docs/OPERATOR_GUIDE.md` (shipped 2026-04-13) — 676-line sequential walkthrough of the runtime pipeline: character markdown → 7-layer assembled prompt. Audience: operators and onboarding engineers. Cites file:line for every stage. Includes reference table of 40+ key symbols.
-
-### Outstanding work
-
-**Shipped lettered phases:**
-- Phase D: Live Pair Data in Prompt — SHIPPED 2026-04-12
-- Phase E: Voice Exemplar Restoration — SHIPPED 2026-04-13 (includes Patch E hardening)
-- Phase F: Scene-Aware Section Retrieval + Cross-Cutting Modifiers — SHIPPED 2026-04-13 (11/11 VoiceModes live)
-- Phase G: Dramaturgical Prose Rendering — SHIPPED 2026-04-13
-- Phase J.1-J.4: Per-Character Remediation Passes — SHIPPED 2026-04-13
-- Phase H: Soul Regression Tests — SHIPPED 2026-04-13
-- Phase K: Subjective Success Proxies — SHIPPED 2026-04-13
-
-**Architectural phase status:**
-- Phase 4: Whyze-Byte Validation Pipeline — SHIPPED 2026-04-13 (`src/starry_lyfe/validation/whyze_byte.py`)
-- Phase F-Fidelity: Positive Fidelity Test Harness — SHIPPED 2026-04-14 (`src/starry_lyfe/validation/fidelity.py`, `tests/fidelity/`). Closes Vision V6 (Cognitive Hand-Off Integrity) with positive rubrics per character. 7 rubric dimensions × 4 characters = 28 rubrics; 12 scene YAMLs; 37 parametrized fidelity test cases. Spec: `Docs/_phases/PHASE_F_FIDELITY.md`.
-- Phase 5: Scene Director — SHIPPED 2026-04-14 + R1 2026-04-14 (closes Codex F1/F2/F3) + R2 2026-04-14 (closes Codex R2-F1/R2-F2). `src/starry_lyfe/scene/`. Pre-assembly module: rule-based `classify_scene()` builds `SceneState` from caller inputs (auto-appends Whyze to `present_characters`, normalizes `recalled_dyads` to dyad-key shape, skips present women in absent-dyad detection); `select_next_speaker()` implements Talk-to-Each-Other Mandate scoring with dyad-state fitness via injected `DyadStateProvider` and narrative-salience reading `scene_description` + optional `activity_context`. 6 module files + 81 tests. Spec: `Docs/_phases/PHASE_5.md` (includes Codex Round 1 + Round 2 audit + remediation records).
-- Phase 6: Dreams Engine — SHIPPED 2026-04-15 (3 Codex audit rounds + 2 Claude Code remediation rounds + 2 Codex direct doc remediation passes + 1 Claude AI Step 5 QA pass with 1 inline direct remediation). `src/starry_lyfe/dreams/`. Closes the Dreams write/retrieve path and the assembler consumer path; automatic Scene Director `activity_context` population was closed by Phase 7. 152 new tests added (748 → 900). Spec: `Docs/_phases/PHASE_6.md`.
-- Phase 7: HTTP Service on Port 8001 — SHIPPED 2026-04-15 (9 commits P1-P9). `src/starry_lyfe/api/`. FastAPI app factory + uvicorn boot + 5 endpoints (/health/{live,ready}, /v1/models, /v1/chat/completions SSE, /metrics) + 12-step request flow orchestrator + post-turn fire-and-forget memory extraction + relationship evaluator (±0.03 cap). Closes the deferred Phase 6 → Phase 7 Dreams glue: Dreams-written Activity rows auto-populate Layer 6 on the next chat turn (verified by `tests/integration/test_http_dreams_glue.py`). New `chat_sessions` table (Alembic migration 004 applied to live DB). 95 new tests added (900 → 995). Spec: `Docs/_phases/PHASE_7.md`.
-
-**Backend status:** Architectural phases (1-7) shipped end-to-end. Phase 8 (LLM relationship evaluator) is architectural and in-flight. Operational work (deployment automation, observability dashboards, Msty persona/crew model-card authoring) remains open outside the architectural track.
+**Backend status:** Architectural phases 1–7 shipped; Phases 8, 9, 10.0–10.6 sealed. Operational work (deployment automation, observability dashboards, Msty persona/crew model-card authoring) remains open outside the architectural track.
