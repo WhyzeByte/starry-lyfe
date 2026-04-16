@@ -591,48 +591,57 @@ def _extract_voice_examples(raw_text: str) -> list[VoiceExample]:
     return examples
 
 
-def load_voice_examples(character_id: str) -> list[VoiceExample] | None:
-    """Load structured VoiceExample entries from a Voice.md file.
+def _voice_examples_from_yaml(character_id: str) -> list[VoiceExample]:
+    """Build VoiceExample list from rich YAML voice.few_shots.examples."""
+    import contextlib
 
-    Returns a list of VoiceExample dataclasses with mode tags, teaching
-    prose, and abbreviated text parsed from the canonical Voice.md. Returns
-    None if no Voice.md file exists for the character.
+    from starry_lyfe.canon.rich_loader import load_rich_character
+
+    rc = load_rich_character(character_id)
+    fs = rc.voice.few_shots
+    if fs is None or not fs.examples:
+        return []
+    examples: list[VoiceExample] = []
+    for idx, raw in enumerate(fs.examples):
+        raw_dict = raw if isinstance(raw, dict) else {}
+        mode_str = str(raw_dict.get("mode", ""))
+        modes: list[VoiceMode] = []
+        for m in mode_str.split(","):
+            m = m.strip()
+            if m:
+                with contextlib.suppress(ValueError):
+                    modes.append(VoiceMode(m))
+        examples.append(VoiceExample(
+            title=str(raw_dict.get("id", f"example_{idx}")),
+            modes=modes,
+            teaching_prose=str(raw_dict.get("teaches", "")),
+            abbreviated_text=str(raw_dict["assistant"]) if "assistant" in raw_dict else None,
+            communication_mode=str(raw_dict.get("communication_mode", "any")),
+            index=idx,
+        ))
+    return examples
+
+
+def load_voice_examples(character_id: str) -> list[VoiceExample] | None:
+    """Load structured VoiceExample entries from the rich YAML.
+
+    Phase 10.2: reads from ``RichCharacter.voice.few_shots.examples``
+    instead of parsing Voice.md markdown files. Returns a list of
+    VoiceExample dataclasses with mode tags, teaching prose, and
+    abbreviated text. Returns None if no examples are available.
     """
     if character_id not in _voice_examples_cache:
-        rel_paths = VOICE_PATHS.get(character_id)
-        if rel_paths is None:
-            # M3: no Voice.md path registered for this character
+        try:
+            examples = _voice_examples_from_yaml(character_id)
+        except (ValueError, FileNotFoundError):
             logger.warning(
-                "Voice.md path not registered for character_id=%r; "
+                "Rich YAML voice examples unavailable for %r; "
                 "mode-aware exemplar selection will be unavailable.",
                 character_id,
             )
             _voice_examples_cache[character_id] = None
         else:
-            full_path = _resolve_repo_path(rel_paths)
-            if full_path is None:
-                # M3: Voice.md file missing at all registered paths
-                logger.warning(
-                    "Voice.md file not found for character_id=%r at any "
-                    "registered path: %s; mode-aware exemplar selection "
-                    "will be unavailable.",
-                    character_id,
-                    rel_paths,
-                )
-                _voice_examples_cache[character_id] = None
-            else:
-                text = full_path.read_text(encoding="utf-8")
-                examples = _extract_voice_examples(text)
-                _voice_examples_cache[character_id] = examples
-                # M4: warn once if a character's Voice.md has zero
-                # mode-tagged examples (legacy Phase A/A' path).
-                if examples and not any(ex.modes for ex in examples):
-                    logger.warning(
-                        "Voice.md for character_id=%r has no mode-tagged "
-                        "examples; Layer 5 will use legacy calibration "
-                        "guidance path instead of Phase E rhythm exemplars.",
-                        character_id,
-                    )
+            _voice_examples_cache[character_id] = examples or None
 
     return _voice_examples_cache[character_id]
 

@@ -732,23 +732,24 @@ class TestRealFileParsing:
                 )
         clear_kernel_cache()
 
-    def test_abbreviated_text_sentence_count_real(self) -> None:
-        """E4 real: abbreviated text is 1-2 sentences."""
-        import re as re_mod
+    def test_abbreviated_text_present_real(self) -> None:
+        """E4 real: voice examples carry demonstration text.
 
+        Phase 10.2: YAML-sourced examples use the full ``assistant``
+        response as abbreviated_text (no separate condensed form). The
+        original 1-2 sentence constraint was specific to the Voice.md
+        ``**Abbreviated:**`` field which doesn't exist in the YAML schema.
+        This test now asserts presence and minimum length instead.
+        """
         from starry_lyfe.context.kernel_loader import load_voice_examples
         clear_kernel_cache()
-        sentence_split = re_mod.compile(r"(?<=[.!?])\s+")
         for char_id in ("adelia", "bina", "reina", "alicia"):
             examples = load_voice_examples(char_id)
             assert examples is not None
             for ex in examples:
                 if ex.abbreviated_text:
-                    sentences = sentence_split.split(ex.abbreviated_text)
-                    sentences = [s for s in sentences if s.strip()]
-                    assert 1 <= len(sentences) <= 2, (
-                        f"{char_id} {ex.title}: expected 1-2 sentences, "
-                        f"got {len(sentences)}: {ex.abbreviated_text}"
+                    assert len(ex.abbreviated_text) >= 20, (
+                        f"{char_id} {ex.title}: abbreviated_text too short"
                     )
         clear_kernel_cache()
 
