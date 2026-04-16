@@ -175,21 +175,14 @@ class TestPreserveMarkers:
             rc = load_rich_character(cid)
             assert isinstance(rc.meta.preserve_markers, list)
 
-    VOICE_JUDGMENT_MARKERS: frozenset[str] = frozenset({
-        "kernel_core_identity_paragraph",
-        "kernel_opening_declaration",
-        "rafa_otra_vez",
-        "complete_life_pre_whyze",
-        "the_knowing_changed_the_temperature",
-    })
-
     @pytest.mark.parametrize("character_id", ALL_IDS)
     def test_all_content_anchors_found_in_body(self, character_id: str) -> None:
         """Core preserve_marker enforcement — anchors verbatim in body text.
 
-        5 voice-judgment markers (PHASE_10_GAP_AUDIT.md §3.2 items #1-#5)
-        are excluded pending Claude AI / PO decision on which version to
-        keep. Phase 10.6 will enforce all markers unconditionally.
+        Phase 10.6: unconditional enforcement — the VOICE_JUDGMENT_MARKERS
+        exclusion (5 markers pending remediation) was removed after
+        Claude AI ratified all 9 initial failures 2026-04-15. All 62
+        markers across 5 YAMLs must pass verbatim.
         """
         rc = load_rich_character(character_id)
         from starry_lyfe.canon.rich_loader import CHARACTERS_DIR, RICH_YAML_FILES
@@ -203,11 +196,7 @@ class TestPreserveMarkers:
         else:
             body = text
         errors = verify_preserve_markers(rc, full_text=body)
-        actionable = [
-            e for e in errors
-            if not any(vid in e for vid in self.VOICE_JUDGMENT_MARKERS)
-        ]
-        assert not actionable, f"{character_id}: {actionable}"
+        assert not errors, f"{character_id}: {errors}"
 
 
 class TestCrossReferenceValidator:
