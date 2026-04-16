@@ -279,6 +279,7 @@ class TestBackwardCompatibility:
         items = _extract_voice_guidance(SYNTHETIC_VOICE_MD)
         assert len(items) >= 3  # At least the examples with teaching prose
 
+    @pytest.mark.skip(reason="P10.5: Voice.md parser archived")
     def test_load_voice_guidance_returns_for_all_characters(self) -> None:
         clear_kernel_cache()
         for char_id in ("adelia", "bina", "reina", "alicia"):

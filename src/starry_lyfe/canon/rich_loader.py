@@ -22,7 +22,17 @@ import yaml
 
 from .rich_schema import PreserveMarker, PreserveMarkersBlock, RichCharacter
 from .shared_schema import SharedCanon
-from .soul_essence import SoulEssenceNotFoundError
+
+
+class SoulEssenceNotFoundError(ValueError):
+    """Raised when soul essence content is missing for a character (Phase 10.5).
+
+    Phase 10.3 C1 rewire and Phase 10.5 archival moved the legacy
+    ``soul_essence.py`` module to ``Archive/v7.1_pre_yaml/``. This error
+    is re-defined here so the soul essence propagation contract (R-1.1
+    strict propagation through the assembly chain) stays intact. Error
+    semantics are preserved byte-for-byte from the archived module.
+    """
 
 logger = logging.getLogger(__name__)
 

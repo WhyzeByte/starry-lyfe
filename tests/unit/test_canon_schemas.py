@@ -400,10 +400,15 @@ def test_pairs_loader_raises_character_not_found_for_unknown() -> None:
 
 
 def test_character_id_coverage_across_modules() -> None:
-    """Every character-keyed dict across src/ must cover CharacterID exactly."""
+    """Every character-keyed dict across src/ must cover CharacterID exactly.
+
+    Phase 10.5: SOUL_ESSENCES removed from coverage (source module archived to
+    Archive/v7.1_pre_yaml/canon/soul_essence.py). KERNEL_PATHS and VOICE_PATHS
+    retained in kernel_loader.py as legacy path-registries but are no longer
+    consulted at runtime (Phase 10.2 rewired both to rich YAML sources).
+    """
     from starry_lyfe.canon.pairs_loader import _CHARACTER_TO_PAIR
     from starry_lyfe.canon.schemas.enums import CharacterID
-    from starry_lyfe.canon.soul_essence import SOUL_ESSENCES
     from starry_lyfe.context.budgets import CHARACTER_KERNEL_BUDGET_SCALING
     from starry_lyfe.context.constraints import CHARACTER_CONSTRAINTS
     from starry_lyfe.context.kernel_loader import KERNEL_PATHS, VOICE_PATHS
@@ -425,7 +430,6 @@ def test_character_id_coverage_across_modules() -> None:
         ("_FATIGUE_PHRASES", _FATIGUE_PHRASES),
         ("_STRESS_PHRASES", _STRESS_PHRASES),
         ("CHARACTER_CONSTRAINTS", CHARACTER_CONSTRAINTS),
-        ("SOUL_ESSENCES", SOUL_ESSENCES),
     ]
     for name, d in registry:
         assert set(d.keys()) == expected, (

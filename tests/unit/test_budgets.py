@@ -359,11 +359,17 @@ class TestPhaseBBudgetElevation:
             )
 
     def test_b3_per_character_survival_rates_within_10pct(self) -> None:
-        """B3: Per-character budget scaling equalizes survival rates."""
+        """B3: Per-character budget scaling equalizes survival rates.
+
+        Phase 10.5: raw source is now ``RichCharacter.kernel_sections``
+        (YAML block scalars) instead of the archived markdown kernels.
+        """
+        from starry_lyfe.canon.rich_loader import (
+            get_kernel_sections,
+            load_rich_character,
+        )
         from starry_lyfe.context.budgets import resolve_kernel_budget
         from starry_lyfe.context.kernel_loader import (
-            _load_raw_kernel,
-            _sanitize_kernel_text,
             clear_kernel_cache,
             compile_kernel,
         )
@@ -371,7 +377,8 @@ class TestPhaseBBudgetElevation:
         clear_kernel_cache()
         rates: dict[str, float] = {}
         for char_id in ["adelia", "bina", "reina", "alicia"]:
-            raw = _sanitize_kernel_text(_load_raw_kernel(char_id))
+            rc = load_rich_character(char_id)
+            raw = "\n\n".join(body for _, body in get_kernel_sections(rc))
             raw_tokens = estimate_tokens(raw)
             budget = resolve_kernel_budget(char_id)
             compiled = compile_kernel(char_id, budget=budget)

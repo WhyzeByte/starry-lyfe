@@ -20,7 +20,7 @@ from unittest.mock import patch
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from starry_lyfe.canon.soul_essence import SoulEssenceNotFoundError
+from starry_lyfe.canon.rich_loader import SoulEssenceNotFoundError
 from starry_lyfe.context import assembler as assembler_module
 from starry_lyfe.context.assembler import assemble_context
 from starry_lyfe.context.types import CommunicationMode, SceneState

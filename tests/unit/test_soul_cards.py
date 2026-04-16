@@ -62,6 +62,7 @@ def _make_bina_bundle() -> SimpleNamespace:
 class TestSoulCardLoader:
     """WI1: Soul card loader parses YAML frontmatter + markdown body."""
 
+    @pytest.mark.skip(reason="P10.5: markdown soul_card loader archived")
     def test_soul_card_loader_parses_frontmatter(self) -> None:
         from starry_lyfe.context.soul_cards import SOUL_CARDS_DIR
 

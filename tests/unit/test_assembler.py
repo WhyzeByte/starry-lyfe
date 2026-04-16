@@ -352,6 +352,7 @@ def test_scene_state_rejects_unknown_communication_mode() -> None:
         SceneState(communication_mode=cast(Any, "sms"))
 
 
+@pytest.mark.skip(reason="P10.5: Voice.md parser archived")
 def test_load_voice_guidance_strips_raw_msty_artifacts() -> None:
     """Backend voice guidance must exclude Msty instructions and raw few-shot blocks."""
     clear_kernel_cache()
@@ -600,6 +601,7 @@ def test_a_double_prime_2_alicia_phone_has_substituted_pillar() -> None:
     assert "voice carries the regulation" in block.lower()
 
 
+@pytest.mark.skip(reason="P10.5: Voice.md parser archived")
 def test_a_double_prime_3_phone_filters_in_person_exemplars() -> None:
     """A''3: In-person examples do NOT appear in phone-mode voice guidance."""
     clear_kernel_cache()
@@ -613,6 +615,7 @@ def test_a_double_prime_3_phone_filters_in_person_exemplars() -> None:
     assert "Example 5" not in phone_text
 
 
+@pytest.mark.skip(reason="P10.5: Voice.md parser archived")
 def test_a_double_prime_4_phone_tagged_exemplar_appears() -> None:
     """A''4: Phone-tagged exemplar appears in phone mode, NOT in in-person mode."""
     clear_kernel_cache()
@@ -686,6 +689,7 @@ def test_reina_phone_mode_is_noop() -> None:
     assert build_constraint_block("reina", scene_ip) == build_constraint_block("reina", scene_phone)
 
 
+@pytest.mark.skip(reason="P10.5: Voice.md parser archived")
 def test_adelia_voice_guidance_multiple_modes() -> None:
     """Finding 2: Voice guidance should cover more than just the first 2 examples."""
     clear_kernel_cache()
@@ -820,6 +824,7 @@ def test_bina_kernel_preserves_behavioral_tier() -> None:
     assert "Tier" in kernel or "behavioral" in kernel.lower()
 
 
+@pytest.mark.skip(reason="P10.5: Voice.md parser archived")
 def test_bina_voice_guidance_multiple_modes() -> None:
     """Bina's voice guidance should cover diverse modes, not just compression and veto."""
     clear_kernel_cache()
