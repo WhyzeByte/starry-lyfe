@@ -65,6 +65,18 @@ def load_shared_canon() -> SharedCanon:
     return SharedCanon.model_validate(data)
 
 
+def get_kernel_sections(rc: RichCharacter) -> list[tuple[int, str]]:
+    """Extract kernel sections as ``(section_num, section_text)`` tuples.
+
+    Returns the same shape as ``kernel_loader._parse_kernel_sections()``
+    so the downstream ``compile_kernel()`` trim pipeline works unchanged.
+    Returns an empty list for characters without kernel_sections (Shawn).
+    """
+    if rc.kernel_sections is None:
+        return []
+    return [(ks.section_num, ks.body) for ks in rc.kernel_sections]
+
+
 def get_preserve_markers(rc: RichCharacter) -> list[PreserveMarker]:
     """Extract a flat list of preserve markers from any character YAML shape."""
     pm = rc.meta.preserve_markers

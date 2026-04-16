@@ -78,6 +78,15 @@ class PreserveMarkersBlock(_Permissive):
     canonical_anchors: list[PreserveMarker] | None = None
 
 
+class KernelSection(_Permissive):
+    """A single numbered section from the character's kernel body."""
+
+    section_num: int
+    title: str
+    body: str
+    has_preserve_marker: bool = False
+
+
 class Meta(_Permissive):
     full_name: str
     preserve_markers: list[PreserveMarker] | PreserveMarkersBlock | None = None
@@ -95,6 +104,7 @@ class RichCharacter(_Permissive):
     behavioral_framework: dict[str, object]
     canon_facts: list[CanonFact]
     normalization_notes: list[NormalizationNote] | None = None
+    kernel_sections: list[KernelSection] | None = None
 
     # --- Woman-specific (optional for Shawn) ---
     pair_architecture: dict[str, object] | None = None
