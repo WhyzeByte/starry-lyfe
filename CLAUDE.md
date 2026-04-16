@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Version:** U1.3-P2.9 | **Format:** U{universal}.{minor}-P{project}.{minor}
+**Version:** U1.3-P2.10 | **Format:** U{universal}.{minor}-P{project}.{minor}
 
 > Universal sections (Part 1) are identical across all repositories.
 > Project sections (Part 2) are customized per service.
@@ -346,6 +346,26 @@ See `.env.example` for the full variable list covering: API host, DB port, loggi
 2. `_validate_memory_names()` post-extraction gate catches name confusion and generic operator labels.
 3. Nightly `run_data_quality_sweep()` in Dreams scans for misattributions, generic refs, near-duplicates.
 
+**Agent recommendation behavior — highest-quality default (Project Owner directive, 2026-04-15):**
+
+When any agent (Claude AI, Claude Code, Codex) presents the operator with multiple remediation paths, options, or strategic choices, the agent's primary recommendation MUST be the highest-quality option as measured against the §19 Project-wide Quality Directive priority order — Vision attainment, character fidelity, canonical correctness, test correctness — NOT the fastest, cheapest, or smallest-scope option.
+
+This is binding across all four agent roles and applies to:
+- QA finding remediation paths (Claude AI Step 5)
+- Audit finding remediation paths (Codex Step 3)
+- Phase planning options (Claude Code Step 1)
+- Architectural choice presentations (any agent, any step)
+- Plan revisions in response to operator challenge
+
+Specific rules:
+1. **Lead with quality, not hedging.** The first option presented and the recommended option must both be the path that maximizes quality alignment, even if it costs more audit rounds, more commits, more time, or higher token budgets. Speed/budget alternatives may be offered as fallbacks AFTER the quality option, never before it, and never as the recommendation.
+2. **Default to addressing root causes, not symptoms.** When a finding has a structural fix and a deferred-cleanup option, the structural fix is the recommendation. "It will resolve itself in a future phase" is a fallback, not a recommendation.
+3. **No hedging toward speed unless the operator explicitly asks for the fastest path.** If the operator asks "what is the highest quality path?", the agent must not subsequently revise downward in later turns without explicit operator instruction.
+4. **Apply this rule retroactively when challenged.** If an operator asks "why didn't you recommend the higher-quality path?" the agent must recognize the prior recommendation as a hedging error, name it as such, and revise. Do not defend a hedged recommendation.
+5. **Document the trade-off honestly.** When presenting the highest-quality recommendation, the agent SHOULD note what it costs (extra cycles, extra time, extra scope) so the operator can choose with full information. The agent SHOULD NOT use that cost as a reason to recommend a lower-quality option.
+
+**Origin:** This directive was issued after Phase 9 Step 5 QA (2026-04-15) when Claude AI's initial remediation recommendation for QA-1 was Path 3+2 (defer + truthful baseline) but, on operator challenge, was revised to Path 1+2 (fix the structure + truthful baseline) as the genuinely vision-aligned recommendation. The hedging error in the initial recommendation was the trigger. The lesson: always lead with Path 1 thinking from the start.
+
 ---
 
 ## 17. PROJECT-SPECIFIC UNMOCKABLE BOUNDARIES
@@ -380,8 +400,8 @@ These corrections override any conflicting content in project files. Apply befor
 ## 19. CURRENT PHASE STATUS (2026-04-15)
 
 **Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13), F (2026-04-13), G (2026-04-13), J.1–J.4 (2026-04-13), H (2026-04-13), K (2026-04-13), Phase 4 (Whyze-Byte Validation Pipeline, 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, 2026-04-14), Phase 5 (Scene Director, 2026-04-14; R1 2026-04-14 closes Codex F1/F2/F3; R2 2026-04-14 closes Codex R2-F1/R2-F2; R3 2026-04-14 doc-only closes R3-F1/R3-F2), Phase 6 (Dreams Engine, 2026-04-15; 3 Codex audit rounds + 2 Claude Code remediation rounds + 2 Codex direct doc remediation passes + 1 Claude AI Step 5 QA pass with 1 inline direct remediation; closes F1-F6 + R3-F1/R3-F2/R3-F3/R3-F4 + addendum A1/A2/A3 + Famaillá diacritic), Phase 7 (HTTP Service on Port 8001, 2026-04-15; 9 commits P1-P9; **post-ship audit remediation 2026-04-15 closes F1-F5 via `PHASE_7.md §10`; Round 2 re-audit remediation 2026-04-15 closes R2-F1 + R2-F2 via `PHASE_7.md §12`; Direct Codex R3 remediation 2026-04-15 closes R3-F1 validated-only carry-forward + R3-F2 metric label wording via `PHASE_7.md §14`**), Phase 8 (LLM Relationship Evaluator, **SEALED 2026-04-15**; 3 Codex audit rounds + 1 Claude Code remediation round Path B + 1 Path C direct Codex doc remediation + Claude AI Step 5 QA APPROVED FOR SHIP 15/15 ACs; 43 tests added, 1058 total; parser fail-closed + Pydantic schema + prompt injection defense + per-character register notes hand-authored by Claude AI). Lettered-phase remediation complete (2026-04-13). Phase doc housekeeping (PHASE_I closure + PHASE_J retrospective + 5 closing blocks finalized) complete (2026-04-14).
-**Open ship gate:** Phase 9 (DyadStateInternal LLM evaluator — inter-woman dyads) — **Step 3'' Audit Round 3 COMPLETE 2026-04-15** (all 3 Codex Round 1 findings closed: F1 High speaker identity dropped from live prompt → FIXED via `b301b16` substantive code change adding `speaker_id` kw-only param to `build_internal_eval_prompt` + 6 regression tests including the exact Codex red-team; F2 High Alicia-orbital remote-turn path unreachable → FIXED via `2906ed3` Hybrid doc-narrowing per Project Owner choice with canonical prose preserved verbatim and explicit future-phase deferred scope; F3 Medium PHASE_9.md Step 1 governance drift → FIXED via `11a8af6` governance sweep). Project Owner authorized AGENTS.md Path C direct Codex doc-only remediation for the 3 Round 3 low-severity documentation findings; those are now closed directly in the canonical/doc surfaces. Test suite **1113 → 1119 passed, 0 failed**; ruff + mypy --strict clean across 103 source files; ready for Claude AI Step 5 QA. Step 2 Execute commit chain: `a3148f5` + `3449335` + `4b50132`. Step 4 Round 1 commit chain: `b301b16` + `2906ed3` + `11a8af6`. Spec: `Docs/_phases/PHASE_9.md`. Scope: applies the Phase 8 LLM evaluator pattern to the 6 inter-woman dyads in `DyadStateInternal`; adds the 5th `conflict` dimension; same ±0.03 cap architecture; Alicia-orbital active-gate enforced at the SQL boundary so dormant orbital dyads never consume LLM budget; per-character-pair register notes hand-authored by Claude AI from source kernels.
-**Next phase:** Phase 9 as above (currently awaiting Step 5 QA after Codex Round 3 PASS / Project Owner-authorized Path C doc-only remediation). Operational work (deployment runbooks, observability dashboards) remains open outside the architectural track. Msty AI is the only consumer.
+**Open ship gate:** Phase 9 (DyadStateInternal LLM evaluator — inter-woman dyads) — **Step 5' Final QA CONFIRMED 2026-04-15**. APPROVED FOR SHIP. 15/15 ACs MET, 68/68 Phase 9 specific tests green, 18/18 sampled canonical phrases verbatim in `internal_relationship_prompts.py`, all R1 closures independently verified (F1 speaker identity end-to-end, F2 deferred scope honestly documented, F3 governance reconciled). QA-1 finding (initial false alarm from stale `__pycache__` on residue scanner) CLOSED — scanner fix (`_get_normalization_notes_lines` + 3 exclusion tests) was pre-existing in source. Test suite **1122 passed, 0 failed** (1058 Phase 8 baseline + 61 Phase 9 tests + 3 scanner exclusion tests); ruff + mypy --strict clean across 103 source files. Step 2 Execute commit chain: `a3148f5` + `3449335` + `4b50132`. Step 4 Round 1 commit chain: `b301b16` + `2906ed3` + `11a8af6`. Spec: `Docs/_phases/PHASE_9.md`. Scope: applies the Phase 8 LLM evaluator pattern to the 6 inter-woman dyads in `DyadStateInternal`; adds the 5th `conflict` dimension; same ±0.03 cap architecture; Alicia-orbital active-gate enforced at the SQL boundary so dormant orbital dyads never consume LLM budget; per-character-pair register notes hand-authored by Claude AI from source kernels. Awaiting Step 6 Project Owner ship.
+**Next phase:** Phase 9 awaiting Step 6 Project Owner ship. Phase 10 (YAML Source-of-Truth Migration) Step 1 APPROVED 2026-04-15; spec at `Docs/_phases/PHASE_10.md` (8 sub-phases, 28 ACs, per-character perspective model + shared_canon.yaml + Dreams Consistency QA). Phase 10.0 (gap audit) may begin immediately after Phase 9 ships. Operational work (deployment runbooks, observability dashboards) remains open outside the architectural track. Msty AI is the only consumer.
 
 ### Project-wide Quality Directive (Project Owner, 2026-04-13)
 
@@ -403,6 +423,7 @@ This directive is permanent and applies to all phases from Phase F forward. It t
 - No scope minimization that sacrifices canonical coverage.
 - Regression protection (Phase A/B/C/D/E soul architecture preservation) is a first-class acceptance criterion for every future phase.
 - When Vision language conflicts with code aesthetics, Vision wins.
+- **Highest-quality default for all agent recommendations** — see §16 "Agent recommendation behavior" (Project Owner directive 2026-04-15). When presenting remediation paths or strategic options, the recommended path must always be the highest-quality option per this priority order, not the fastest or cheapest. Lead with quality; never hedge to speed unless the operator explicitly requests the fastest path.
 
 Codex audit FAIL conditions for all future phases:
 - Any character voice register swappable with another character's without detection
@@ -482,7 +503,7 @@ Removed: `Vision/{Adelia Raye,Alicia Marin,Bina Malek,Reina Torres}.md`, `Docs/_
 
 ### Test baseline
 
-**1058 passed, 0 failed** as of 2026-04-15 post-Phase-8-Step-4-Round-1-Remediation (953 unit + 60 integration + 45 fidelity). Phase 7 audit remediation totals: R1 +15 tests (F1 Crew 7, F3 BD-1 probe 4, F2 alicia_home 2, F5 counter 2); R2 +4 (R2-F1 carry-forward 3, R2-F2 exact counter 1); Direct R3 +1. Phase 8 Step 2 Execute +20 tests (13 prompts + 7 evaluator LLM-path). Phase 8 Step 4 Round 1 +23 tests (10 R1-F1 parser fail-closed + 6 R1-F1 evaluator fallback + 4 R1-F2 Pydantic schema + 3 R1-F3 prompt injection defense). ruff clean. mypy `--strict` clean across 101 source files.
+**1058 passed, 0 failed** as of 2026-04-15 post-Phase-8-Step-4-Round-1-Remediation (953 unit + 60 integration + 45 fidelity). Phase 9 adds +61 tests (55 Step 2 + 6 R1 remediation) → **1119** pre-scanner-fix; +3 scanner normalization_notes exclusion tests → **1122 passed, 0 failed** verified live 2026-04-15. Phase 7 audit remediation totals: R1 +15 tests (F1 Crew 7, F3 BD-1 probe 4, F2 alicia_home 2, F5 counter 2); R2 +4 (R2-F1 carry-forward 3, R2-F2 exact counter 1); Direct R3 +1. Phase 8 Step 2 Execute +20 tests (13 prompts + 7 evaluator LLM-path). Phase 8 Step 4 Round 1 +23 tests (10 R1-F1 parser fail-closed + 6 R1-F1 evaluator fallback + 4 R1-F2 Pydantic schema + 3 R1-F3 prompt injection defense). ruff clean. mypy `--strict` clean across 103 source files.
 
 ### Phase 2 end audit (2026-04-13)
 
