@@ -404,14 +404,14 @@ async def test_assemble_context_real_output_is_budgeted_and_backend_safe(
     assert "**User:**" not in prompt.prompt
     assert "**Assistant:**" not in prompt.prompt
 
-    from starry_lyfe.canon.soul_essence import soul_essence_token_estimate
+    from starry_lyfe.canon.rich_loader import soul_essence_token_estimate_from_rich
     from starry_lyfe.context.budgets import resolve_kernel_budget
 
     # Layer 1 carries guaranteed soul essence that rides alongside the
     # trimmable kernel body. The effective Layer 1 ceiling is therefore
     # kernel_budget + soul_essence_token_estimate.
     layer_budgets = {
-        1: resolve_kernel_budget("bina") + soul_essence_token_estimate("bina"),
+        1: resolve_kernel_budget("bina") + soul_essence_token_estimate_from_rich("bina"),
         2: DEFAULT_BUDGETS.canon_facts,
         3: DEFAULT_BUDGETS.episodic,
         4: DEFAULT_BUDGETS.somatic,
@@ -891,7 +891,7 @@ async def test_r2_4_layer_1_overrun_emits_warning(
     # text (which carries full untrimmed soul essence regardless of budget) will
     # overshoot the fake ceiling.
     from starry_lyfe.context import budgets as budgets_module
-    monkeypatch.setattr(asm_module, "soul_essence_token_estimate", lambda c: 0)
+    monkeypatch.setattr(asm_module, "soul_essence_token_estimate_from_rich", lambda c: 0)
     monkeypatch.setattr(
         budgets_module,
         "resolve_kernel_budget",

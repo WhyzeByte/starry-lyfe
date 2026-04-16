@@ -22,6 +22,7 @@ import yaml
 
 from .rich_schema import PreserveMarker, PreserveMarkersBlock, RichCharacter
 from .shared_schema import SharedCanon
+from .soul_essence import SoulEssenceNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,63 @@ def get_kernel_sections(rc: RichCharacter) -> list[tuple[int, str]]:
     if rc.kernel_sections is None:
         return []
     return [(ks.section_num, ks.body) for ks in rc.kernel_sections]
+
+
+def format_soul_essence_from_rich(rc: RichCharacter) -> str:
+    """Format soul essence from rich YAML soul_substrate blocks.
+
+    Produces the same prompt-ready text as ``soul_essence.py::
+    format_soul_essence()`` but sourced from ``RichCharacter.soul_substrate``
+    instead of the hardcoded Python module. Section headers are identical
+    to preserve assembled-prompt equivalence.
+
+    Raises ``SoulEssenceNotFoundError`` if the soul substrate has no
+    content blocks — same error contract as the Python module path.
+    """
+    ss = rc.soul_substrate
+    parts: list[str] = []
+    if ss.identity_blocks:
+        parts.append("## Core Identity (soul substrate)")
+        for block in ss.identity_blocks:
+            parts.append(block.text)
+    if ss.pair_blocks:
+        parts.append("## Pair Architecture (soul substrate)")
+        for block in ss.pair_blocks:
+            parts.append(block.text)
+    if ss.behavioral_blocks:
+        parts.append("## Behavioral Substrate (soul substrate)")
+        for block in ss.behavioral_blocks:
+            parts.append(block.text)
+    if ss.intimacy_blocks:
+        parts.append("## Intimacy Architecture (soul substrate)")
+        for block in ss.intimacy_blocks:
+            parts.append(block.text)
+    result = "\n\n".join(parts)
+    if not result.strip():
+        raise SoulEssenceNotFoundError(
+            f"No soul essence content in rich YAML for '{rc.character_id}'"
+        )
+    return result
+
+
+def soul_essence_token_estimate_from_rich(character_id: str) -> int:
+    """Estimate token count for soul essence sourced from rich YAML.
+
+    Raises ``SoulEssenceNotFoundError`` if the character has no soul
+    substrate blocks — same error contract as the Python module path.
+    """
+    from starry_lyfe.context.budgets import estimate_tokens
+
+    try:
+        rc = load_rich_character(character_id)
+    except ValueError as exc:
+        raise SoulEssenceNotFoundError(str(exc)) from exc
+    text = format_soul_essence_from_rich(rc)
+    if not text.strip():
+        raise SoulEssenceNotFoundError(
+            f"No soul essence content in rich YAML for '{character_id}'"
+        )
+    return estimate_tokens(text)
 
 
 def get_preserve_markers(rc: RichCharacter) -> list[PreserveMarker]:

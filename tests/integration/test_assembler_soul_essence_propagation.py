@@ -1,18 +1,21 @@
-"""R-1.1 integration acceptance: unknown character propagates SoulEssenceNotFoundError.
+"""R-1.1 integration acceptance: missing soul essence propagates SoulEssenceNotFoundError.
 
 Spec: Docs/_phases/REMEDIATION_2026-04-13.md §1.R-1.1 acceptance:
   "New integration test: context assembly for an unregistered character
   fails loudly, does not emit a prompt."
 
-This exercises the chain `assemble_context` -> `format_kernel` ->
-`load_kernel` -> `compile_kernel_with_soul` -> `format_soul_essence`.
-If any intermediate layer silently catches the error, this test fails.
+Phase 10.3 update: the soul essence path now reads from rich YAML
+(``format_soul_essence_from_rich``) instead of the Python module.
+This test patches the YAML-based format function to raise
+``SoulEssenceNotFoundError`` and verifies the error propagates
+through the full assembly chain unchanged.
 """
 
 from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any, cast
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,19 +40,9 @@ async def test_assemble_context_missing_soul_essence_propagates_error(
     surface unchanged through the full assembly chain. If any intermediate
     layer silently catches and returns a degraded prompt, this test fails.
 
-    Setup: simulate a character whose kernel exists but soul essence is
-    missing (which is the failure mode R-1.1 prevents from silently
-    shipping). Monkeypatch SOUL_ESSENCES rather than using an unregistered
-    character ID — the latter would be caught by KERNEL_PATHS first.
+    Phase 10.3: patches ``format_soul_essence_from_rich`` to raise the
+    error, simulating a character whose rich YAML has no soul_substrate.
     """
-    from starry_lyfe.canon import soul_essence as soul_essence_module
-
-    # Remove adelia's soul essence for the duration of the test
-    patched_registry = dict(soul_essence_module.SOUL_ESSENCES)
-    patched_registry.pop("adelia")
-    monkeypatch.setattr(soul_essence_module, "SOUL_ESSENCES", patched_registry)
-
-    # Also clear kernel cache so the next load call re-executes
     from starry_lyfe.context.kernel_loader import _kernel_cache
     _kernel_cache.clear()
 
@@ -66,13 +59,22 @@ async def test_assemble_context_missing_soul_essence_propagates_error(
 
     monkeypatch.setattr(assembler_module, "retrieve_memories", stub_retrieve_memories)
 
+    def _raise_missing(_rc: Any) -> str:
+        raise SoulEssenceNotFoundError("Simulated missing soul essence for test")
+
     scene = SceneState(
         present_characters=["adelia", "whyze"],
         scene_description="A scene that will never assemble.",
         communication_mode=CommunicationMode.IN_PERSON,
     )
 
-    with pytest.raises(SoulEssenceNotFoundError):
+    with (
+        patch(
+            "starry_lyfe.context.kernel_loader.format_soul_essence_from_rich",
+            side_effect=_raise_missing,
+        ),
+        pytest.raises(SoulEssenceNotFoundError),
+    ):
         await assemble_context(
             character_id="adelia",
             scene_context="Does not matter.",
@@ -81,5 +83,4 @@ async def test_assemble_context_missing_soul_essence_propagates_error(
             embedding_service=cast(Any, _StubEmbeddingService()),
         )
 
-    # Cleanup: clear cache again since the broken monkeypatch may have leaked
     _kernel_cache.clear()

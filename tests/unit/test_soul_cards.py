@@ -270,9 +270,9 @@ class TestAssemblyIntegration:
         assert "knowledgeword" in layer_6.text
         # Layer 1 carries guaranteed soul essence alongside the trimmable
         # kernel body. Effective ceiling = kernel_budget + soul_essence.
-        from starry_lyfe.canon.soul_essence import soul_essence_token_estimate
+        from starry_lyfe.canon.rich_loader import soul_essence_token_estimate_from_rich
         effective_l1_ceiling = (
-            resolve_kernel_budget("bina") + soul_essence_token_estimate("bina")
+            resolve_kernel_budget("bina") + soul_essence_token_estimate_from_rich("bina")
         )
         assert layer_1.estimated_tokens <= effective_l1_ceiling
         assert layer_6.estimated_tokens <= DEFAULT_BUDGETS.scene

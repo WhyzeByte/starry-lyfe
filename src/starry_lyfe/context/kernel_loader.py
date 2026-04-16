@@ -6,8 +6,8 @@ import logging
 import re
 from pathlib import Path
 
+from ..canon.rich_loader import format_soul_essence_from_rich, load_rich_character
 from ..canon.schemas.enums import CharacterNotFoundError, _assert_complete_character_keys
-from ..canon.soul_essence import format_soul_essence
 from .budgets import estimate_tokens, trim_text_to_budget
 from .types import SceneType, VoiceExample, VoiceMode
 
@@ -290,7 +290,8 @@ def compile_kernel_with_soul(
     the budget-bounded kernel body (e.g., for budget regression tests).
     """
     kernel_body = compile_kernel(character_id, budget, promote_sections)
-    soul = format_soul_essence(character_id)
+    rc = load_rich_character(character_id)
+    soul = format_soul_essence_from_rich(rc)
     return soul + "\n\n" + kernel_body
 
 
