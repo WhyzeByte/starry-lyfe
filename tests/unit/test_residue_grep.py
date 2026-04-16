@@ -1,7 +1,20 @@
-"""v7.0 residue drift detection.
+"""v7.0 residue drift detection + normalization_notes canonical ledger.
 
-Scans all files under src/ for v7.0 legacy tokens from Handoff section 8.1.
-Any match is a canonical drift failure.
+Phase 10.6 (2026-04-16) promotes this module to the canonical drift
+record across all 6 rich YAMLs. Two enforcement surfaces:
+
+1. **Residue scan**: no v7.0 legacy tokens from Handoff §8.1 appear in
+   src/, Characters/, or Vision/ (outside excluded paths + normalization_notes
+   blocks + Vision Appendix A historical changelog). Any match is a
+   canonical drift failure.
+
+2. **normalization_notes ledger**: each of the 5 rich per-character YAMLs
+   carries a structured normalization_notes block documenting resolved
+   legacy drift. The block is the canonical audit trail; v7.0 tokens
+   inside it are deliberately exempt from the residue scan (they are
+   the record of what was fixed, not active drift).
+
+Per ``Docs/_phases/PHASE_10.md §Phase 10.6`` spec §8 + §9.
 """
 
 from __future__ import annotations
@@ -279,3 +292,61 @@ def test_normalization_exclusion_does_not_mask_other_blocks() -> None:
         assert "Golden Pair" in tokens_found, (
             "Golden Pair in pair_architecture (not normalization_notes) must fail"
         )
+
+
+# ---------------------------------------------------------------------------
+# Phase 10.6 §9: normalization_notes promoted to canonical drift record.
+# Each rich per-character YAML carries a structured normalization_notes
+# block documenting resolved legacy drift. This is the audit trail for
+# what was fixed during the YAML Source-of-Truth Migration.
+# ---------------------------------------------------------------------------
+
+
+def test_every_woman_yaml_has_normalization_notes() -> None:
+    """AC-10.x: every rich per-character YAML has a normalization_notes block.
+
+    The normalization_notes block is the canonical drift audit trail.
+    Its presence is required for the residue scanner's exclusion
+    semantics to be meaningful — if the block is absent, there is
+    nothing to exclude and no drift record.
+    """
+    from starry_lyfe.canon.rich_loader import load_all_rich_characters
+
+    chars = load_all_rich_characters()
+    missing: list[str] = []
+    for cid, rc in chars.items():
+        notes = rc.normalization_notes
+        if not notes:
+            missing.append(cid)
+    assert not missing, (
+        f"normalization_notes missing from: {missing}. "
+        "Phase 10.6 promotes this block to the canonical drift record; "
+        "every rich YAML must carry at least one entry documenting "
+        "resolved legacy drift (or a placeholder entry confirming clean authoring)."
+    )
+
+
+def test_normalization_notes_entries_are_structured() -> None:
+    """Each normalization_notes entry carries at least an identifying field.
+
+    Entry shape is permissive (different YAMLs use different field
+    names: issue, note, resolved_value, id, field, reason) but at
+    minimum one structured key must be present per entry.
+    """
+    from starry_lyfe.canon.rich_loader import load_all_rich_characters
+
+    chars = load_all_rich_characters()
+    errors: list[str] = []
+    expected_keys = {"id", "issue", "note", "resolved_value", "field", "reason"}
+    for cid, rc in chars.items():
+        notes = rc.normalization_notes or []
+        for i, note in enumerate(notes):
+            # NormalizationNote is a _Permissive model; extras captured.
+            extras = getattr(note, "__pydantic_extra__", None) or {}
+            fields = set(note.model_dump(exclude_none=True).keys()) | set(extras.keys())
+            if not (fields & expected_keys):
+                errors.append(
+                    f"{cid}::normalization_notes[{i}]: no expected field "
+                    f"({sorted(expected_keys)}); present fields = {sorted(fields)}"
+                )
+    assert not errors, "\n".join(errors)
