@@ -9,8 +9,11 @@ source: ``Docs/_phases/PHASE_9.md`` §Pre-execution. They must not be
 regenerated, paraphrased, or summarized — per AC-9.8.
 
 Authority: `Docs/_phases/PHASE_9.md` §Pre-execution +
-`Characters/{Name}/{Name}_v7.1.md` §5/§7/§8/§9 +
-`src/starry_lyfe/canon/dyads.yaml`.
+`Characters/{name}.yaml::kernel_sections` §5/§7/§8/§9 (Phase 10.5
+rich-YAML cutover — legacy markdown kernels archived under
+`Archive/v7.1_pre_yaml/`) +
+`src/starry_lyfe/canon/dyads.yaml` (narrow canon retirement
+deferred to Phase 10.5c).
 """
 
 from __future__ import annotations

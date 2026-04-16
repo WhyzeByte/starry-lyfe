@@ -23,7 +23,6 @@ from starry_lyfe.context.constraints import (
     build_constraint_block,
 )
 from starry_lyfe.context.kernel_loader import (
-    KERNEL_PATHS,
     VOICE_PATHS,
     clear_kernel_cache,
     load_kernel,
@@ -182,11 +181,6 @@ def test_tier_1_axioms_count() -> None:
 def test_all_four_characters_have_constraint_pillars() -> None:
     """Each character has a dedicated constraint pillar."""
     assert set(CHARACTER_CONSTRAINTS.keys()) == {"adelia", "bina", "reina", "alicia"}
-
-
-def test_all_four_characters_have_kernel_paths() -> None:
-    """Each character has a kernel file path defined."""
-    assert set(KERNEL_PATHS.keys()) == {"adelia", "bina", "reina", "alicia"}
 
 
 def test_all_four_characters_have_voice_paths() -> None:

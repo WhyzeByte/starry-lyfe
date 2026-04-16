@@ -5,15 +5,20 @@ single turn and proposes bounded deltas for the four ``DyadStateWhyze``
 dimensions. The heuristic fallback in ``relationship.py::_propose_deltas``
 remains the live degraded-mode path; this module is the LLM-primary path.
 
-Per-character register notes are drawn from canonical kernel constraint
-pillars (Tier 1 / Tier 2) and the intimacy architectures of each character.
-These notes must NOT be auto-generated or paraphrased from code. They are
-hand-authored against the source kernels and updated only via direct
-authorship. See ``Characters/{Name}/{Name}_v7.1.md`` for authority.
+Per-character register notes are drawn from the canonical kernel
+constraint pillars (Tier 1 / Tier 2) and intimacy architectures in each
+character's rich YAML. These notes must NOT be auto-generated or
+paraphrased from code. They are hand-authored against the canonical
+source and updated only via direct authorship. See
+``Characters/{name}.yaml::kernel_sections`` and
+``Characters/{name}.yaml::intimacy_architecture`` for authority
+(Phase 10.5 rich-YAML cutover; legacy markdown kernels archived under
+``Archive/v7.1_pre_yaml/``).
 
 Canonical authority: ``Vision/Starry-Lyfe_Vision_v7.1.md`` §9 (Success
-Criteria) + per-character kernels §5 (Behavioral Tier Framework) §8
-(Intimacy Architecture). Phase 8 spec: ``Docs/_phases/PHASE_8.md`` AC-8.8.
+Criteria) + per-character ``Characters/{name}.yaml::kernel_sections``
+§5 (Behavioral Tier Framework) §8 (Intimacy Architecture). Phase 8
+spec: ``Docs/_phases/PHASE_8.md`` AC-8.8.
 """
 
 from __future__ import annotations

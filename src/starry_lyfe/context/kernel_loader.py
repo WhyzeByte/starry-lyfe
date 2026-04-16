@@ -11,7 +11,7 @@ from ..canon.rich_loader import (
     format_soul_essence_from_rich,
     load_rich_character,
 )
-from ..canon.schemas.enums import CharacterNotFoundError, _assert_complete_character_keys
+from ..canon.schemas.enums import _assert_complete_character_keys
 from .budgets import estimate_tokens, trim_text_to_budget
 from .types import SceneType, VoiceExample, VoiceMode
 
@@ -19,25 +19,14 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
-KERNEL_PATHS: dict[str, tuple[str, ...]] = {
-    "adelia": (
-        "Characters/Adelia/Adelia_Raye_v7.1.md",
-        "Characters/Adelia_Raye_v7.1.md",
-    ),
-    "bina": (
-        "Characters/Bina/Bina_Malek_v7.1.md",
-        "Characters/Bina_Malek_v7.1.md",
-    ),
-    "reina": (
-        "Characters/Reina/Reina_Torres_v7.1.md",
-        "Characters/Reina_Torres_v7.1.md",
-    ),
-    "alicia": (
-        "Characters/Alicia/Alicia_Marin_v7.1.md",
-        "Characters/Alicia_Marin_v7.1.md",
-    ),
-}
-
+# VOICE_PATHS is a documented compatibility-fallback registry retained for
+# `load_voice_guidance()` — the legacy pre-Phase-E markdown Voice.md path
+# that fires when rich YAML `voice.few_shots.examples` is unavailable or
+# when exemplars lack mode tags. Voice.md files themselves are archived
+# under `Archive/v7.1_pre_yaml/Characters/` per Phase 10.5; this registry
+# resolves against them only when the archive is symlinked or copied back
+# into place for a legacy-compatibility test run. Not canonical authority.
+# See `Archive/v7.1_pre_yaml/MANIFEST.md` retired-surface exemption.
 VOICE_PATHS: dict[str, tuple[str, ...]] = {
     "adelia": (
         "Characters/Adelia/Adelia_Raye_Voice.md",
@@ -57,7 +46,6 @@ VOICE_PATHS: dict[str, tuple[str, ...]] = {
     ),
 }
 
-_assert_complete_character_keys(KERNEL_PATHS, "KERNEL_PATHS")
 _assert_complete_character_keys(VOICE_PATHS, "VOICE_PATHS")
 
 # Kernel section budgets tuned for the 2000-token runtime window.
@@ -305,19 +293,6 @@ def compile_kernel_with_soul(
         parts.append(callbacks)
     parts.append(kernel_body)
     return "\n\n".join(parts)
-
-
-def _load_raw_kernel(character_id: str) -> str:
-    """Load raw kernel text from filesystem."""
-    rel_paths = KERNEL_PATHS.get(character_id)
-    if rel_paths is None:
-        msg = f"No kernel path defined for character '{character_id}'"
-        raise CharacterNotFoundError(msg)
-    full_path = _resolve_repo_path(rel_paths)
-    if full_path is None:
-        msg = f"Kernel file not found for {character_id}: {rel_paths}"
-        raise FileNotFoundError(msg)
-    return full_path.read_text(encoding="utf-8")
 
 
 def _rich_yaml_mtime(character_id: str) -> float:

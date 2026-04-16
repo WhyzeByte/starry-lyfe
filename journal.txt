@@ -1,0 +1,220 @@
+PHASE 10 MIGRATION JOURNAL
+==========================
+
+Purpose: authoritative chronological record of the Phase 10 canonical
+authority migration from legacy markdown / narrow canon Python+YAML to
+the rich per-character YAML + shared_canon.yaml surface.
+
+This file satisfies Phase 10 AC-10.20 (Work Item 10 / journal.txt
+migration artifact). Entries are append-only and record commit SHAs
+where possible.
+
+------------------------------------------------------------
+Phase 10.0 — Pre-flight gap audit (SHIPPED 2026-04-15)
+------------------------------------------------------------
+- d99e416  Pre-flight gap audit doc + ratified preserve_marker
+  remediation plan.
+- f059b05  Tracked 5 rich per-character YAMLs + 2 mechanical
+  preserve_marker fixes.
+- a407f9e  Phase 9 QA closure + residue scanner normalization_notes
+  exclusion (unblocks 10.0).
+
+Outcome: Gap audit ratified; five rich YAMLs committed as the future
+canonical authoring surface; residue scanner taught to exclude
+normalization_notes so legitimate drift records do not fail the grep.
+
+------------------------------------------------------------
+Phase 10.1 — Schema + loader infrastructure (SHIPPED 2026-04-15)
+------------------------------------------------------------
+- 8796dcb  rich_schema.py + shared_schema.py + shared_canon.yaml
+  skeleton (C1).
+- 67c5425  rich_loader.py + cross-reference validator +
+  preserve_marker enforcement (C2).
+- 34f898d  test_rich_loader.py, +60 tests (C3).
+
+Outcome: Pydantic v2 schemas for the 5 rich per-character YAMLs +
+shared_canon.yaml in place. Cross-reference validator enforces
+perspective symmetry and pair-POV anchor resolution. preserve_marker
+enforcement fails loud when canonical anchors go missing from body
+text. Zero runtime integration at this stage — schemas run alongside
+the existing narrow-canon path.
+
+------------------------------------------------------------
+Phase 10.2 — Kernel body + voice exemplars cutover (SHIPPED 2026-04-15)
+------------------------------------------------------------
+- 5bd221d  Embed 11 kernel_sections per woman from markdown +
+  KernelSection schema (C1).
+- 715195b  compile_kernel() reads from RichCharacter.kernel_sections
+  instead of markdown (C2).
+- a4b5177  load_voice_examples() reads from
+  RichCharacter.voice.few_shots.examples (C3).
+
+Outcome: The trimmable kernel body and Phase E voice exemplars stop
+flowing from markdown. Legacy Voice.md parsing paths remain as
+compatibility fallbacks for exemplars that pre-date Phase E mode tags.
+
+------------------------------------------------------------
+Phase 10.3 — Soul essence cutover (SHIPPED 2026-04-16)
+------------------------------------------------------------
+- e85d528  format_soul_essence_from_rich() + token estimator;
+  compile_kernel_with_soul + assembler rewired off the Python
+  soul_essence.py module onto RichCharacter.soul_substrate (C1).
+
+Outcome: Layer 1 guaranteed-surcharge soul essence now sources from
+per-character rich YAML soul_substrate blocks. Legacy
+src/starry_lyfe/canon/soul_essence.py module still on disk at this
+point — archival pending Phase 10.5.
+
+------------------------------------------------------------
+Phase 10.3b — Soul cards embedding + iterator rewire (SHIPPED 2026-04-16)
+------------------------------------------------------------
+- 73cfcb4  Embed 15 soul cards (11 knowledge + 4 pair) into 4 women's
+  YAMLs + SoulCardYaml schema (A1).
+- 5c75672  load_all_soul_cards() reads from
+  RichCharacter.soul_cards (A2).
+
+Outcome: All 15 hand-authored soul card markdowns now embedded as
+YAML blocks inside each woman's rich YAML. Runtime iterator reads
+rich YAML only. Legacy src/starry_lyfe/canon/soul_cards/*.md still on
+disk — archival pending Phase 10.5.
+
+------------------------------------------------------------
+Phase 10.4 — Constraint pillars + Phase 8/9 evaluator register cutover
+------------------------------------------------------------
+- (commit chain pre-10.5 ship) Constraint pillars + Phase 8/9
+  evaluator register sections rewired to YAML-sourced prose.
+
+Outcome: Whyze-Byte validator constraint pillars and LLM evaluator
+register prose now sourced from rich YAML. Phase 9 in-flight work
+dual-updated alongside this migration.
+
+------------------------------------------------------------
+Phase 10.5 — Archive retired markdown / Python sources (SHIPPED 2026-04-16)
+------------------------------------------------------------
+- 069db4b  Archive retired sources + SHA256 manifest + test skip
+  updates (C1+C2).
+- 509b0ff  Governance sweep declaring rich YAML as canonical
+  authority (C3).
+
+Archived under Archive/v7.1_pre_yaml/ with SHA256 manifest:
+  - 16 character markdown files (4 women x 4 registers each):
+    Adelia/Bina/Reina/Alicia x {_v7.1.md, _Voice.md,
+    _Knowledge_Stack.md, <Pair>_Pair.md}.
+  - 15 soul card markdowns
+    (src/starry_lyfe/canon/soul_cards/{pair,knowledge}/*.md).
+  - 1 Python module (src/starry_lyfe/canon/soul_essence.py).
+
+NOT archived (honest scope declaration, post-2026-04-16 narrowing):
+  - Shawn Kroon markdown sources (Shawn_Kroon_v7.0.md and
+    Shawn_Kroon_Knowledge_Stack.md) were deleted from the repository
+    in an earlier phase, before Phase 10.5 began. These files do not
+    exist on disk and cannot be archived. Historical references
+    remain as embedded prose inside archived women's markdown and
+    inside soul_essence.py.
+  - The 6 narrow canon YAMLs
+    (pairs.yaml, dyads.yaml, interlocks.yaml, protocols.yaml,
+    routines.yaml, voice_parameters.yaml) plus characters.yaml remain
+    on the runtime hot path via load_all_canon(). Archival is
+    deferred to Phase 10.5c (narrow canon loader rewire) — a
+    dedicated sub-phase that will rewire load_all_canon() to build
+    Canon from rich YAML + shared_canon.yaml in-memory.
+
+------------------------------------------------------------
+Phase 10.6 — Schema enforcement test hardening (SHIPPED 2026-04-16)
+------------------------------------------------------------
+- 31c9924  preserve_marker hardening + unconditional enforcement +
+  Layer 1 coverage (C1).
+- 195b9fa  Five invariant test files — voice mode coverage, pillars,
+  cross-ref, divergence, purity (C2).
+- 28560ad  normalization_notes canonical ledger + governance sweep
+  (C3).
+- 47f1416  Delete 7 retired-parser tests + render
+  pair_architecture.callbacks as dedicated Layer 1 block + widen
+  Layer 1 budget ceiling to include callbacks surcharge (10.6
+  remediation closing the 6 xfailed preserve_marker cases).
+- 472adde  docs(phase_10): governance sweep for 10.6 closeout
+  remediation.
+
+Outcome: preserve_marker enforcement now unconditional (62/62
+characters pass, Layer 1 assembled-output verified). Five new
+invariant test files lock per-POV divergence, voice mode coverage,
+cross-references, constraint pillar shape, and shared_canon purity.
+Test baseline 1239 passed, 0 failed, 0 skipped, 0 xfailed.
+
+------------------------------------------------------------
+Phase 10.5b — Codex Round 1 remediation (SHIPPED 2026-04-16)
+------------------------------------------------------------
+- c1006a4  docs(claude_md): trim CLAUDE.md to ~36K under 40K limit.
+- 005cbff  feat(phase_10): RT1/RT2/RT3 remediation bundle.
+
+RT1 (F3): Layer 5 pair metadata cutover to rich YAML.
+  context/layers.py::format_voice_directives now reads pair metadata
+  from RichCharacter.pair_architecture (focal POV) + shared_canon
+  pairs (anchor) instead of legacy pairs_loader.py. Legacy module
+  retained as dead code per playbook; archival deferred to Phase
+  10.5c.
+
+RT2 (F4): Schema and validator hardening.
+  rich_schema.py adds typed WhyzePartnerProfile, PairArchitecture,
+  KnowledgeStackSection models. validate_rich_cross_references()
+  now enforces AC-10.21 all-six-dyads divergence at the validator
+  level (byte-identical POV prose blocks emit a divergence error).
+
+RT3 (F5): Cache key includes rich-YAML mtime.
+  context/kernel_loader.py::load_kernel cache key now includes
+  rich YAML mtime via new _rich_yaml_mtime() helper. Edits to
+  Characters/{name}.yaml invalidate the cache cleanly.
+
+Test baseline advanced 1239 -> 1251 (net +12: 7 RT1 + 2 RT2 + 3 RT3).
+ruff clean. mypy --strict clean across 4 modified source files.
+
+------------------------------------------------------------
+Phase 10.5 remediation — Codex focused audit addendum (SHIPPED 2026-04-16)
+------------------------------------------------------------
+Closes the 5 findings from the Codex focused Phase 10.5 audit addendum:
+  F1 (High): Honest scope narrowing. Shawn MD recorded as retired
+             pre-10.5 (not archivable). Narrow canon YAML retirement
+             deferred to Phase 10.5c with dedicated plan.
+  F2 (Medium): Dead _load_raw_kernel() deleted. KERNEL_PATHS +
+             VOICE_PATHS labeled as documented compatibility
+             fallbacks. AC-10.19 narrowed to match.
+  F3 (Medium): AGENTS.md + seed_msty_persona_studio.py rewritten to
+             cite rich YAML as canonical authority (no more
+             contradictions).
+  F4 (Low): journal.txt created (this file) satisfying AC-10.20.
+  F5 (Low): MANIFEST.md supersession column rewritten with exact
+             per-file field paths.
+
+------------------------------------------------------------
+Canonical authorship surface (post-10.5-remediation)
+------------------------------------------------------------
+Runtime-authoritative source for all canonical character content:
+  - Characters/adelia_raye.yaml
+  - Characters/bina_malek.yaml
+  - Characters/reina_torres.yaml
+  - Characters/alicia_marin.yaml
+  - Characters/shawn_kroon.yaml
+  - Characters/shared_canon.yaml
+
+Narrow canon YAMLs still on runtime hot path (retirement deferred to
+Phase 10.5c):
+  - src/starry_lyfe/canon/characters.yaml
+  - src/starry_lyfe/canon/pairs.yaml
+  - src/starry_lyfe/canon/dyads.yaml
+  - src/starry_lyfe/canon/interlocks.yaml
+  - src/starry_lyfe/canon/protocols.yaml
+  - src/starry_lyfe/canon/routines.yaml
+  - src/starry_lyfe/canon/voice_parameters.yaml
+
+Archived under Archive/v7.1_pre_yaml/ (with SHA256 manifest):
+  - 16 women's character markdown files
+  - 15 soul card markdowns
+  - 1 Python module (soul_essence.py)
+
+Retired by deletion before 10.5 began (not archivable):
+  - Shawn_Kroon_v7.0.md
+  - Shawn_Kroon_Knowledge_Stack.md
+
+End of Phase 10 migration journal. Subsequent phases (10.5c narrow
+canon rewire, 10.7 Dreams Consistency QA) will append their own
+entries below as they ship.

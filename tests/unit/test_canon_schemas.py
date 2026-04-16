@@ -381,15 +381,6 @@ def test_character_not_found_error_exported_from_canon_package() -> None:
     assert "CharacterNotFoundError" in canon_pkg.__all__
 
 
-def test_kernel_loader_raises_character_not_found_for_unknown() -> None:
-    """kernel_loader._load_raw_kernel raises CharacterNotFoundError for unknown id."""
-    from starry_lyfe.canon.schemas.enums import CharacterNotFoundError
-    from starry_lyfe.context.kernel_loader import _load_raw_kernel
-
-    with pytest.raises(CharacterNotFoundError, match="No kernel path defined"):
-        _load_raw_kernel("ghost")
-
-
 def test_pairs_loader_raises_character_not_found_for_unknown() -> None:
     """get_pair_metadata raises CharacterNotFoundError for unknown character."""
     from starry_lyfe.canon.pairs_loader import get_pair_metadata
@@ -402,16 +393,20 @@ def test_pairs_loader_raises_character_not_found_for_unknown() -> None:
 def test_character_id_coverage_across_modules() -> None:
     """Every character-keyed dict across src/ must cover CharacterID exactly.
 
-    Phase 10.5: SOUL_ESSENCES removed from coverage (source module archived to
-    Archive/v7.1_pre_yaml/canon/soul_essence.py). KERNEL_PATHS and VOICE_PATHS
-    retained in kernel_loader.py as legacy path-registries but are no longer
-    consulted at runtime (Phase 10.2 rewired both to rich YAML sources).
+    Phase 10.5 remediation:
+    - SOUL_ESSENCES removed from coverage (archived to
+      Archive/v7.1_pre_yaml/canon/soul_essence.py).
+    - KERNEL_PATHS deleted from kernel_loader.py — it had no remaining
+      runtime consumer after _load_raw_kernel() was removed (Phase 10.5
+      remediation F2).
+    - VOICE_PATHS retained as a documented compatibility-fallback
+      registry for load_voice_guidance(); still enforced here.
     """
     from starry_lyfe.canon.pairs_loader import _CHARACTER_TO_PAIR
     from starry_lyfe.canon.schemas.enums import CharacterID
     from starry_lyfe.context.budgets import CHARACTER_KERNEL_BUDGET_SCALING
     from starry_lyfe.context.constraints import CHARACTER_CONSTRAINTS
-    from starry_lyfe.context.kernel_loader import KERNEL_PATHS, VOICE_PATHS
+    from starry_lyfe.context.kernel_loader import VOICE_PATHS
     from starry_lyfe.context.prose import (
         _FATIGUE_PHRASES,
         _INTIMACY_PHRASES,
@@ -422,7 +417,6 @@ def test_character_id_coverage_across_modules() -> None:
     expected = set(CharacterID.all_strings())
     registry: list[tuple[str, dict[str, object]]] = [
         ("CHARACTER_KERNEL_BUDGET_SCALING", CHARACTER_KERNEL_BUDGET_SCALING),
-        ("KERNEL_PATHS", KERNEL_PATHS),
         ("VOICE_PATHS", VOICE_PATHS),
         ("_CHARACTER_TO_PAIR", _CHARACTER_TO_PAIR),
         ("_TRUST_PHRASES", _TRUST_PHRASES),

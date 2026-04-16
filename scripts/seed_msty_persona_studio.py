@@ -1,12 +1,18 @@
-"""Seed Msty Persona Studio few-shot configuration from canonical Voice.md files.
+"""Seed Msty Persona Studio few-shot configuration from rich character YAMLs.
 
-This script reads the Voice.md files for all four characters, extracts the
-abbreviated exemplar text (added during Phase E), and produces a JSON
-configuration suitable for loading into Msty Persona Studio.
+Reads ``Characters/{name}.yaml::voice.few_shots.examples[]`` for all four
+women and produces a JSON configuration suitable for loading into Msty
+Persona Studio. Each rich YAML entry maps one-to-one to a Msty few-shot
+exemplar: ``id`` -> ``title``, ``user`` (or ``user_setup`` when only a
+scene setup is authored) -> ``user``, ``assistant`` (the in-character
+block scalar) -> ``assistant``.
 
-Authority: ADR-001 (Backend-authoritative voice). This script is the only
-canonical way to configure Msty persona studio few-shots. Manual copy-paste
-from Voice.md is not authorized.
+Authority: Phase 10 rich YAML is the sole canonical source for character
+content (per ``CLAUDE.md §19`` + ``Archive/v7.1_pre_yaml/MANIFEST.md``).
+Voice.md markdown files are archived; this script does not read them.
+Manual copy-paste from any character source is not authorized — this
+script is the only canonical way to configure Msty Persona Studio
+few-shots.
 
 Protocol droids: None (standalone script, no runtime service dependencies).
 """
@@ -14,36 +20,15 @@ Protocol droids: None (standalone script, no runtime service dependencies).
 from __future__ import annotations
 
 import json
-import re
 import sys
 from pathlib import Path
 from typing import TypedDict
 
+from starry_lyfe.canon.rich_loader import load_all_rich_characters
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-VOICE_PATHS: dict[str, tuple[str, ...]] = {
-    "adelia": (
-        "Characters/Adelia_Raye_Voice.md",
-        "Characters/Adelia/Adelia_Raye_Voice.md",
-    ),
-    "bina": (
-        "Characters/Bina_Malek_Voice.md",
-        "Characters/Bina/Bina_Malek_Voice.md",
-    ),
-    "reina": (
-        "Characters/Reina_Torres_Voice.md",
-        "Characters/Reina/Reina_Torres_Voice.md",
-    ),
-    "alicia": (
-        "Characters/Alicia_Marin_Voice.md",
-        "Characters/Alicia/Alicia_Marin_Voice.md",
-    ),
-}
-
-_EXAMPLE_HEADING_RE = re.compile(r"^## Example \d+:\s*(.+)$")
-_ABBREVIATED_RE = re.compile(r"^\*\*Abbreviated:\*\*\s*(.*)$")
-_USER_RE = re.compile(r"^\*\*User:\*\*\s*(.*)$")
-_ASSISTANT_RE = re.compile(r"^\*\*Assistant:\*\*\s*(.*)$")
+WOMAN_IDS: tuple[str, ...] = ("adelia", "bina", "reina", "alicia")
 
 
 class FewShotEntry(TypedDict):
@@ -61,122 +46,52 @@ class PersonaConfig(TypedDict):
     few_shots: list[FewShotEntry]
 
 
-def _resolve_repo_path(rel_paths: tuple[str, ...]) -> Path | None:
-    """Return the first existing project-relative path from the candidates."""
-    for rel_path in rel_paths:
-        full_path = PROJECT_ROOT / rel_path
-        if full_path.exists():
-            return full_path
-    return None
+def _extract_few_shots_from_rich(character_id: str) -> list[FewShotEntry]:
+    """Extract few-shot entries from a rich character YAML.
 
-
-def _extract_few_shots(raw_text: str) -> list[FewShotEntry]:
-    """Extract few-shot entries from a Voice.md file.
-
-    Each entry consists of the example title, the User block, and the
-    abbreviated Assistant text. Examples without an **Abbreviated:** section
-    are skipped (they have not been authored yet).
+    Reads ``voice.few_shots.examples[]``. Each entry must carry an
+    ``id``, an ``assistant`` block, and either a ``user`` line or a
+    ``user_setup`` description. Entries missing either end are skipped
+    (authoring-in-progress cases).
     """
+    chars = load_all_rich_characters()
+    rc = chars.get(character_id)
+    if rc is None:
+        return []
+
+    fs = rc.voice.few_shots
+    if fs is None or not fs.examples:
+        return []
+
     entries: list[FewShotEntry] = []
-    current_title: str | None = None
-    current_user_lines: list[str] = []
-    current_abbreviated: str | None = None
-    in_user_block = False
-    in_abbreviated_block = False
-
-    for line in raw_text.splitlines():
-        stripped = line.strip()
-
-        heading_match = _EXAMPLE_HEADING_RE.match(stripped)
-        if heading_match:
-            # Flush previous example
-            if current_title and current_abbreviated and current_user_lines:
-                entries.append(FewShotEntry(
-                    title=current_title,
-                    user="\n".join(current_user_lines).strip(),
-                    assistant=current_abbreviated,
-                ))
-            current_title = heading_match.group(1).strip()
-            current_user_lines = []
-            current_abbreviated = None
-            in_user_block = False
-            in_abbreviated_block = False
+    for raw in fs.examples:
+        if not isinstance(raw, dict):
             continue
-
-        abbreviated_match = _ABBREVIATED_RE.match(stripped)
-        if abbreviated_match:
-            first_line = abbreviated_match.group(1).strip()
-            current_abbreviated = first_line if first_line else None
-            in_user_block = False
-            in_abbreviated_block = True
+        title = str(raw.get("id") or "").strip()
+        user_line = str(raw.get("user") or raw.get("user_setup") or "").strip()
+        assistant = str(raw.get("assistant") or "").strip()
+        if not (title and user_line and assistant):
             continue
-
-        user_match = _USER_RE.match(stripped)
-        if user_match:
-            in_user_block = True
-            in_abbreviated_block = False
-            first_line = user_match.group(1).strip()
-            current_user_lines = [first_line] if first_line else []
-            continue
-
-        assistant_match = _ASSISTANT_RE.match(stripped)
-        if assistant_match:
-            in_user_block = False
-            in_abbreviated_block = False
-            continue
-
-        if stripped == "---":
-            in_user_block = False
-            in_abbreviated_block = False
-            continue
-
-        if in_abbreviated_block and stripped:
-            current_abbreviated = (
-                current_abbreviated + " " + stripped
-                if current_abbreviated is not None
-                else stripped
-            )
-        elif in_user_block and stripped:
-            current_user_lines.append(stripped)
-
-    # Flush last example
-    if current_title and current_abbreviated and current_user_lines:
         entries.append(FewShotEntry(
-            title=current_title,
-            user="\n".join(current_user_lines).strip(),
-            assistant=current_abbreviated,
+            title=title,
+            user=user_line,
+            assistant=assistant,
         ))
-
     return entries
 
 
 def build_persona_configs() -> list[PersonaConfig]:
-    """Build Msty Persona Studio configuration for all characters."""
+    """Build Msty Persona Studio configuration for all four women."""
     configs: list[PersonaConfig] = []
     warnings: list[str] = []
 
-    for character_id, rel_paths in VOICE_PATHS.items():
-        full_path = _resolve_repo_path(rel_paths)
-        if full_path is None:
-            warnings.append(
-                f"WARNING: Voice file not found for {character_id}: {list(rel_paths)}"
-            )
-            continue
-
-        raw_text = full_path.read_text(encoding="utf-8")
-        few_shots = _extract_few_shots(raw_text)
-
-        try:
-            resolved_rel_path = str(full_path.relative_to(PROJECT_ROOT))
-        except ValueError:
-            resolved_rel_path = str(full_path)
-
+    for character_id in WOMAN_IDS:
+        few_shots = _extract_few_shots_from_rich(character_id)
         if not few_shots:
             warnings.append(
-                f"WARNING: No abbreviated exemplars found in {resolved_rel_path}. "
-                f"Phase E Voice.md authoring may not be complete for {character_id}."
+                f"WARNING: No few_shots.examples authored for {character_id} "
+                f"in Characters/{character_id}_*.yaml::voice.few_shots.examples"
             )
-
         configs.append(PersonaConfig(
             character_id=character_id,
             few_shots=few_shots,
@@ -193,7 +108,8 @@ def main() -> None:
     configs = build_persona_configs()
     output = {
         "generated_by": "seed_msty_persona_studio.py",
-        "authority": "ADR-001 (Backend-authoritative voice)",
+        "source_of_truth": "Characters/{name}.yaml::voice.few_shots.examples[]",
+        "authority": "Phase 10 rich YAML (sole canonical source)",
         "personas": configs,
     }
     json.dump(output, sys.stdout, indent=2, ensure_ascii=False)

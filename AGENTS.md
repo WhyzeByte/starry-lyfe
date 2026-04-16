@@ -16,7 +16,7 @@ This file is the canonical entry point for any AI agent working on this reposito
 **Primary responsibility:** Plans and executes each Phase from the master plan. Writes code, edits canon, runs tests, drafts soul cards, commits work.
 **Authority boundary:** Must follow the master plan (`Docs/IMPLEMENTATION_PLAN_v7.1.md`) as the canonical specification. Cannot deviate from Phase scope without explicit Project Owner approval. Cannot ship a Phase as "done" until it has passed Codex audit + Claude Code remediation + Claude AI QA.
 **Reads:** The master plan, the Vision, the Persona Tier Framework, the character kernel files, the canon YAML, the test suite, the archived audits.
-**Writes:** Production code in `src/`, tests in `tests/`, soul cards in `src/starry_lyfe/canon/soul_cards/`, voice exemplar tags in `Characters/{Name}/{Name}_Voice.md`, the Plan/Execute/Remediate sections of the current phase file in `Docs/_phases/PHASE_{X}.md`.
+**Writes:** Production code in `src/`, tests in `tests/`, canonical character content exclusively in the rich per-character YAMLs at `Characters/{name}.yaml` (kernel sections, voice exemplars with mode tags, soul substrate, soul cards, pair architecture, constraint pillars, evaluator register) + `Characters/shared_canon.yaml` for objective anchors, the Plan/Execute/Remediate sections of the current phase file in `Docs/_phases/PHASE_{X}.md`. Authorship on retired markdown surfaces (`src/starry_lyfe/canon/soul_cards/*.md`, `Characters/{Name}/{Name}_Voice.md`, `{Name}_v7.1.md`, `{Name}_Knowledge_Stack.md`, `{Name}_{Pair}_Pair.md`) is forbidden — those files are archived under `Archive/v7.1_pre_yaml/` and are read-only historical references per Phase 10.5.
 
 ### Codex (the auditor / red team)
 **What it is:** OpenAI's agentic coding tool. Operates on the same repository via its own CLI. Reads this AGENTS.md file at session start and follows its Codex-specific guidance.
@@ -492,7 +492,7 @@ In addition to standard acceptance criteria checks, verify:
 - Voice distinctness across all 4 characters in assembled prompt samples (read full samples, not just excerpts)
 - Canonical markers preserved with diacritics (Famailla, Tucuman, Gracia, Lucia, Merce, etc.)
 - Regression comparison against prior phase samples
-- Spot-check abbreviated voice exemplars in assembled prompts against Voice.md source for verbatim preservation
+- Spot-check voice exemplars in assembled prompts against `Characters/{name}.yaml::voice.few_shots.examples[]` (the canonical source) for verbatim preservation
 - All four soul architecture registers still visible in every character's assembled prompt
 - If drift detected, verdict is FAIL regardless of test suite status
 

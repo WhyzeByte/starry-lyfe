@@ -244,6 +244,27 @@ Phase 10.0 audits existing canonical content and routes each item by these rules
 - `CLAUDE.md`, `AGENTS.md`, `Docs/IMPLEMENTATION_PLAN_v7.1.md`, `Docs/CHARACTER_CONVERSION_PIPELINE.md`, `Vision/Starry-Lyfe_Vision_v7.1.md` Appendix B — governance updates
 - `journal.txt` — entry
 
+#### Phase 10.5 delivered-scope declaration (Phase 10.5 remediation F1, 2026-04-16)
+
+The originally authored Phase 10.5 work items above were written against an aspirational scope that the shipped commits `069db4b` + `509b0ff` did not fully cover. The truthful record of what Phase 10.5 shipped, and what legitimately defers to a later sub-phase, is:
+
+**Delivered in Phase 10.5 (shipped on disk, SHA256-verified in manifest):**
+1. 16 women's character markdown files archived under `Archive/v7.1_pre_yaml/Characters/` (Adelia/Bina/Reina/Alicia × `_v7.1.md` / `_Voice.md` / `_Knowledge_Stack.md` / `<Pair>_Pair.md`).
+2. 15 soul card markdowns archived under `Archive/v7.1_pre_yaml/canon/soul_cards/`.
+3. 1 Python module archived: `Archive/v7.1_pre_yaml/canon/soul_essence.py`.
+4. `Archive/v7.1_pre_yaml/MANIFEST.md` committed with SHA256 + per-file exact field-path traceability (per Phase 10.5 remediation F5 — generic placeholder supersession rewritten to exact `Characters/{name}.yaml::<field>` paths).
+
+**Not deliverable as originally written, honestly deferred:**
+1. **Shawn Kroon markdown sources** (`Shawn_Kroon_v7.0.md` + `Shawn_Kroon_Knowledge_Stack.md`): deleted from the repository in an earlier phase, before Phase 10.5 began. These files do not exist on disk and cannot be archived. Canonical Shawn authoring now lives at `Characters/shawn_kroon.yaml`. This resolves Codex finding F1's "missing Shawn archive" — there is no file to archive.
+2. **7 narrow canon YAMLs** (`src/starry_lyfe/canon/{characters,pairs,dyads,interlocks,protocols,routines,voice_parameters}.yaml`): still on the runtime hot path via `load_all_canon()`. Consumers: `db/seed.py`, `api/app.py`, `context/assembler.py`, `dreams/daemon.py`, `canon/validator.py`, `context/layers.py`. Archival requires first rewiring `load_all_canon()` to build `Canon` from rich YAML + `shared_canon.yaml` in-memory. That rewire is a dedicated sub-phase **Phase 10.5c (narrow canon loader rewire)** — out of Phase 10.5 scope.
+
+Governance docs updated by Phase 10.5 remediation (commit sequence TBD in this remediation bundle):
+- `AGENTS.md` line 19 + line 495 rewritten to cite rich YAML as the sole canonical authoring surface (F3).
+- `scripts/seed_msty_persona_studio.py` + its test file rewired to read `voice.few_shots.examples` from rich YAML instead of archived Voice.md files (F3).
+- `src/starry_lyfe/api/orchestration/{relationship_prompts.py,internal_relationship_prompts.py}` docstrings updated to cite `Characters/{name}.yaml::kernel_sections` as canonical authority instead of archived markdown kernels (F2).
+- `context/kernel_loader.py::_load_raw_kernel()` deleted — runtime-dead post-Phase-10.2. `KERNEL_PATHS` deleted (no consumer remained). `VOICE_PATHS` + `load_voice_guidance()` + `_extract_voice_guidance()` retained with in-source docstrings labeling them as documented compatibility-fallback surfaces, exempt per the narrowed AC-10.19 wording above (F2).
+- `journal.txt` authored at repo root per AC-10.20 (F4).
+
 ---
 
 ### Phase 10.6 — Schema Enforcement + Regression Re-baseline
@@ -351,8 +372,8 @@ Same external invariant. Different source-layer enforcement.
 | AC-10.16 | Whyze-Byte validator enforces all 4 constraint pillar variants from YAML-sourced text |
 | AC-10.17 | Phase 8 + Phase 9 LLM evaluator register sections rendered from per-character POV YAML; outputs structurally identical to pre-migration shape (with per-POV register sections — 12 internal dyad sections instead of 6) |
 | AC-10.18 | Vision Appendix B Document Map updated; v7.1 essence-vs-life principle preserved verbatim |
-| AC-10.19 | Zero `_v7.1.md` / `_Voice.md` / `_Knowledge_Stack.md` / `_Pair.md` / `soul_essence` / `soul_cards` references in `src/` or `tests/` (Archive references excepted) |
-| AC-10.20 | `journal.txt` entry recorded |
+| AC-10.19 | Zero **retired character markdown** references (`{Name}_v7.1.md`, `{Name}_Voice.md`, `{Name}_Knowledge_Stack.md`, `{Name}_{Pair}_Pair.md`) and zero references to the archived `canon/soul_essence.py` module or `canon/soul_cards/*.md` directory in `src/` or `tests/`, **except** these explicitly documented and exempted categories (per Phase 10.5 remediation F2 narrowing): (a) documented compatibility-fallback surfaces — `VOICE_PATHS` + `load_voice_guidance()` + `_extract_voice_guidance()` in `context/kernel_loader.py` remain as legacy fallback when rich YAML `voice.few_shots.examples` is unavailable or lacks mode tags; (b) historical migration docstrings that explanatorily reference old paths for documentation purposes (e.g., `rich_loader.py` docstring citing `soul_essence.py::format_soul_essence()`); (c) function name components that contain `soul_essence` as part of a `*_from_rich` identifier (not a retired-surface reference); (d) governance-document references with the pattern `*_v7.1.md` pointing at `Docs/IMPLEMENTATION_PLAN_v7.1.md`, `Vision/Starry-Lyfe_Vision_v7.1.md`, `Docs/Claude_Code_Handoff_v7.1.md`, or `Docs/Persona_Tier_Framework_v7.1.md` — these are governance docs, not retired character markdown; (e) the residue-grep test's own forbidden-pattern string constants in `tests/unit/test_residue_grep.py`; (f) `Archive/` and `Docs/_phases/` historical references. |
+| AC-10.20 | `journal.txt` entry recorded (authored 2026-04-16 at repo root per Phase 10.5 remediation F4) |
 | AC-10.21 | **Per-perspective divergence test passes** — each of 6 inter-woman dyads has at least one numeric score differing by ≥0.05 between POVs AND at least one non-identical lived-mechanic prose block. Identical POVs FAIL the test (drift toward agreeable mush is the regression). |
 | AC-10.22 | **Fact-not-perception purity test passes** — no per-character YAML carries a value that contradicts a `shared_canon.yaml` field |
 | AC-10.23 | **Layer 6 dyad rendering uses focal-character POV** — when Bina is focal, the rendered bina×reina block is BINA's read, not a neutral merge or Reina's read |
@@ -522,6 +543,74 @@ Result: the kernel cache key still lacked any rich-YAML mtime component, so the 
 
 <!-- HANDSHAKE: Codex -> Claude Code | Audit Round 1 complete on the committed Phase 10.0-10.3 chain. Gate FAIL. Remediate F1 live rich-YAML viability first, then F2/F3 incomplete runtime cutovers, then F4/F5 schema+cache gaps, then F6 workflow-record drift. -->
 
+### Codex Audit Addendum — Phase 10.5 Focus (2026-04-16)
+
+**[STATUS: COMPLETE - gate FAIL]**
+**Owner:** Codex
+**Invocation note:** User-directed focused audit of the shipped Phase 10.5 slice (`069db4b` + `509b0ff`) against the approved Phase 10.5 work items, archive manifest, exit criteria, and current governance surfaces.
+
+#### Audit content
+
+**Scope:** Reviewed Phase 10.5 in this file, `Archive/v7.1_pre_yaml/MANIFEST.md`, `Archive/v7.1_pre_yaml/`, `AGENTS.md`, `CLAUDE.md`, `Docs/IMPLEMENTATION_PLAN_v7.1.md`, `Vision/Starry-Lyfe_Vision_v7.1.md`, `scripts/seed_msty_persona_studio.py`, `src/starry_lyfe/context/kernel_loader.py`, `src/starry_lyfe/api/orchestration/relationship_prompts.py`, `internal_relationship_prompts.py`, `tests/unit/test_seed_msty_persona_studio.py`, and `test_canon_schemas.py`.
+
+**Verification context:** Focused verification on the current post-10.6-remediation tree:
+
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_canon_schemas.py tests/unit/test_seed_msty_persona_studio.py -q` -> `38 passed`
+- Retired-surface grep equivalent over `src/` + `tests/` still returned live matches in `kernel_loader.py`, relationship prompt docstrings, and the seed-script test surface; Phase 10.5 exit criterion therefore does not currently reproduce.
+- Sampled SHA verification passed for archived `Adelia_Raye_v7.1.md`, `canon/soul_essence.py`, and `canon/soul_cards/pair/bina_circuit.md` against the manifest.
+- Broad repo spot-check: `.\.venv\Scripts\python.exe -m pytest -x -q` failed at `tests/fidelity/test_adelia_fidelity.py::test_adelia_fidelity[warehouse_solo_pair-voice_authenticity]` because `load_all_rich_characters()` hit `PermissionError` on `Characters/shawn_kroon.yaml`. That ambient failure is not specific to the 10.5 archive/governance slice, but it means the phase file's broader green-baseline claim does not reproduce cleanly in this audit environment.
+
+**Executive assessment:** Phase 10.5 did land real value. The archive tree exists, the SHA manifest is real, sampled hashes match, the Vision and top-level canonical-authority surfaces were partially updated, and the legacy markdown Soul Card / soul essence authoring surfaces are preserved under `Archive/v7.1_pre_yaml/`.
+
+The shipped 10.5 status is still overstated. The archive is incomplete against the approved work items: there are no archived Shawn markdown sources and no archived narrow canon YAMLs, even though the 10.5 plan explicitly names both. The manifest's supersession column is also too generic to serve as the exact field-path traceability record the plan required. The Phase 10.5 exit grep is still red because `src/` and `tests/` retain retired markdown-path references, and the governance story remains internally contradictory: `AGENTS.md` still instructs Claude Code to write soul cards in `src/starry_lyfe/canon/soul_cards/` and voice exemplar tags in markdown Voice files, while the Msty seeding script still presents `Voice.md` as canonical. The planned `journal.txt` artifact is also absent. Gate is therefore **FAIL**.
+
+**Findings (numbered, severity-tagged):**
+
+| # | Severity | Finding | Evidence | Recommended fix |
+|---:|---|---|---|---|
+| 1 | High | Phase 10.5 overclaims archival completion. The approved work items say 10.5 archives the 16 character markdown files **plus Shawn's markdown sources** and moves the narrow canon YAMLs into `Archive/v7.1_pre_yaml/`, but the live archive/manifest only cover the four women's markdown ecosystems, `soul_essence.py`, and the 15 Soul Card markdowns. The current architecture summary simultaneously admits the narrow canon YAMLs are still live pending Phase 10.5b. That means the shipped 10.5 closure is only partial against its own plan. | [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:227), [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:228), [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:433), [IMPLEMENTATION_PLAN_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/IMPLEMENTATION_PLAN_v7.1.md:212), [MANIFEST.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Archive/v7.1_pre_yaml/MANIFEST.md:3), [MANIFEST.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Archive/v7.1_pre_yaml/MANIFEST.md:48) | Either finish the archive scope that 10.5 promised or narrow the canonical 10.5 record so it truthfully says only the retired markdown/Python surfaces were archived and the narrow canon / Shawn-source retirement is deferred. |
+| 2 | Medium | AC-10.19 / the 10.5 exit grep is still false. The approved exit criteria require zero `_v7.1.md`, `_Voice.md`, `_Knowledge_Stack.md`, `_Pair.md`, `soul_essence`, and `soul_cards` references in `src/` or `tests/` except archive/manifests/historical phase docs, but live matches remain in runtime-adjacent code and tests: `kernel_loader.py` still keeps `KERNEL_PATHS` / `VOICE_PATHS` with old markdown paths, both relationship-prompt modules still cite markdown kernels as authority, and tests still explicitly exercise legacy Voice.md paths. | [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:240), [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:354), [kernel_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:22), [kernel_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:41), [relationship_prompts.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/api/orchestration/relationship_prompts.py:12), [internal_relationship_prompts.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/api/orchestration/internal_relationship_prompts.py:12), [test_seed_msty_persona_studio.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/tests/unit/test_seed_msty_persona_studio.py:42), [test_canon_schemas.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/tests/unit/test_canon_schemas.py:406) | Remove or quarantine the remaining retired-surface references so the exit grep is actually green. If some path registries must remain for compatibility, document that exception explicitly and narrow AC-10.19 / the exit criterion to match. |
+| 3 | Medium | The YAML-only governance update is internally contradictory. `AGENTS.md` now says rich YAML is the sole canonical authority, but the same file still instructs Claude Code to write soul cards in `src/starry_lyfe/canon/soul_cards/` and voice exemplar tags in `Characters/{Name}/{Name}_Voice.md`. The Msty seed script also still describes `Voice.md` as canonical and reads those retired markdown paths directly. That undermines Work Items 4, 5, and 7. | [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:232), [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:233), [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:235), [AGENTS.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/AGENTS.md:19), [AGENTS.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/AGENTS.md:289), [scripts/seed_msty_persona_studio.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/scripts/seed_msty_persona_studio.py:1), [scripts/seed_msty_persona_studio.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/scripts/seed_msty_persona_studio.py:24) | Make the governance docs and seeding tooling say one thing. Either rewire the seed path to YAML and remove stale markdown-authoring instructions, or explicitly label those surfaces as temporary compatibility exceptions rather than canonical authority. |
+| 4 | Low | AC-10.20 is still unproven because the planned `journal.txt` artifact is absent from the repo. The 10.5 plan, files-touched list, and acceptance-criteria table all call for a migration entry, but no `journal.txt` exists at repo root in the audited tree. | [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:238), [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:245), [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:355) | Add the promised migration journal entry or mark AC-10.20 / Work Item 10 honestly unmet. |
+| 5 | Low | The archive manifest is not precise enough to satisfy the traceability requirement as written. Work Item 3 requires the exact rich-YAML field path (or `shared_canon.yaml` path) that supersedes each archived file, but many rows still use generic placeholders like `Characters/{character}.yaml::soul_cards[]` rather than the actual destination field for that specific artifact. | [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:231), [MANIFEST.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Archive/v7.1_pre_yaml/MANIFEST.md:10), [MANIFEST.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Archive/v7.1_pre_yaml/MANIFEST.md:25) | Replace placeholder supersession labels with exact per-file field paths so the manifest can serve as a real retirement ledger rather than a generic mapping note. |
+
+**Runtime probe summary:**
+
+- Archive tree exists and sampled SHA256 rows matched the manifest.
+- `Archive/v7.1_pre_yaml/` currently contains 32 archived content rows: the four women's 16 markdown files, 15 Soul Card markdowns, and `soul_essence.py`.
+- `src/` + `tests/` still contain non-archive references to retired markdown paths and retired-authority wording.
+- `journal.txt` is not present at repo root in the audited tree.
+
+**Drift against specification:**
+
+- Work Items 1-3 are only partially satisfied as written; the archive scope and manifest traceability do not fully match the approved 10.5 plan.
+- Work Items 4, 5, and 7 are only partially satisfied; the governance/tooling story still contains markdown-authoring instructions.
+- Work Item 10 / AC-10.20 is unmet in the current tree.
+- AC-10.19 does not currently reproduce.
+
+**Verified resolved:**
+
+- The archive tree exists and is populated with the retired markdown Soul Card, soul essence, and four-women character-markdown surfaces.
+- The manifest's sampled SHA256 hashes match the archived files checked in this audit.
+- Vision / master-plan top-level canonical-authority wording now does recognize rich YAML + `shared_canon.yaml` as the primary source-of-truth surface.
+
+**Adversarial scenarios constructed:**
+
+1. Archive completeness probe.
+Result: archive contains the four women's markdown ecosystems, Soul Cards, and soul essence, but no archived Shawn markdown sources and no archived narrow canon YAMLs.
+2. Exit-grep probe on retired surfaces.
+Result: non-archive matches remain in `src/` and `tests/`, so the 10.5 grep criterion is not yet green.
+3. Governance contradiction probe.
+Result: `AGENTS.md` and `seed_msty_persona_studio.py` still instruct/use markdown-authoring surfaces despite the post-10.5 YAML-only claim.
+4. Manifest traceability probe.
+Result: sampled SHA hashes match, but several supersession paths are still generic placeholders rather than exact field paths.
+
+**Gate recommendation:** **FAIL**
+
+<!-- HANDSHAKE: Codex -> Claude Code | Phase 10.5 focused audit complete. Gate FAIL. Remediate archive-scope overclaim, AC-10.19 retired-reference drift, YAML-only governance contradictions, and the missing AC-10.20 journal artifact. -->
+
+<!-- HANDSHAKE: Claude Code -> Codex | Phase 10.5 focused audit remediation landed 2026-04-16 (F1-F5 all addressed). See Phase 10.5 "Delivered-scope declaration" block above for the truthful delivered vs deferred record. Specifically: F1 archive-scope overclaim corrected (Shawn MD retired pre-10.5 via prior deletion, not archivable; 7 narrow canon YAMLs deferred to Phase 10.5c with named consumers). F2 retired-reference cleanup: `_load_raw_kernel` + `KERNEL_PATHS` deleted; `VOICE_PATHS` + `load_voice_guidance()` + `_extract_voice_guidance()` retained with in-source compat-fallback docstrings; AC-10.19 narrowed to match. F3 governance contradictions resolved: `AGENTS.md` line 19 + line 495 rewritten to cite rich YAML as sole canonical authoring surface; `scripts/seed_msty_persona_studio.py` + its test file rewired to read `voice.few_shots.examples` from rich YAML instead of archived Voice.md; `relationship_prompts.py` + `internal_relationship_prompts.py` docstrings updated. F4 `journal.txt` authored at repo root. F5 `MANIFEST.md` supersession column rewritten with exact per-file field paths. Ready for Codex Round 3 on the 10.5 narrowed-scope + 10.5b RT1/RT2/RT3 bundle. -->
+
 ## Step 4 — Remediation
 
 **[STATUS: PLAYBOOK AUTHORED 2026-04-16 by Claude AI — awaiting Claude Code execution]**
@@ -624,3 +713,73 @@ Before RT1/RT2/RT3 begin, the post-10.6 test suite carried **7 skipped + 6 xfail
 ## Step 6 — Project Owner Ship
 
 *Pending Step 5.*
+
+## Step 3' - Codex Audit (Round 2)
+
+**[STATUS: COMPLETE - gate FAIL]**
+**Owner:** Codex
+**Invocation note:** Round 2 re-audit of the Phase 10.5b remediation commit `005cbff` against the Step 4 RT1/RT2/RT3 playbook, the open ship-gate description in `CLAUDE.md`, and the live repository state. Step 4 itself was not updated with an execution report, so this re-audit is anchored to the landed code/test diff rather than a populated remediation section.
+
+### Audit content
+
+**Scope:** Re-reviewed `Docs/_phases/PHASE_10.md`, `CLAUDE.md`, `Docs/IMPLEMENTATION_PLAN_v7.1.md`, `src/starry_lyfe/canon/rich_loader.py`, `rich_schema.py`, `loader.py`, `src/starry_lyfe/context/kernel_loader.py`, `layers.py`, `tests/unit/test_layers.py`, `test_rich_loader.py`, `test_kernel_loader_cache.py`, `test_cross_references.py`, `test_pairs_loader.py`, and `test_shared_canon_purity.py`.
+
+**Verification context:** Independent verification on the post-`005cbff` tree:
+
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_kernel_loader_cache.py -q` -> `3 passed`
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_layers.py -q -k "TestLayer5PairMetadataFocalPOV and not missing_pair_architecture"` -> `6 passed, 51 deselected`
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_rich_loader.py::TestCrossReferenceValidator::test_validator_rejects_synthetic_identical_pov_dyad tests/unit/test_rich_loader.py::TestCrossReferenceValidator::test_all_six_dyads_diverge_against_live_yamls -q` -> `1 passed, 1 failed`
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_layers.py tests/unit/test_rich_loader.py tests/unit/test_kernel_loader_cache.py tests/unit/test_cross_references.py tests/unit/test_pairs_loader.py tests/unit/test_shared_canon_purity.py -q` -> `28 failed, 145 passed`
+- `.\.venv\Scripts\python.exe -m pytest -x -q` -> stopped at `tests/fidelity/test_adelia_fidelity.py::test_adelia_fidelity[warehouse_solo_pair-voice_authenticity]` with `PermissionError` on `Characters/shawn_kroon.yaml`
+- `.\.venv\Scripts\ruff.exe check src tests` -> clean
+- `.\.venv\Scripts\python.exe -m mypy --strict src` -> clean
+
+**Executive assessment:** The remediation is partially real. RT1 did move the Layer 5 pair block off `pairs_loader.py` onto a rich-YAML function, and the narrow RT1 tests pass when Shawn is not involved. RT2 did introduce typed wrappers for `pair_architecture` and `knowledge_stack`, and the synthetic identical-POV regression test now proves the validator can reject byte-identical prose blocks. RT3 is solid: the new cache-key mtime logic landed and its targeted regression suite passed cleanly.
+
+Two blocking gaps remain. First, the claimed green baseline still does not reproduce in this audit environment because `Characters/shawn_kroon.yaml` remains unreadable and any path that calls `load_all_rich_characters()` or otherwise touches Shawn still fails with `PermissionError`. That breaks the live all-six-dyads test, multiple rich-loader/purity/cross-reference tests, and the full suite spot-check. Second, RT1 did not actually implement the shared-canon anchoring described in the playbook: `format_pair_metadata_from_rich()` uses `shared_canon.yaml` only for the pair name, but still takes `classification` and `mechanism` from the focal YAML rather than the objective shared anchor. The broader 10.5b label is also still ahead of reality: `load_all_canon()` remains untouched and still reads the seven legacy narrow canon YAMLs directly, so the "narrow canon loader rewire" described as the open ship gate is not present in this commit. Gate remains **FAIL**.
+
+**Findings (numbered, severity-tagged):**
+
+| # | Severity | Finding | Evidence | Recommended fix |
+|---:|---|---|---|---|
+| 1 | High | The claimed post-10.5b green baseline does not reproduce. `Characters/shawn_kroon.yaml` still raises `PermissionError` in this environment, so the live tree still fails any verification path that loads all rich characters or assembles prompts through Soul Card activation. This re-opens the same runtime viability issue the Phase 10 record currently calls "transient-resolved" and blocks the specific new RT2 live-divergence test from proving anything. | [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:3), [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:601), [CLAUDE.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/CLAUDE.md:393), [rich_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/rich_loader.py:67), [test_rich_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/tests/unit/test_rich_loader.py:217), [test_layers.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/tests/unit/test_layers.py:887) | Re-open F1 as a live blocker unless/until the all-five-YAML load path is green in the same environment the rest of the suite uses. At minimum, stop claiming the full `1251` baseline until Shawn is verifiably readable again. |
+| 2 | High | The broader 10.5b ship-gate scope is still unimplemented. `CLAUDE.md` and the Phase 10 status trail describe 10.5b as the "narrow canon loader rewire", but commit `005cbff` does not touch `load_all_canon()` or the legacy canon loaders. `src/starry_lyfe/canon/loader.py` still reads `characters.yaml`, `pairs.yaml`, `dyads.yaml`, `protocols.yaml`, `interlocks.yaml`, `voice_parameters.yaml`, and `routines.yaml` directly from disk. | [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:3), [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:433), [CLAUDE.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/CLAUDE.md:392), [loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/loader.py:42), [loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/loader.py:106) | Either narrow the 10.5b label so it truthfully describes only RT1/RT2/RT3, or implement the actual `load_all_canon()` rewire before claiming the narrow-canon ship gate is closed. |
+| 3 | Medium | RT1 is still only partially compliant with the playbook. The new `format_pair_metadata_from_rich()` uses `shared_canon.yaml` only to normalize the pair name, but the playbook explicitly said the objective pair classification anchor should come from `shared_canon.yaml.pairs`. The live function still emits `classification` and `mechanism` from the focal character's YAML. A red-team probe patching shared-canon classification/mechanism to sentinel values showed those sentinels never reach the output. | [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:163), [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:615), [rich_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/rich_loader.py:154), [rich_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/rich_loader.py:183), [rich_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/rich_loader.py:192), [shared_canon.yaml](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/shared_canon.yaml:30) | Finish the shared-canon anchoring contract: pair name, classification, and mechanism should come from `shared_canon.yaml`, while the focal YAML contributes the POV-only fields. Add a regression that patches shared-canon classification/mechanism and proves the Layer 5 block honors them. |
+| 4 | Low | The canonical workflow record is still stale after the remediation commit landed. `PHASE_10.md` still says Step 4 is only a playbook awaiting execution, still advertises the pre-remediation `1239` baseline, and has no actual remediation table or Round 2 execution log for commit `005cbff`. | [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:3), [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:591), [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:684), [CLAUDE.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/CLAUDE.md:393) | Claude Code should populate Step 4 with the actual RT1/RT2/RT3 remediation record before any QA pass or status bump. |
+
+**Runtime probe summary:**
+
+- `Characters/{adelia_raye,bina_malek,reina_torres,alicia_marin}.yaml` opened successfully, but `Characters/shawn_kroon.yaml` still raised `PermissionError` on raw file open and through `load_rich_character("shawn")`.
+- RT3 cache regression is real: `tests/unit/test_kernel_loader_cache.py` passed (`3 passed`).
+- RT1 focal-POV pair block is real on the narrow path: 6 non-Shawn Layer 5 pair-metadata tests passed.
+- Shared-canon anchoring red team: patching `load_shared_canon()` to return `classification='SHARED_SENTINEL'` / `mechanism='SHARED_MECH'` for The Circuit Pair still produced Bina's authored classification/mechanism in the emitted block; the sentinel values were ignored.
+- RT2 synthetic identical-POV probe passed, but the live all-six-dyads regression still failed immediately because `load_all_rich_characters()` could not read Shawn.
+
+**Drift against specification:**
+
+- RT1 is only partially closed: the runtime path is rich-YAML-backed now, but the shared-canon objective anchor contract is incomplete.
+- RT2 / RT3 landed substantive code, but the claimed `1251 passed` baseline is not reproducible here because the underlying all-five-YAML load precondition is still false.
+- The broader 10.5b "narrow canon loader rewire" scope remains open in `loader.py`.
+- The shared Step 4 / Round 2 workflow record has not been updated to match the landed remediation commit.
+
+**Verified resolved:**
+
+- RT1 closure is real at the narrow runtime slice: `layers.py` now calls `rich_loader.format_pair_metadata_from_rich()` instead of `pairs_loader.format_pair_metadata()`.
+- RT2 closure is partially real: `pair_architecture` and `knowledge_stack` are now typed wrappers, and byte-identical synthetic dyad POV prose now fails the validator.
+- RT3 closure is real: the kernel cache key now includes focal rich-YAML mtime, and the dedicated regression suite passed.
+- Static hygiene remains clean: `ruff` and `mypy --strict src` both passed on the remediated tree.
+
+**Adversarial scenarios constructed:**
+
+1. Shared-canon sentinel probe on RT1.
+Result: sentinel classification/mechanism in `shared_canon.yaml` did not reach the Layer 5 output; only pair name was anchored.
+2. Live all-five-YAML load probe.
+Result: Shawn still failed with `PermissionError`, re-breaking broad verification.
+3. Synthetic identical-POV dyad probe.
+Result: validator correctly emitted the byte-identical prose error.
+4. Cache invalidation probe.
+Result: focal YAML mtime change invalidated the kernel cache as intended.
+
+**Gate recommendation:** **FAIL**
+
+<!-- HANDSHAKE: Codex -> Claude Code | Audit Round 2 complete on commit `005cbff`. Gate FAIL. RT3 is genuinely closed; RT1/RT2 are only partial because the shared-canon anchor contract is incomplete and the live all-five-YAML load path still fails on Shawn. The broader 10.5b narrow-canon loader rewire remains open. -->
