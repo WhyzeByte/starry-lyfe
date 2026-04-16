@@ -101,6 +101,38 @@ HYGIENE_DIRECTIVES: list[str] = [
 ]
 
 
+_COMM_MODE_TO_YAML_KEY: dict[CommunicationMode, str] = {
+    CommunicationMode.IN_PERSON: "in_person",
+    CommunicationMode.PHONE: "phone",
+    CommunicationMode.LETTER: "letter",
+    CommunicationMode.VIDEO_CALL: "video",
+}
+
+
+def _yaml_constraint_pillars(
+    character_id: str,
+    communication_mode: CommunicationMode,
+) -> list[str]:
+    """Read per-character constraint pillars from rich YAML (Phase 10.4 C4).
+
+    Returns an empty list if the character's YAML lacks a
+    ``behavioral_framework.constraint_pillars`` block, letting the caller
+    fall back to the legacy hardcoded ``CHARACTER_CONSTRAINTS`` dict.
+    """
+    try:
+        from starry_lyfe.canon.rich_loader import (
+            get_constraint_pillars,
+            load_rich_character,
+        )
+
+        rc = load_rich_character(character_id)
+    except (ValueError, FileNotFoundError):
+        return []
+    yaml_mode = _COMM_MODE_TO_YAML_KEY.get(communication_mode, "in_person")
+    pillars = get_constraint_pillars(rc, yaml_mode)
+    return pillars or []
+
+
 def build_constraint_block(
     character_id: str,
     scene_state: SceneState,
@@ -158,18 +190,11 @@ def build_constraint_block(
             "scene context, not imposed. Prior consent or emotional build-up required."
         )
 
-    # Per-character constraint pillar (mode-conditional for Alicia)
-    if character_id == "alicia" and scene_state.communication_mode != CommunicationMode.IN_PERSON:
-        mode = scene_state.communication_mode
-        if mode == CommunicationMode.PHONE:
-            char_constraints = ALICIA_PHONE_PILLAR
-        elif mode == CommunicationMode.LETTER:
-            char_constraints = ALICIA_LETTER_PILLAR
-        elif mode == CommunicationMode.VIDEO_CALL:
-            char_constraints = ALICIA_VIDEO_PILLAR
-        else:
-            char_constraints = CHARACTER_CONSTRAINTS.get(character_id, [])
-    else:
+    # Per-character constraint pillar (mode-conditional for Alicia) — Phase 10.4 C4.
+    # Sourced from rich YAML ``behavioral_framework.constraint_pillars[mode]`` with
+    # fallback to ``in_person`` when the requested mode is not authored.
+    char_constraints = _yaml_constraint_pillars(character_id, scene_state.communication_mode)
+    if not char_constraints:
         char_constraints = CHARACTER_CONSTRAINTS.get(character_id, [])
     if char_constraints:
         sections.append(f"=== CHARACTER-SPECIFIC CONSTRAINTS ({character_id.upper()}) ===")
