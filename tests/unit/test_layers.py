@@ -813,24 +813,29 @@ class TestLayer5PairMetadataFocalPOV:
     neutral shared_canon-only merge and not another character's POV.
     """
 
-    def test_bina_block_is_circuit_pair_and_carries_bina_pov_content(self) -> None:
+    def test_bina_block_is_circuit_pair_with_shared_canon_anchors_and_bina_pov(self) -> None:
+        """PAIR + CLASSIFICATION + MECHANISM from shared_canon; metaphor/provides/spiral from Bina's YAML."""
         from starry_lyfe.canon.rich_loader import format_pair_metadata_from_rich
 
         block = format_pair_metadata_from_rich("bina")
         assert block.startswith("PAIR: The Circuit Pair"), block
-        assert "Orthogonal Opposition" in block
-        assert "Cybernetic homeostasis" in block
+        assert "CLASSIFICATION: diagnostic love" in block, block
+        assert "MECHANISM: Si-Fe loop meets Fe-Ti loop" in block, block
         assert "Citadel and Circuit" in block
         assert "micro-level operational execution" in block
+        assert "Ground the organism before interrogating the mind." in block
 
-    def test_adelia_block_is_entangled_pair_and_carries_adelia_pov_content(self) -> None:
+    def test_adelia_block_is_entangled_pair_with_shared_canon_anchors_and_adelia_pov(self) -> None:
+        """PAIR/CLASSIFICATION/MECHANISM from shared_canon; singular core_metaphor + provides + spiral from Adelia."""
         from starry_lyfe.canon.rich_loader import format_pair_metadata_from_rich
 
         block = format_pair_metadata_from_rich("adelia")
         assert block.startswith("PAIR: The Entangled Pair"), block
-        assert "Intuitive Symbiosis" in block
+        assert "CLASSIFICATION: generator-governor polarity" in block, block
+        assert "MECHANISM: Ne flood meets Si structure" in block, block
         assert "Gravity and Space" in block
         assert "emotional buoyancy" in block
+        assert "Anchor, do not mirror" in block
 
     def test_focal_pov_does_not_leak_other_characters_pair_content(self) -> None:
         """Negative: Bina's block does not carry Reina/Adelia/Alicia POV content."""
@@ -840,8 +845,12 @@ class TestLayer5PairMetadataFocalPOV:
         assert "Kinetic Pair" not in bina_block
         assert "Entangled Pair" not in bina_block
         assert "Solstice Pair" not in bina_block
-        assert "strategy-tactics dyad" not in bina_block
-        assert "Intuitive Symbiosis" not in bina_block
+        # Bina's POV-only classification/mechanism must not appear — those
+        # are now overridden by the shared_canon objective anchors.
+        assert "Orthogonal Opposition" not in bina_block
+        assert "Cybernetic homeostasis" not in bina_block
+        # Other characters' POV content must not appear either.
+        assert "generator-governor" not in bina_block
         assert "Gravity and Space" not in bina_block
 
     def test_reina_block_is_kinetic_pair(self) -> None:
@@ -891,3 +900,57 @@ class TestLayer5PairMetadataFocalPOV:
 
         with pytest.raises(CharacterNotFoundError):
             format_pair_metadata_from_rich("shawn")
+
+    def test_shared_canon_sentinel_reaches_layer5_block(self) -> None:
+        """R2-F3 red-team: patching shared_canon sentinels must flow through.
+
+        Codex Round 2 audit proved the original RT1 implementation ignored
+        shared_canon classification/mechanism values and sourced them from
+        the focal character's pair_architecture instead. This test pins
+        the post-remediation contract: patched shared_canon sentinel
+        values for classification and mechanism MUST appear in the
+        emitted Layer 5 block, and the focal YAML's own classification /
+        mechanism MUST NOT leak.
+        """
+        from unittest.mock import patch
+
+        from starry_lyfe.canon.rich_loader import format_pair_metadata_from_rich
+        from starry_lyfe.canon.shared_schema import SharedCanon, SharedPair
+
+        sentinel_shared = SharedCanon(
+            version="sentinel",
+            pairs=[
+                SharedPair(
+                    canonical_name="The Circuit Pair",
+                    classification="SHARED_SENTINEL_CLASSIFICATION",
+                    mechanism="SHARED_SENTINEL_MECHANISM",
+                ),
+                SharedPair(
+                    canonical_name="The Entangled Pair",
+                    classification="generator-governor polarity",
+                    mechanism="Ne flood meets Si structure; the pattern becomes legible to both simultaneously",
+                ),
+                SharedPair(
+                    canonical_name="The Kinetic Pair",
+                    classification="kinetic-vanguard",
+                    mechanism="Se urgency meets Ne scope; the blast pattern survives the test",
+                ),
+                SharedPair(
+                    canonical_name="The Solstice Pair",
+                    classification="solstice-threshold",
+                    mechanism="Se-Fi meets Ne-Fi; the warmth survives the distance",
+                ),
+            ],
+        )
+        with patch(
+            "starry_lyfe.canon.rich_loader.load_shared_canon",
+            return_value=sentinel_shared,
+        ):
+            block = format_pair_metadata_from_rich("bina")
+
+        assert "CLASSIFICATION: SHARED_SENTINEL_CLASSIFICATION" in block, block
+        assert "MECHANISM: SHARED_SENTINEL_MECHANISM" in block, block
+        # Bina's own POV-only classification + mechanism must not leak
+        # when shared_canon provides the objective anchor.
+        assert "Orthogonal Opposition" not in block
+        assert "Cybernetic homeostasis" not in block

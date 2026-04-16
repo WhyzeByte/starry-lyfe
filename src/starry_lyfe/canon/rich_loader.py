@@ -47,10 +47,46 @@ RICH_YAML_FILES: dict[str, str] = {
 }
 
 
+_ONEDRIVE_LOCK_RETRY_BACKOFF_MS: tuple[int, ...] = (50, 100, 200, 400)
+
+
 def _load_yaml_file(path: Path) -> dict[str, object]:
-    with path.open(encoding="utf-8") as f:
-        data: dict[str, object] = yaml.safe_load(f)
-    return data
+    """Load a rich YAML file with bounded retry on transient OS locks.
+
+    Phase 10.5b R2-F1: the Characters/ YAMLs live on OneDrive, and the
+    cloud-sync daemon occasionally holds a brief lock during incremental
+    upload/download which surfaces as ``PermissionError`` (Windows) or
+    ``OSError`` (POSIX). Codex Round 2 audit on commit ``005cbff`` hit
+    this on ``shawn_kroon.yaml`` and correctly failed the audit because
+    every path that calls ``load_all_rich_characters()`` inherited the
+    transient failure.
+
+    Retry policy: up to 5 attempts across ~750ms total (50 + 100 + 200 +
+    400 + final) — a window long enough to cover typical OneDrive sync
+    lock durations (50–500ms) without masking a genuine unreadable-file
+    condition. The original exception is re-raised on the final attempt.
+    """
+    import time
+
+    last_exc: OSError | None = None
+    for attempt, backoff_ms in enumerate((*_ONEDRIVE_LOCK_RETRY_BACKOFF_MS, 0)):
+        try:
+            with path.open(encoding="utf-8") as f:
+                data: dict[str, object] = yaml.safe_load(f)
+            return data
+        except OSError as exc:
+            last_exc = exc
+            if backoff_ms > 0:
+                logger.warning(
+                    "rich YAML transient read error (attempt %d/%d) for %s: %s",
+                    attempt + 1,
+                    len(_ONEDRIVE_LOCK_RETRY_BACKOFF_MS) + 1,
+                    path,
+                    exc,
+                )
+                time.sleep(backoff_ms / 1000.0)
+    assert last_exc is not None
+    raise last_exc
 
 
 def load_rich_character(character_id: str) -> RichCharacter:
@@ -152,23 +188,35 @@ def format_pair_callbacks_from_rich(rc: RichCharacter) -> str:
 
 
 def format_pair_metadata_from_rich(character_id: str) -> str:
-    """Layer 5 pair metadata block sourced from rich YAML + shared_canon.
+    """Layer 5 pair metadata block sourced from shared_canon + rich YAML.
 
-    Phase 10.5b RT1 cutover: replaces the legacy
-    ``pairs_loader.format_pair_metadata`` runtime path. The block is
-    focal-POV-specific — when ``character_id`` is Bina, the emitted
-    block reflects Bina's read on the Circuit Pair (from her YAML),
-    not a neutral merge of the objective shared_canon anchor alone.
+    Phase 10.5b RT1 cutover + Phase 10.5b R2-F3 shared-canon-anchoring
+    completion: replaces the legacy ``pairs_loader.format_pair_metadata``
+    runtime path.
 
-    Output shape mirrors the legacy 6-field block for assembled-prompt
-    continuity. The canonical pair name is resolved from
-    ``shared_canon.yaml.pairs`` (objective anchor) so typos or future
-    drift in the per-character ``pair_architecture.name`` still render
-    the authoritative pair name. All other fields are drawn from the
-    focal character's ``pair_architecture`` (her POV). The
-    ``HOW SHE BREAKS HIS SPIRAL`` line is sourced from
-    ``floor_defaults.ambiguity_resolution.when_whyze_is_spiraling`` —
-    the canonical location in every woman's rich YAML.
+    Source-of-truth split (per the RT1 playbook):
+
+    - **Objective anchors** (immune to per-character drift) come from
+      ``shared_canon.yaml.pairs[canonical_name=<name>]``:
+      PAIR name, CLASSIFICATION, MECHANISM. A red-team probe patching
+      shared_canon to sentinel values MUST see those sentinels in the
+      emitted block (enforced by
+      ``test_layers.py::TestLayer5PairMetadataFocalPOV``).
+
+    - **Focal-POV experiential content** (AC-10.23) comes from the
+      focal character's ``pair_architecture``: CORE METAPHOR (from
+      ``core_metaphors[]`` list or ``core_metaphor`` singular string),
+      WHAT SHE PROVIDES (from ``what_she_provides[]``).
+
+    - **HOW SHE BREAKS HIS SPIRAL** (her POV on regulation) comes from
+      ``floor_defaults.ambiguity_resolution.when_whyze_is_spiraling``,
+      the canonical location in every woman's rich YAML.
+
+    When shared_canon does not carry an entry for the authored pair
+    name, or when a field is blank in shared_canon, the focal YAML
+    value is used as a defensive fallback — but the expected contract
+    is that every pair name in a per-character ``pair_architecture.name``
+    resolves in ``shared_canon.yaml::pairs[]`` (AC-10.2).
 
     Raises CharacterNotFoundError if the character has no
     ``pair_architecture`` block (Shawn by design).
@@ -182,15 +230,27 @@ def format_pair_metadata_from_rich(character_id: str) -> str:
 
     shared = load_shared_canon()
     authored_name = pa.name
-    canonical_name = authored_name
+
+    shared_entry = None
     if authored_name and shared.pairs:
         for entry in shared.pairs:
             if entry.canonical_name == authored_name:
-                canonical_name = entry.canonical_name
+                shared_entry = entry
                 break
 
-    classification = str(pa.classification or "").strip()
-    mechanism = str(pa.mechanism or "").strip()
+    canonical_name = (
+        shared_entry.canonical_name if shared_entry is not None else authored_name
+    )
+
+    if shared_entry is not None and shared_entry.classification:
+        classification = str(shared_entry.classification).strip()
+    else:
+        classification = str(pa.classification or "").strip()
+
+    if shared_entry is not None and shared_entry.mechanism:
+        mechanism = str(shared_entry.mechanism).strip()
+    else:
+        mechanism = str(pa.mechanism or "").strip()
 
     metaphors = pa.core_metaphors
     if metaphors:

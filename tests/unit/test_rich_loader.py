@@ -443,3 +443,66 @@ class TestPhase104Helpers:
         sp = get_state_protocols(rc)
         assert isinstance(sp, dict)
         assert "bunker_mode" in sp or len(sp) >= 0  # permissive
+
+
+class TestOneDriveLockResilience:
+    """Phase 10.5b R2-F1: transient OS locks on rich YAML reads retry cleanly.
+
+    Codex Round 2 audit on commit ``005cbff`` hit a ``PermissionError`` on
+    ``Characters/shawn_kroon.yaml`` due to a transient OneDrive sync-daemon
+    lock. These tests pin the retry behavior so that short-window locks no
+    longer break ``load_all_rich_characters()`` and downstream consumers.
+    """
+
+    def test_transient_permission_error_succeeds_on_retry(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Two PermissionErrors followed by a success must yield the successful load."""
+        from pathlib import Path as _Path
+
+        from starry_lyfe.canon import rich_loader
+
+        call_count = {"n": 0}
+        real_open = _Path.open
+
+        def flaky_open(self: _Path, *args: object, **kwargs: object) -> object:
+            if "shawn_kroon.yaml" in str(self) and call_count["n"] < 2:
+                call_count["n"] += 1
+                msg = f"OneDrive lock on {self}"
+                raise PermissionError(msg)
+            return real_open(self, *args, **kwargs)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(_Path, "open", flaky_open, raising=False)
+
+        rc = rich_loader.load_rich_character("shawn")
+        assert rc is not None
+        assert call_count["n"] == 2, (
+            f"Expected 2 transient failures before success; got {call_count['n']}"
+        )
+
+    def test_persistent_permission_error_exhausts_and_raises(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """If the lock never clears, final attempt re-raises the original OSError."""
+        from pathlib import Path as _Path
+
+        from starry_lyfe.canon import rich_loader
+
+        call_count = {"n": 0}
+
+        def always_locked(self: _Path, *args: object, **kwargs: object) -> object:
+            if "shawn_kroon.yaml" in str(self):
+                call_count["n"] += 1
+                msg = f"OneDrive lock on {self}"
+                raise PermissionError(msg)
+            msg2 = "should not be called on non-shawn path in this test"
+            raise AssertionError(msg2)
+
+        monkeypatch.setattr(_Path, "open", always_locked, raising=False)
+
+        with pytest.raises(PermissionError):
+            rich_loader.load_rich_character("shawn")
+        # 5 attempts (4 backoffs + final)
+        assert call_count["n"] == 5, (
+            f"Expected 5 attempts before raising; got {call_count['n']}"
+        )
