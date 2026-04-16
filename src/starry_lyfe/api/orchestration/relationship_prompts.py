@@ -30,10 +30,11 @@ from starry_lyfe.api.orchestration.relationship import DyadDeltaProposal
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# System prompt — canonical, hand-authored
+# System prompt — preamble + footer hardcoded; per-character register
+# sections assembled from YAML at import time (Phase 10.4 C3).
 # ---------------------------------------------------------------------------
 
-RELATIONSHIP_EVAL_SYSTEM: str = """\
+_PREAMBLE: str = """\
 You are a relationship state evaluator for a four-character interactive fiction \
 system. Your only job is to read a single response written by one of the four \
 focal characters and propose deltas for four relationship dimensions that track \
@@ -56,160 +57,20 @@ a single turn cannot erase accumulated repair history. Range: 0.0 to 1.0.
 ## Per-character register notes
 
 The signals for each dimension look different in each character's voice. Read \
-the character ID and apply the correct register.
+the character ID and apply the correct register."""
 
-### ADELIA (Entangled Pair — Ne-dominant ENFP-A)
 
-Adelia's intimacy is intellectual first. Warmth without intellectual collision \
-is warmth on the surface only. Signals to read:
+# Hardcoded headers preserve the per-character section labels that
+# appeared in the legacy hardcoded RELATIONSHIP_EVAL_SYSTEM. YAML
+# carries the body prose only.
+_CHARACTER_HEADERS: dict[str, str] = {
+    "adelia": "### ADELIA (Entangled Pair — Ne-dominant ENFP-A)",
+    "bina": "### BINA (Circuit Pair — Si-dominant ISFJ-A)",
+    "reina": "### REINA (Kinetic Pair — Se-dominant ESTP-A)",
+    "alicia": "### ALICIA (Solstice Pair — Se-somatic ESFP-A)",
+}
 
-- **intimacy+**: Intellectual sparring active; challenge-as-respect framing; \
-Whiteboard Mode offered (externalizing, asking the better question); \
-blast-geometry or chemistry metaphors for emotional truth; bidirectional ask \
-(requesting sequencing help, naming the Skill Wall directly); Taurus Venus \
-override compression (physical grounding, fewer words, body-first); Spanish \
-surfacing (especially *gracias* landing after intensity — this is the deepest \
-intimacy signal in her register).
-- **intimacy−**: Bunker Mode language (rigid, Si-grip, old failed route); Skill \
-Wall hit loud without routing it to him (dump with no handoff); only giving, \
-stabilizing, admiring across multiple turns with no ask — Tier 2.3 violation.
-- **tension+**: Skill Wall hit loud (swearing, pencils thrown, explicit \
-frustration dump before the handoff); sharp reframe without warmth underneath.
-- **tension−**: Whiteboard Mode resolved (moving parts sequenced, the \
-constraint named and handed off); anxiety anchoring completed (spiral named, \
-distortion trimmed, grounded); settled language after a loud episode.
-- **trust+**: Asking for sequencing help directly and naming it as such; Skill \
-Wall named without converting it immediately into deflection; reciprocity \
-activation after a one-sided stretch; "I need your brain on this" register.
-- **trust−**: Performing competence through a task she has named as over her \
-head; refusing the handoff after the Skill Wall; no ask in a turn where the \
-ask is overdue per Tier 2.3.
-- **repair+**: Explicit "I was wrong about the channel"; reciprocity restored \
-after acknowledged one-sided stretch; bidirectional care named after an \
-imbalance ("I need to ask something of you now, not just give").
-
----
-
-### BINA (Circuit Pair — Si-dominant ISFJ-A)
-
-Bina's love is diagnostic and action-first. Words follow acts, never the \
-reverse. Do not penalize short responses. Compression is intimacy in her \
-register. Signals to read:
-
-- **intimacy+**: Completed Circuit language (current, charge, circuit closing); \
-action without speech (covered plate, locked door, hand at right time, \
-blanket repositioned); chai and cardamom ritual active or referenced; \
-mezzanine named as the space; Alternating Current active (energy flowing both \
-directions); safety language after the Short Circuit ("I have you"; \
-steadiness explicitly offered, not performed).
-- **intimacy−**: Flat State active — shorter answers, acts of service without \
-warmth, no volunteered emotional language, hands busy without contact; Old \
-Wiring surfaced (colder, flatter, procedural register after a coercive or \
-invasive framing hit the Kael circuitry).
-- **tension+**: Structural Veto delivered ("The weld is cracked"); Flat State \
-Phase 2 explicit overload report ("Grid overloaded. Take Gavin."); boundary \
-enforced cleanly and without drama.
-- **tension−**: Circuit closed clean; Quiet Hold active (proximity without \
-demand); Alternating Current restored after depletion; grounding complete.
-- **trust+**: Structural Veto delivered without softening (the veto IS the \
-love in Bina's register — naming it clean is a trust signal); Completed \
-Circuit metaphor active; Gilgamesh referenced (the drawer, the epic, the \
-Uruk walls — these are always intimate); Alternating Current described or \
-enacted.
-- **trust−**: Old Wiring surfaced (procedural distancing, hypervigilant scan \
-language, exit-mapping language appearing without cause); consent gate raised \
-unexpectedly in a scene that had not approached it.
-- **repair+**: Flat State recovery named and exited; Alternating Current \
-restored after a named depletion; explicit "That is handled" after a Structural \
-Veto that was met with resistance; Quiet Hold offered after a rupture.
-
----
-
-### REINA (Kinetic Pair — Se-dominant ESTP-A)
-
-Reina's intimacy runs through earned evidence. The case must be opened before \
-the verdict is delivered. Do not read legal-register language as cold — it is \
-her warmth. Signals to read:
-
-- **intimacy+**: Body Reader observation stated without softening (courtroom \
-register applied to his body — "your jaw is locked," "you are gripping that \
-mug like it owes you money"); admissibility met (charge earned through pursuit, \
-challenge, or shared risk — "the evidence is in"); tiered escalation language \
-(proximity → contact → intentional escalation); Post-Race Crash settling into \
-warmth (output drops, warmth stays, closer and more physical); humor with \
-teeth and a grin attached (the grin matters — it signals the warmth underneath \
-the sharpness).
-- **intimacy−**: Ni-Grip firing (catastrophizing language, future dread stated \
-as fact, pattern-seeing without grounding evidence); performance substituted \
-for real presence; signal skipped (zero-to-verdict escalation without earning \
-admissibility first).
-- **tension+**: Go Protocol urgency cut ("one clean incision, not ten"); Ni-Grip \
-stated ("I'm catastrophizing and I can't stop"); sharp cross-examination \
-register applied personally without warmth underneath.
-- **tension−**: Case closed language ("the evidence is in, I'm done arguing"); \
-admissibility earned and named; Post-Race Crash fully settled (fire in \
-stillness, the Leo Moon carrying the warmth).
-- **trust+**: Body Reader observation delivered — specific, un-softened, \
-stated as courtroom fact rather than question ("Your jaw has been locked for \
-twenty minutes" not "Are you okay?"); apex convergence named (Ni and Se \
-arriving at the same corner from opposite directions); bad read acknowledged \
-and corrected without ego or drama.
-- **trust−**: Ni-Grip catastrophizing presented as analysis; bad read held \
-past the point where the evidence contradicted it; urgency asserted without \
-signal (Tier 2.3 violation — entitlement misread as speed).
-- **repair+**: Wrong read acknowledged without ego ("I misread the room — \
-here is what I actually saw"); Go Protocol delivered clean and received; Post-Race \
-Crash used as repair space (staying close, physical, quieter after a sharp turn).
-
----
-
-### ALICIA (Solstice Pair — Se-somatic ESFP-A)
-
-Alicia's intimacy is somatic and present-tense. When she is in the house her \
-warmth is body-first. When she is away on operations her register shifts: \
-somatic contact is impossible and the ABSENCE of somatic language is NOT a \
-signal of reduced intimacy — it is the correct register for the communication \
-mode. Read warmth differently depending on whether the scene is in-person or \
-remote. Signals to read:
-
-- **intimacy+ (in-person)**: Sun Override active — weight in his lap, hand on \
-back of his neck, cold glass placed at his elbow without comment, fingertips \
-in hair; somatic grounding completed ("the loop broke because the body \
-rejoined the room"); full present-moment arrival ("I'm here, I'm in this room \
-now"); warmth that does not require naming; *zambas* or Famaill� sensory \
-anchors surfacing (these are the deepest intimacy signals in her register — \
-they appear only when she is fully home).
-- **intimacy+ (remote — phone / letter / video)**: Present-tense arrival in \
-voice or text ("I'm in the hotel room, the window is open, it's raining"); \
-sensory anchoring to the distance ("I can hear you"); "I'm here now" register \
-without somatic component; warmth expressed through the quality of attention \
-rather than through touch.
-- **intimacy−**: Operational register bleeding into the household register — \
-the negotiation-room face still on, sentences shorter still, sensory anchors \
-thinned to nothing; half-in-the-other-room language ("I'm still carrying \
-something I haven't set down yet"); Sun Override not yet fired despite the \
-body in front of her asking for it.
-- **tension+**: Hard case still visible in the register (the face that is \
-"exactly this much, and no more, and no less, until the room ends" surfacing \
-at home); operational security gate invoked in a personal scene (a refusal \
-she cannot soften because the Canciller�a does not give her room to soften it).
-- **tension−**: Sun Override completed (body came back, loop broke, present \
-moment arrived and held); warm and still, no operational register residue; \
-arrival fully landed.
-- **trust+**: Sun Override fired correctly without being asked ("the sun does \
-not work on command — I became this because the love was already there and \
-your body was already asking"); reading done without prompting; present-moment \
-arrival completed and the household settled back to its normal temperature.
-- **trust−**: Arrival not yet complete (still wearing the operational face two \
-turns into a domestic scene); Sun Override withheld in a scene where the body \
-in the room was clearly asking.
-- **repair+**: Return narrative complete and warm ("the flight was long, the \
-hotel was bad, the food was the food — and I am here now, and the room is \
-exactly as I left it, and that is the most romantic thing"); Sun Override used \
-as repair after a missed turn or a hard absence.
-
----
-
+_FOOTER: str = """\
 ## Output format
 
 Respond with ONLY valid JSON. No preamble, no explanation, no markdown fences.
@@ -229,6 +90,40 @@ Prefer small values (±0.1 to ±0.3) unless the signal is strong and unambiguous
 The downstream ±0.03 per-turn cap will gate the final applied delta — your job \
 is to indicate direction and rough magnitude, not to apply the cap yourself.
 """
+
+
+def _build_relationship_eval_system() -> str:
+    """Assemble the Phase 8 evaluator system prompt from rich YAML (Phase 10.4 C3).
+
+    Preamble + per-character headers + footer are hardcoded; each character's
+    register body prose is read from ``RichCharacter.evaluator_register.whyze_dyad``.
+    Byte-equivalent to the legacy hardcoded string.
+    """
+    from starry_lyfe.canon.rich_loader import (
+        get_evaluator_whyze_register,
+        load_rich_character,
+    )
+
+    sections: list[str] = [_PREAMBLE, ""]
+    for cid in ("adelia", "bina", "reina", "alicia"):
+        rc = load_rich_character(cid)
+        body = get_evaluator_whyze_register(rc)
+        if body is None:
+            msg = f"No whyze_dyad register prose in YAML for {cid!r}"
+            raise ValueError(msg)
+        sections.append(_CHARACTER_HEADERS[cid])
+        sections.append("")
+        sections.append(body)
+        sections.append("")
+        sections.append("---")
+        sections.append("")
+    sections.append(_FOOTER)
+    return "\n".join(sections)
+
+
+RELATIONSHIP_EVAL_SYSTEM: str = _build_relationship_eval_system()
+
+
 
 # ---------------------------------------------------------------------------
 # Response schema

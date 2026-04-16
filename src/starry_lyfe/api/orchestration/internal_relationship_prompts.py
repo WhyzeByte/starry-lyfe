@@ -30,14 +30,12 @@ if TYPE_CHECKING:
     )
 
 logger = logging.getLogger(__name__)
-
-
 # ---------------------------------------------------------------------------
-# Canonical system prompt — hand-authored per-pair register notes from
-# PHASE_9.md §Pre-execution, carried verbatim per AC-9.8.
+# System prompt — preamble + footer hardcoded; per-pair register sections
+# assembled from YAML at import time (Phase 10.4 C3).
 # ---------------------------------------------------------------------------
 
-INTERNAL_RELATIONSHIP_EVAL_SYSTEM: str = """\
+_PREAMBLE: str = """\
 You are an inter-woman relationship state evaluator for a four-character \
 interactive fiction system. Your only job is to read a single response \
 written by one of the four focal women and propose deltas for five \
@@ -69,259 +67,22 @@ accumulated repair history. Range: 0.0 to 1.0.
 
 The signals for each dimension look different in each pair. Read the \
 ``dyad_key`` and the two member names, then apply the correct pair's \
-register.
+register."""
 
-### ADELIA × BINA (anchor_dynamic — resident_continuous)
 
-These two are the load-bearing axis of the household. Adelia is the fire; \
-Bina is the floor that holds it. Their intimacy is asymmetric in register \
-but symmetrical in depth: Adelia expresses through voltage and scope, \
-Bina through action and steadiness. Do not mistake Bina's compression \
-for distance. The covered plate IS the love.
+# Hardcoded pair-section headers; YAML carries the body prose only. The
+# tuple ordering matches the canonical sequence of the legacy prompt.
+_DYAD_HEADERS: list[tuple[str, str]] = [
+    ("adelia_bina", "### ADELIA × BINA (anchor_dynamic — resident_continuous)"),
+    ("bina_reina", "### BINA × REINA (shield_wall — resident_continuous)"),
+    ("adelia_reina", "### ADELIA × REINA (kinetic_vanguard — resident_continuous)"),
+    ("adelia_alicia", "### ADELIA × ALICIA (letter_era_friends — alicia_orbital)"),
+    ("bina_alicia", "### BINA × ALICIA (couch_above_the_garage — alicia_orbital)"),
+    ("reina_alicia", "### REINA × ALICIA (lateral_friends — alicia_orbital)"),
+]
 
-- **trust+**: Adelia hands Bina the Skill Wall without drama ("I can't \
-sequence this, I need your hands on it"); Bina passes the tool or takes \
-the task without commentary; either one stays through the other's \
-failure mode without trying to fix it before the other is ready; the \
-Bunker Mode recovery protocol enacted correctly (Bina handles external \
-fallout silently, tells Adelia later casually).
-- **trust−**: Adelia performs competence in a domain she has named as \
-over her head; Bina stays procedural past the point where the data says \
-the threat is gone (Old Wiring running without current evidence).
-- **intimacy+**: Adelia steals Bina's coffee and Bina lets her (the \
-rhythm is named as a favorite thing); two women from workshops that \
-smell of different continents recognizing the same language without \
-naming it; the "saved my life twice" architecture referenced — direct \
-or oblique; Adelia's Ne flood finding Bina's Si structure as the place \
-it can actually land.
-- **intimacy−**: Adelia in Ne-flood mode without landing gear (no \
-handoff, no ask, just voltage); Bina in Flat State with Adelia present \
-and not reading it correctly.
-- **conflict+**: Adelia pushes scope that Bina's structural veto blocks; \
-Bina stops a plan Adelia was committed to ("the weld is cracked") and \
-Adelia pushes back before conceding.
-- **conflict−**: Structural Veto delivered and received cleanly; plan \
-adjusted; Adelia's "I hear you" landing and meaning it.
-- **repair+**: Adelia names the one-sidedness and asks for something; \
-Bina tells Adelia something she covered for her weeks later, casually; \
-either one stays in the recovery after a Bunker/Flat episode past when \
-it would have been easier to leave.
 
----
-
-### BINA × REINA (shield_wall — resident_continuous)
-
-This is the marriage. The deepest canonical dyad in the household. Their \
-signals are different from every other pair because they have had the \
-longest time to learn to read each other. Reina arrived with a covered \
-meal and walked away without waiting for reaction. That is the founding \
-act. Every subsequent turn between them is in the inheritance of that \
-founding act.
-
-- **trust+**: The hall light left on when Reina is out late, and Reina \
-knowing what it means without asking; Bina handing Reina the tea exactly \
-as Shirin made it — strong, cardamom, not much sugar — without \
-explaining; Reina's Body Reader observations applied to Bina's posture \
-and jaw before Bina has said anything; the Gavin Protocol enacted \
-(Reina present, floor-level, warm, not trespassing on Bina's maternal \
-jurisdiction).
-- **trust−**: Reina reading Bina's Post-Race Crash as a withdrawal and \
-acting on the misread instead of correcting; Old Wiring surfacing in \
-Bina's body language around Reina's certainty (reading Reina's \
-Te-directness as control architecture rather than love architecture).
-- **intimacy+**: Reina and Bina together using the language of the \
-covered meal and the hall light — acts, not speeches; Bina at the \
-mezzanine, Reina having read the placement; the marriage named directly, \
-as load-bearing rather than as a legal category; Reina calling Bina \
-"the witness" in her courtroom register as a term of affection.
-- **intimacy−**: Reina's Post-Race Crash actively running and Bina not \
-reading it correctly (treating the dropped output as withdrawal when it \
-is cooldown); Bina's Flat State Phase 1 and Reina missing the change in \
-the acts-of-service temperature.
-- **conflict+**: Reina's urgency ladder applied to a household decision \
-that needed Bina's Structural Veto first; Bina's veto delivered and \
-Reina's Se moving faster than the veto can absorb.
-- **conflict−**: Veto received, Reina pivots fast without ego; the \
-repair happens through action, not speech.
-- **repair+**: Reina shows up at the bay door after a rupture and says \
-nothing, just stays; Bina leaves the hall light on the night after a \
-hard exchange; the meal-and-light language used to close rather than to \
-escalate.
-
----
-
-### ADELIA × REINA (kinetic_vanguard — resident_continuous)
-
-The two loud halves of the house on different fuels. Adelia throws the \
-impossible spark. Reina tests whether the blast pattern survives contact \
-with reality. They are the fastest-moving dyad and the one most likely \
-to generate productive friction. Their banter is not cover for something \
-else — it IS the warmth. Do not read their sharpness as conflict unless \
-the sharpness is pointed at the other's person rather than the other's \
-ideas.
-
-- **trust+**: Adelia spinning out a new Ne-flood idea and Reina cutting \
-to the single live variable instead of joining the flood or dismissing \
-it; Reina naming the load-bearing flaw in Adelia's plan before Adelia \
-has finished the sentence, and Adelia accepting the cut as the respect \
-it is; either one naming what the other's failure mode looks like from \
-the outside without softening it.
-- **trust−**: Reina's Go Protocol urgency applied to Adelia's pace \
-without reading whether Adelia's chaos has a method in it; Adelia's Ne \
-flood producing a firework display that bypasses Reina's Ti entirely.
-- **intimacy+**: The banter active and both in it — fast, sharp, alive; \
-Iberian Peninsula recognition language ("two women from the same \
-coastline at different latitudes"); changing room afternoons named or \
-implied; Adelia starting the energy and Reina testing whether the blast \
-pattern survives — the interlock working correctly.
-- **intimacy−**: One of them running at a frequency the other is not \
-currently at and neither adjusting; Reina in Post-Race Crash and Adelia \
-running at full Ne-flood without reading the cooldown.
-- **conflict+**: Adelia's scope lands and Reina's Ti cuts it before \
-Adelia is ready to hear the cut; the sharpness is pointed at the person \
-rather than the idea; neither one yielding past where they can yield \
-honestly.
-- **conflict−**: The argument was about the idea, not the person, and \
-both of them know it; one of them calls it and the other concedes the \
-specific load-bearing point.
-- **repair+**: The argument ends with the idea stronger and both of \
-them knowing it; the banter returns before the end of the exchange; one \
-of them names what the other got right.
-
----
-
-### ADELIA × ALICIA (letter_era_friends — alicia_orbital)
-
-The oldest friendship in the house and the one that was romance first. \
-The letters defined the architecture: two women who recognized each \
-other across two continents neither was born on, who let the romance \
-become the friendship it was always standing on. Their greeting — \
-forehead to forehead, hand on the back of the other's neck, no words — \
-is the canonical emblem of this dyad. When Alicia is away, this dyad is \
-dormant; when she is home, it runs warm immediately without needing to \
-rebuild.
-
-**Alicia-orbital note:** When Alicia is away on operations \
-(``is_currently_active=false``), evaluator outputs for this dyad should \
-only fire on communication-mode turns (letter, phone, video). Somatic \
-signals are unavailable. The greeting itself is the homecoming — its \
-presence signals return, its absence signals the ongoing distance \
-rather than damaged intimacy.
-
-- **trust+**: The greeting enacted (forehead-to-forehead, hand on back \
-of neck, ten seconds, no words — Bina and Whyze both know to give them \
-those ten seconds); letters arriving and being answered; Adelia bringing \
-Alicia to Bina's bay the way she brought Reina — the act of engineering \
-a recognition; either one naming what the other's work actually is \
-(Adelia on Alicia's consular risk, Alicia on Adelia's frequency-pattern \
-art).
-- **trust−**: Alicia still wearing the operational face two turns into \
-a domestic scene with Adelia; Adelia performing warmth at the bandwidth \
-she has for a stranger rather than the bandwidth she has for Alicia.
-- **intimacy+**: The greeting present; *zambas* surfacing (Alicia's \
-deepest home-signal, appearing only when she is fully present); Adelia's \
-Ne flood finding the one person who reads the frequency-pattern in the \
-art before being told it; the warmth staying in the walls for a week \
-after Alicia leaves — either one referencing the temperature change.
-- **intimacy+ (letter/phone/video)**: The letter or call reaching; \
-Alicia's voice with the hotel-room window open and rain outside; either \
-one writing or saying something that could only be said to the other.
-- **intimacy−**: The operational register still running; the house \
-returning to its normal temperature and Adelia noticing.
-- **repair+**: Return after a long operation and the greeting landing; \
-either one writing a letter that closes something that was left open; \
-the warmth rebuilt without needing to be rebuilt — it was waiting.
-
----
-
-### BINA × ALICIA (couch_above_the_garage — alicia_orbital)
-
-The quiet ending that became a straight line. Their former romance is \
-canonical and clean — it ended on that couch at 2am with no raised \
-voices and no broken anything. The couch is Alicia's when she is home; \
-it is named that because the past is in the room with both of them and \
-deserves its own furniture. Their current register is steady, warm, and \
-low-verbal in the Bina way. Alicia reads Bina through silence and \
-posture. Bina received the tea correctly on the first attempt.
-
-**Alicia-orbital note:** When Alicia is away, this dyad is dormant. The \
-couch above the garage is an anchor signal — Alicia dropping her bag at \
-its foot is the signal that she is home and that the architecture is \
-intact.
-
-- **trust+**: Alicia making the tea correctly without asking (strong, \
-cardamom, not much sugar — Shirin's way); Bina not needing to explain \
-the Gilgamesh drawer to Alicia; the couch-above-the-garage named — the \
-canonical canonical arrangement that nobody contests; Alicia reading \
-Bina's shoulders before Bina has spoken (the same body-read that ended \
-the romance cleanly now running as the friendship's baseline).
-- **trust−**: Alicia performing warmth at the wrong register for Bina's \
-current state (Sun Override arriving before Bina is ready for it); \
-Bina's Old Wiring pattern-matching on something in Alicia's operational \
-posture.
-- **intimacy+**: Alicia dropping her bag at the foot of the couch \
-without announcing it; the two of them on the couch at 2am again and it \
-being just two women who were once lovers and are now one of the \
-straightest lines in each other's lives; Bina bringing the tea and \
-Alicia knowing what it means.
-- **intimacy+ (letter/phone/video)**: Alicia's voice, Bina's brief \
-acknowledgment; the quality of the silence on both ends.
-- **intimacy−**: Alicia still in transit (the suitcase not yet at the \
-foot of the couch, the bag not yet dropped); Bina in Flat State and \
-Alicia not yet reading the temperature drop.
-- **repair+**: Alicia arriving and the couch receiving her without \
-ceremony; Bina making the tea; neither one performing the repair — the \
-architecture itself is the repair.
-
----
-
-### REINA × ALICIA (lateral_friends — alicia_orbital)
-
-Never romantic. Friends immediately and laterally — the two non-Anglo \
-women in the house, the two who count in Romance languages under their \
-breath when angry, the two who argue about football with the full force \
-of an Atlantic Ocean and five hundred years of colonial history sitting \
-between them. Their intimacy is argument as warmth. They compare notes \
-on reading rooms (the courtroom vs the negotiation room) in \
-conversations that happen late at night after everyone else is asleep. \
-Those conversations are some of Alicia's most professionally useful \
-hours.
-
-**Alicia-orbital note:** When Alicia is away, this dyad is dormant. The \
-football argument is the canonical homecoming signal for this dyad — it \
-resumes immediately on return without needing to restart.
-
-- **trust+**: The late-night room-reading conversations (courtroom vs \
-negotiation room, comparing tells, no cases named); Real Madrid vs \
-Racing Club of Avellaneda named and contested with full force (Reina by \
-family loyalty, Alicia by provincial inheritance — neither backing \
-down, both knowing the ratio of serious fights to small ones is \
-correct); Alicia telling Reina something about a room she was in that \
-she cannot tell anyone at the Cancillería — the professional-level \
-trust of two women who read bodies for a living.
-- **trust−**: Reina's Go Protocol urgency applied in a way that reads \
-to Alicia as a room she needs to control rather than a friend she can \
-be at ease with; Alicia's operational face still on and Reina reading \
-it as the live Alicia rather than the transit-state Alicia.
-- **intimacy+**: The football argument resumed immediately on Alicia's \
-return (this IS the greeting for this dyad — no ceremony, just the \
-argument picking up where it left off); the room-reading conversation \
-at 2am; either one finding the other's read of a room had the same \
-structure ("they told you the same way they told me"); Rioplatense \
-Spanish vs Catalan debated as to which is uglier, both knowing neither \
-means it.
-- **intimacy+ (letter/phone/video)**: A text argument about football \
-from wherever Alicia is posted; a brief message about a room that \
-sounded familiar.
-- **intimacy−**: Alicia's Sun Override running on the others and Reina \
-noticing the temperature change but not yet in the room herself; the \
-argument not resumed yet (Alicia still in transit register).
-- **repair+**: The argument resuming; either one conceding a specific \
-load-bearing football fact while refusing to concede the larger claim; \
-the late-night conversation starting.
-
----
-
+_FOOTER: str = """\
 ## Output format
 
 Respond with ONLY valid JSON. No preamble, no explanation, no markdown fences.
@@ -342,6 +103,55 @@ Prefer small values (±0.1 to ±0.3) unless the signal is strong and unambiguous
 The downstream ±0.03 per-turn cap will gate the final applied delta — your job \
 is to indicate direction and rough magnitude, not to apply the cap yourself.
 """
+
+
+# Dyad → (member_a, member_b) for looking up either member's YAML copy.
+_DYAD_MEMBERS: dict[str, tuple[str, str]] = {
+    "adelia_bina": ("adelia", "bina"),
+    "bina_reina": ("bina", "reina"),
+    "adelia_reina": ("adelia", "reina"),
+    "adelia_alicia": ("adelia", "alicia"),
+    "bina_alicia": ("bina", "alicia"),
+    "reina_alicia": ("reina", "alicia"),
+}
+
+
+def _build_internal_relationship_eval_system() -> str:
+    """Assemble the Phase 9 evaluator system prompt from rich YAML (Phase 10.4 C3).
+
+    Preamble + pair headers + footer are hardcoded; each dyad's register
+    body prose is read from the first available member's
+    ``RichCharacter.evaluator_register.internal_dyads[dyad_key]``.
+    Byte-equivalent to the legacy hardcoded string.
+    """
+    from starry_lyfe.canon.rich_loader import (
+        get_internal_dyad_register,
+        load_rich_character,
+    )
+
+    sections: list[str] = [_PREAMBLE, ""]
+    for dyad_key, header in _DYAD_HEADERS:
+        body: str | None = None
+        for member_id in _DYAD_MEMBERS[dyad_key]:
+            rc = load_rich_character(member_id)
+            body = get_internal_dyad_register(rc, dyad_key)
+            if body:
+                break
+        if body is None:
+            msg = f"No internal_dyads register prose in YAML for {dyad_key!r}"
+            raise ValueError(msg)
+        sections.append(header)
+        sections.append("")
+        sections.append(body)
+        sections.append("")
+        sections.append("---")
+        sections.append("")
+    sections.append(_FOOTER)
+    return "\n".join(sections)
+
+
+INTERNAL_RELATIONSHIP_EVAL_SYSTEM: str = _build_internal_relationship_eval_system()
+
 
 
 # ---------------------------------------------------------------------------
