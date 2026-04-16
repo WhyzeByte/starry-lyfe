@@ -173,9 +173,11 @@ def compile_kernel(
     in the list are moved into the primary assembly loop so they receive
     budget allocation alongside core sections.
     """
-    raw = _load_raw_kernel(character_id)
-    sanitized = _sanitize_kernel_text(raw)
-    sections = _parse_kernel_sections(sanitized)
+    # Phase 10.2: read from rich YAML instead of markdown.
+    from starry_lyfe.canon.rich_loader import get_kernel_sections, load_rich_character
+
+    rc = load_rich_character(character_id)
+    sections = get_kernel_sections(rc)
     section_map = {
         num: text
         for num, text in sections
