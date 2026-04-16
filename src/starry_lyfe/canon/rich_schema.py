@@ -87,6 +87,27 @@ class KernelSection(_Permissive):
     has_preserve_marker: bool = False
 
 
+class SoulCardActivation(_Permissive):
+    """Activation rules for a soul card."""
+
+    always: bool = False
+    communication_mode: list[str] | None = None
+    with_character: list[str] | None = None
+    scene_keyword: list[str] | None = None
+
+
+class SoulCardYaml(_Permissive):
+    """A single soul card embedded in the rich YAML."""
+
+    card_type: str
+    source_file: str
+    source: str | None = None
+    budget_tokens: int = 500
+    activation: SoulCardActivation = SoulCardActivation()
+    required_concepts: list[str] | None = None
+    body: str
+
+
 class Meta(_Permissive):
     full_name: str
     preserve_markers: list[PreserveMarker] | PreserveMarkersBlock | None = None
@@ -112,6 +133,9 @@ class RichCharacter(_Permissive):
     intimacy_architecture: dict[str, object] | None = None
     family_and_other_dyads: dict[str, InterWomanDyad] | None = None
     knowledge_stack: dict[str, object] | None = None
+
+    # --- Soul cards (Phase 10.3b) ---
+    soul_cards: list[SoulCardYaml] | None = None
 
     # --- Shawn-specific (optional for women) ---
     continuity_layers: dict[str, object] | None = None
