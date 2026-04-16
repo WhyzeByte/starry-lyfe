@@ -282,18 +282,24 @@ Agents will disagree. The four-agent cycle is designed to surface disagreement e
 
 ---
 
-## Source-of-Truth Hierarchy (mirrors the master plan)
+## Source-of-Truth Hierarchy (mirrors the master plan; post-Phase 10.5)
 
 When agents disagree about what's canonical, resolve toward the higher authority in this order. This list is identical to the Authority Priority section of `Docs/IMPLEMENTATION_PLAN_v7.1.md` and is reproduced here for agent-side convenience:
 
-1. **Character kernel files** (`Characters/{Name}/{Name}_v7.1.md`)
-2. **Persona Tier Framework** (`Docs/Persona_Tier_Framework_v7.1.md`)
-3. **Vision document** (`Vision/Starry-Lyfe_Vision_v7.1.md`)
-4. **The master plan** (`Docs/IMPLEMENTATION_PLAN_v7.1.md`)
-5. **Soul Preservation Plan Elevated** (`Docs/_archive/Soul_Preservation_Plan_Elevated.md`) — historical
-6. **Soul Preservation Plan v1.0** (`Docs/_archive/Soul_Preservation_v1.md`) — historical
+1. **Rich per-character YAMLs** (`Characters/{adelia_raye,bina_malek,reina_torres,alicia_marin,shawn_kroon}.yaml`) — sole runtime-authoritative source as of Phase 10.5 (2026-04-16). Each carries kernel sections, voice exemplars, soul substrate, soul cards, evaluator register, constraint pillars, and pair perspective.
+2. **Shared canon** (`Characters/shared_canon.yaml`) — objective facts (marriage record, signature scene anchors, genealogy, property, timeline, canonical pair names) where divergence would create continuity contradictions.
+3. **Persona Tier Framework** (`Docs/Persona_Tier_Framework_v7.1.md`)
+4. **Vision document** (`Vision/Starry-Lyfe_Vision_v7.1.md`)
+5. **The master plan** (`Docs/IMPLEMENTATION_PLAN_v7.1.md`)
+6. **Legacy markdown character files** (`Archive/v7.1_pre_yaml/Characters/`) — historical reference only. Do NOT author new markdown; all character prose lives in the per-character YAML.
 
-If a character kernel and the Vision disagree, the kernel wins. If the Vision and the master plan disagree, the Vision wins (and the master plan must be updated to match). If the master plan and the elevated plan disagree, the master plan wins (it is the integrated current statement).
+If a per-character YAML and the Vision disagree, the YAML wins. If the Vision and the master plan disagree, the Vision wins (and the master plan must be updated to match).
+
+**YAML authoring rules:**
+- **Per-character POV is canon.** Each woman's YAML carries HER voice on every relationship she is in. When two women perspectives on the same inter-woman dyad diverge, **divergence is dramaturgically required, not a bug**. Do NOT homogenize them.
+- **Facts live in shared_canon.yaml; perceptions live in per-character YAMLs.** If a statement would create a continuity contradiction under divergence (e.g., marriage date, genealogy), it belongs in shared_canon.
+- **Preserve markers are the verbatim contract.** Every `preserve_markers[].content_anchor` must appear unchanged in the body text of the block it anchors (soul_substrate, kernel_sections, etc.). Phase 10.6 enforces this unconditionally across all scene profiles.
+- **Archived markdown is not an alternative source.** Do not edit files under `Archive/v7.1_pre_yaml/`. Do not propose reinstating them. If canon drift surfaces, fix the rich YAML.
 
 ---
 

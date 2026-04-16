@@ -201,11 +201,17 @@ There is no soul-preservation execution phase under §2 directly. Phase I (Autho
 
 ## 3. Canon: The Single Source of Truth
 
-### Architecture
+### Architecture (post-Phase 10.5, 2026-04-16)
 
-All character data, world facts, and constraints originate from versioned YAML. The canonical YAML source is the single source of truth. Character data, world facts, relationship rules, protocols, and constraints are defined in `src/starry_lyfe/canon/` as YAML files. Generator scripts produce backend seeds and Whyze-Byte rules from this source. No character data is manually maintained in multiple locations.
+All character data, world facts, and constraints originate from **rich per-character YAMLs** plus **`shared_canon.yaml`** under `Characters/`. These 6 files are the sole runtime-authoritative source:
 
-This is what enables the deduplication rule between backend-injected operator context and Msty's User Persona — there cannot be two sources of truth without drift, so YAML wins everywhere.
+- `Characters/adelia_raye.yaml`, `bina_malek.yaml`, `reina_torres.yaml`, `alicia_marin.yaml` — 4 women, each carrying kernel sections, voice exemplars, soul substrate, soul cards (pair + knowledge), evaluator register (Phase 8 Whyze-dyad + Phase 9 inter-woman dyad), constraint pillars, pair architecture perspective.
+- `Characters/shawn_kroon.yaml` — operator profile + continuity layers + his perspective on each pair.
+- `Characters/shared_canon.yaml` — objective facts where divergence would create continuity contradictions (marriage record, signature scene anchors, genealogy, property, timeline, canonical pair names).
+
+The legacy narrow canon at `src/starry_lyfe/canon/{characters,pairs,dyads,protocols,interlocks,voice_parameters,routines}.yaml` is still consulted at runtime via `load_all_canon()` pending the Phase 10.5b loader rewire (`load_all_canon()` will reconstruct the 7 narrow Pydantic objects from rich YAML fields in memory). The 16 per-character markdown files, `soul_essence.py`, and 15 soul card markdowns are archived under `Archive/v7.1_pre_yaml/` with SHA256 manifest (shipped Phase 10.5, 2026-04-16).
+
+This is what enables the deduplication rule between backend-injected operator context and Msty's User Persona — there cannot be two sources of truth without drift, so rich YAML wins everywhere.
 
 ### Phase 0: Pre-flight Canon Verification
 

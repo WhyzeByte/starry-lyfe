@@ -197,12 +197,18 @@ The vision is the root of a document tree. Every piece of content compressed out
 - `Scene_Director_Spec.md` *(new)* — five-mode Scene Director table, Crew Mode configuration, next-speaker selection logic.
 - `Intimacy_Architecture.md` *(new)* — romantic encounter architecture, intimate registers per character, aftercare protocols. Carved out of the vision in v7.1.
 
-**Character canon (per character: kernel, voice, pair, knowledge stack)**
-- **Adelia Raye** — `Adelia_Raye_v7.1.md` (kernel), `Adelia_Raye_Voice.md` (few-shot calibration), `Adelia_Raye_Entangled_Pair.md` (canonical home for cognitive interlock, synastry, intimate architecture), `Adelia_Raye_Knowledge_Stack.md`.
-- **Bina Malek** — `Bina_Malek_v7.1.md`, `Bina_Malek_Voice.md`, `Bina_Malek_Circuit_Pair.md`, `Bina_Malek_Knowledge_Stack.md`.
-- **Reina Torres** — `Reina_Torres_v7.1.md`, `Reina_Torres_Voice.md`, `Reina_Torres_Kinetic_Pair.md`, `Reina_Torres_Knowledge_Stack.md`.
-- **Alicia Marin** — `Alicia_Marin_v7.1.md`, `Alicia_Marin_Voice.md`, `Alicia_Marin_Solstice_Pair.md`, `Alicia_Marin_Knowledge_Stack.md`.
-- **Whyze (operator)** — operator profile with full psychometrics (WAIT III, DiSC, Hogan, YouScience, 2e clinical profile), family-of-origin, property layout, hobbies, separation context.
+**Character canon (rich YAML — post-Phase 10.5, 2026-04-16)**
+
+The v7.1 per-character markdown kernels + Voice + Pair + Knowledge Stack files were consolidated into a single rich YAML per character during the Phase 10 YAML Source-of-Truth Migration. Each YAML now carries kernel sections, voice exemplars (with mode + communication_mode tags), soul substrate prose, soul cards (pair + knowledge), per-character evaluator register sections, and constraint pillars as typed blocks. The legacy markdowns are archived under `Archive/v7.1_pre_yaml/` with SHA256 manifest.
+
+- **Adelia Raye** — `Characters/adelia_raye.yaml` (kernel, voice, soul substrate, soul cards, evaluator register, constraint pillars, Entangled Pair perspective).
+- **Bina Malek** — `Characters/bina_malek.yaml` (Circuit Pair).
+- **Reina Torres** — `Characters/reina_torres.yaml` (Kinetic Pair).
+- **Alicia Marin** — `Characters/alicia_marin.yaml` (Solstice Pair, 4-variant communication-mode pillars).
+- **Whyze (operator)** — `Characters/shawn_kroon.yaml` (operator profile with full psychometrics, family-of-origin, property layout, hobbies, continuity layers).
+- **Shared canon** — `Characters/shared_canon.yaml` (objective facts where divergence would create continuity contradictions: marriage record, signature scene anchors, genealogy, property, timeline, canonical pair names).
+
+The v7.1 essence-vs-life principle (architecture that writes to the soul, life that honors her own) is preserved verbatim: what lives in each per-character YAML is HER voice on her own architecture; what lives in `shared_canon.yaml` is what objectively happened. Divergence between two women's perspectives on the same relationship is dramaturgically required, not a bug.
 
 **Reference material (not canon)**
 - `References/msty-documentation.md` — upstream Msty Studio platform documentation. Reference only.
