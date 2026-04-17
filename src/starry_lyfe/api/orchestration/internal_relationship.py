@@ -360,17 +360,50 @@ async def evaluate_and_update_internal(
                 # No churn — nothing to write; no update record.
                 continue
 
-            # Apply deltas to the row. Each dimension is [0, 1]-bounded
-            # via _bound01. Matches Phase 8's ``evaluate_and_update``.
-            row.trust = _bound01(row.trust + applied.trust)
-            row.intimacy = _bound01(row.intimacy + applied.intimacy)
-            row.conflict = _bound01(row.conflict + applied.conflict)
-            row.unresolved_tension = _bound01(
-                row.unresolved_tension + applied.unresolved_tension
-            )
-            row.repair_history = _bound01(
-                row.repair_history + applied.repair_history
-            )
+            # Phase 10.7 pin-consult: any of the 5 dimensions may be pinned
+            # by the Dreams Consistency QA generator on a factual_contradiction
+            # verdict. Pinned fields are skipped (delta zeroed) so the operator
+            # has time to resolve before runtime updates resume. Pin lookups
+            # use pov_character_id=None (symmetric — Phase 9 operates on the
+            # dyad row, not per-POV).
+            from ...dreams.consistency.pinning import is_pinned
+
+            blocked_fields: list[str] = []
+            for dim in ("trust", "intimacy", "conflict", "unresolved_tension", "repair_history"):
+                if await is_pinned(
+                    session,
+                    relationship_key=row.dyad_key,
+                    pov_character_id=None,
+                    field_name=dim,
+                ):
+                    blocked_fields.append(dim)
+            if blocked_fields:
+                logger.warning(
+                    "dreams_qa_pin_blocked",
+                    extra={
+                        "dyad_key": row.dyad_key,
+                        "blocked_fields": blocked_fields,
+                        "speaker_id": character_id,
+                    },
+                )
+
+            # Apply deltas to the row, skipping pinned dimensions. Each
+            # surviving dimension is [0, 1]-bounded via _bound01 (matches
+            # Phase 8's ``evaluate_and_update``).
+            if "trust" not in blocked_fields:
+                row.trust = _bound01(row.trust + applied.trust)
+            if "intimacy" not in blocked_fields:
+                row.intimacy = _bound01(row.intimacy + applied.intimacy)
+            if "conflict" not in blocked_fields:
+                row.conflict = _bound01(row.conflict + applied.conflict)
+            if "unresolved_tension" not in blocked_fields:
+                row.unresolved_tension = _bound01(
+                    row.unresolved_tension + applied.unresolved_tension
+                )
+            if "repair_history" not in blocked_fields:
+                row.repair_history = _bound01(
+                    row.repair_history + applied.repair_history
+                )
             row.last_updated_at = datetime.now(UTC)
             updates.append(
                 InternalRelationshipUpdate(

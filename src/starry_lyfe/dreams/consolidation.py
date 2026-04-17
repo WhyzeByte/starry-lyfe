@@ -341,3 +341,39 @@ async def resolve_addressed_loops(
             extra={"character_id": character_id, "count": count},
         )
     return count
+
+
+# ----------------------------------------------------------------------
+# Phase 10.7 — weekly QA digest invocation hook
+# ----------------------------------------------------------------------
+
+
+def weekly_qa_digest(now: datetime | None = None) -> str | None:
+    """Build the weekly Dreams Consistency QA digest if today is Sunday UTC.
+
+    Phase 10.7 ships the digest builder at
+    ``starry_lyfe.dreams.consistency.digest::build_weekly``. The runner
+    calls this helper at the end of every nightly pass; it short-circuits
+    on non-Sundays so the cost (7 file reads + one markdown write) only
+    pays once per week.
+
+    Returns the digest path as a string when written, or ``None`` when
+    skipped (non-Sunday or build failure).
+    """
+    from datetime import UTC
+
+    ref = now if now is not None else datetime.now(UTC)
+    # ISO weekday: Monday=1 ... Sunday=7. Spec: invoke on Sunday UTC.
+    if ref.isoweekday() != 7:
+        return None
+    try:
+        from .consistency.digest import build_weekly
+
+        path = build_weekly(now=ref)
+        return str(path)
+    except Exception as exc:  # noqa: BLE001 — digest is best-effort
+        logger.warning(
+            "dreams_qa_weekly_digest_failed",
+            extra={"error": str(exc)},
+        )
+        return None

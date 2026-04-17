@@ -13,6 +13,7 @@ from typing import Any, Protocol
 
 from ..canon.loader import Canon
 from ..canon.schemas.routines import CharacterRoutines
+from .consistency.schemas import ConsistencyQAOutput
 
 
 # BDOne and StubBDOne both conform to this shape; generators accept either.
@@ -107,7 +108,12 @@ class DreamsCharacterResult:
 
 @dataclass(frozen=True)
 class DreamsPassResult:
-    """Aggregate result of one Dreams pass across all 4 characters."""
+    """Aggregate result of one Dreams pass across all 4 characters.
+
+    Phase 10.7: ``consistency_qa`` carries the sixth Dreams generator's
+    aggregate verdict across all 10 relationships. None when the QA pass
+    is disabled or skipped (e.g., dry-run mode); otherwise present.
+    """
 
     run_id: uuid.UUID
     character_results: dict[str, DreamsCharacterResult]
@@ -116,3 +122,4 @@ class DreamsPassResult:
     total_input_tokens: int
     total_output_tokens: int
     warnings: list[str] = field(default_factory=list)
+    consistency_qa: ConsistencyQAOutput | None = None

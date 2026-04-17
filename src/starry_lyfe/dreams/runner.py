@@ -244,6 +244,48 @@ async def run_dreams_pass(
 
     _assert_complete_character_keys(character_results, "dreams.run_dreams_pass results")
 
+    # ------------------------------------------------------------------
+    # Phase 10.7 — Consistency QA pass (sixth Dreams generator)
+    # ------------------------------------------------------------------
+    # Runs AFTER all 5 per-character generators complete (per Phase 10.7
+    # spec). Looks across the 10 relationships rather than per-character;
+    # writes its own log + pin rows; emits notifications. Failures here
+    # do NOT fail the whole Dreams pass — they accumulate as warnings.
+    consistency_qa_result = None
+    try:
+        from .generators.consistency_qa import generate_consistency_qa
+
+        consistency_qa_result = await generate_consistency_qa(
+            run_id=run_id,
+            canon=canon,
+            llm_client=llm_client,
+            session_factory=session_factory,
+            now=now,
+        )
+        total_input += consistency_qa_result.input_tokens
+        total_output += consistency_qa_result.output_tokens
+        if consistency_qa_result.warnings:
+            warnings.extend(f"consistency_qa: {w}" for w in consistency_qa_result.warnings)
+    except Exception as exc:  # noqa: BLE001 — QA pass failure must not crash Dreams
+        logger.exception(
+            "dreams_consistency_qa_failed",
+            extra={"run_id": str(run_id)},
+        )
+        warnings.append(f"consistency_qa: {type(exc).__name__}: {exc}")
+
+    # Phase 10.7 — weekly digest hook (no-op except on Sunday UTC).
+    try:
+        from .consolidation import weekly_qa_digest
+
+        digest_path = weekly_qa_digest(now=now)
+        if digest_path:
+            logger.info(
+                "dreams_qa_weekly_digest_emitted",
+                extra={"run_id": str(run_id), "path": digest_path},
+            )
+    except Exception as exc:  # noqa: BLE001 — digest is best-effort
+        warnings.append(f"weekly_qa_digest: {type(exc).__name__}: {exc}")
+
     finished_at = datetime.now(UTC) if use_internal_clock else now
     logger.info(
         "dreams_run_complete",
@@ -252,6 +294,7 @@ async def run_dreams_pass(
             "total_input_tokens": total_input,
             "total_output_tokens": total_output,
             "warnings_count": len(warnings),
+            "qa_pass_completed": consistency_qa_result is not None,
         },
     )
 
@@ -263,6 +306,7 @@ async def run_dreams_pass(
         total_input_tokens=total_input,
         total_output_tokens=total_output,
         warnings=warnings,
+        consistency_qa=consistency_qa_result,
     )
 
 

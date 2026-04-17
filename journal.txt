@@ -322,3 +322,84 @@ End-of-phase Codex audit dispatch awaits per Project Owner directive
 2026-04-16 ("Codex will audit at the end of Phase 10.5"). On Codex PASS →
 Project Owner Step 6 ship of Phase 10.5c → Phase 10.7 (Dreams Consistency QA)
 becomes the sole remaining open architectural phase.
+
+------------------------------------------------------------
+Phase 10.7 — Dreams Consistency QA Pass (SHIPPED 2026-04-17)
+------------------------------------------------------------
+Sixth Dreams generator added. Runs nightly across 10 relationships
+(6 inter-woman dyads + 4 woman-Whyze pairs) producing one of three
+verdicts per relationship: healthy_divergence (canonical, surfaced as
+scene fodder via open_loops with source='dreams_qa'), concerning_drift
+(logged; 3-night auto-promotion to factual_contradiction), or
+factual_contradiction (pinned via dyad_state_pins; Phase 9 evaluator
+refuses to update pinned fields until operator resolves).
+
+Deviations from reference plan resolved in-step:
+  1. `Canon` had no `shared` field. Fixed by adding `shared: SharedCanon`
+     to the `Canon` dataclass and populating from the existing
+     `load_shared_canon()` call in `load_all_canon()`.
+  2. Phase 9 evaluator entry point is
+     `api/orchestration/internal_relationship.py::evaluate_and_update_internal()`,
+     not the reference plan's `evaluators/phase_9_internal.py::apply_deltas`.
+     Pin-consult landed at the correct entry; emits `dreams_qa_pin_blocked`
+     structlog events on every blocked write.
+  3. Test baseline floor recalibrated from ≥1257 to ≥1246 against the
+     verified 1228 baseline.
+
+Database additions (Alembic 005):
+  - dreams_qa_log (append-only verdict history with run_id /
+    relationship_key / verdict / divergence_summary / contradictions JSONB
+    / scene_fodder JSONB / created_at)
+  - dyad_state_pins (with unique partial index on
+    (relationship_key, pov_character_id, field_name) WHERE
+    operator_resolved_at IS NULL)
+
+Critical files:
+  - src/starry_lyfe/canon/loader.py (Canon.shared field)
+  - alembic/versions/005_phase_10_7_dreams_qa.py (new)
+  - src/starry_lyfe/dreams/consistency/{__init__,schemas,relationships,
+    prompt,pinning,auto_promote,digest,memory_lookup}.py (all new)
+  - src/starry_lyfe/dreams/generators/consistency_qa.py (new)
+  - src/starry_lyfe/dreams/notifications.py (new)
+  - src/starry_lyfe/dreams/{runner,types,writers,consolidation}.py
+    (extended)
+  - src/starry_lyfe/api/orchestration/internal_relationship.py
+    (Phase 9 pin-consult)
+  - Docs/_dreams_qa/.gitkeep + Docs/_dreams_qa/_weekly/.gitkeep (new)
+
+Test bundle (+29 unit tests + 3 environmental-skip integration tests):
+  - tests/unit/test_dreams_consistency_qa.py (18 tests)
+  - tests/unit/test_dreams_qa_auto_promote.py (5 tests)
+  - tests/unit/test_dreams_qa_digest.py (5 tests)
+  - tests/integration/test_dreams_consistency_glue.py (2 tests)
+  - tests/integration/test_phase_9_respects_pins.py (1 regression)
+  - tests/unit/api/test_internal_relationship_evaluator.py updated
+    (`_FakeSession.execute()` accepts `params`; `_FakeResult.first()`
+    added for `is_pinned()` calls; AC-9.11 assertion widened from `==1`
+    to `>=1` since pin-consult adds 5 dimension-level lookups)
+
+Key design choices:
+  - Anti-contamination per Phase 6 pattern: judge LLM is a neutral
+    observer; never speaks in any character's voice.
+  - Episodic memory injection sanitized per Phase 8 R1-F3 pattern
+    (truncate + html.escape + `> ` line prefix) to defend against
+    prompt injection.
+  - JSON-only output contract; verdict parser unwraps markdown fences.
+  - DB-side timestamps in auto_promote.should_promote() defend against
+    client clock skew.
+  - Dyad keys use seniority precedence (adelia=0/bina=1/reina=2/alicia=3)
+    matching shared_canon.dyads_baseline keys exactly (e.g. bina_alicia,
+    not alicia_bina).
+  - Notifications module is extensible: structlog dispatcher + daily
+    markdown writer today; webhook/email destinations are deferred but
+    the dispatch hook is in place.
+
+WAF result:
+  - pytest: 1257 passed, 0 failed, 37 environmental Postgres skips,
+    0 xfailed (~6:40 wall-clock).
+  - ruff check src tests scripts: clean.
+  - python -m mypy --strict src: clean across 115 source files.
+
+End of v7 architectural track. Phase 10.7 is the terminal architectural
+phase. Subsequent work is operational (deployment automation,
+observability dashboards, Msty persona/crew model-card authoring).

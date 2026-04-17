@@ -39,3 +39,11 @@ Thumbs.db
 
 # Backups (chat history, Msty exports)
 Backups/
+
+# Test scratch dir (Phase 10.7 Windows %TEMP% ACL workaround)
+.test_tmp/
+
+# Phase 10.7 Dreams Consistency QA runtime artifacts
+# (.gitkeep tracked; daily/weekly markdown is runtime-generated)
+Docs/_dreams_qa/*.md
+Docs/_dreams_qa/_weekly/*.md

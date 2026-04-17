@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Version:** U1.3-P2.13 | **Format:** U{universal}.{minor}-P{project}.{minor}
+**Version:** U1.3-P2.14 | **Format:** U{universal}.{minor}-P{project}.{minor}
 
 > Universal sections (Part 1) are identical across all repositories.
 > Project sections (Part 2) are customized per service.
@@ -261,7 +261,7 @@ Every service defines a `ServiceError` base exception. Custom exceptions inherit
 
 ## 13. DATABASE SCHEMA
 
-Schema: `starry_lyfe`. Tables: `chat_sessions`, `character_responses`, `canon_facts`, `episodic_memories`, `relationship_state`, `open_loops`, `pipeline_validations`, `life_states`, `activities`, `consolidated_memories`, `consolidation_log`, `drive_states`, `proactive_intents`, `session_health`. See ARCHITECTURE.md for full column details.
+Schema: `starry_lyfe`. Tables: `chat_sessions`, `character_responses`, `canon_facts`, `episodic_memories`, `relationship_state`, `open_loops`, `pipeline_validations`, `life_states`, `activities`, `consolidated_memories`, `consolidation_log`, `drive_states`, `proactive_intents`, `session_health`, `dreams_qa_log`, `dyad_state_pins`. See ARCHITECTURE.md for full column details.
 
 ---
 
@@ -386,7 +386,7 @@ These corrections override any conflicting content in project files. Apply befor
 
 ## 19. CURRENT PHASE STATUS (2026-04-17)
 
-**Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13), F (2026-04-13), G (2026-04-13), J.1–J.4 (2026-04-13), H (2026-04-13), K (2026-04-13), Phase 4 (Whyze-Byte Validation Pipeline, 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, 2026-04-14), Phase 5 (Scene Director, 2026-04-14), Phase 6 (Dreams Engine, 2026-04-15), Phase 7 (HTTP Service on Port 8001, 2026-04-15), Phase 8 (LLM Relationship Evaluator, SEALED 2026-04-15), Phase 9 (Inter-woman DyadStateInternal LLM evaluator, SEALED 2026-04-16), **Phase 10.0–10.6 (YAML Source-of-Truth Migration; core ship 2026-04-16, post-ship audit/remediation sweep closed 2026-04-17)**: 10.0 gap audit + preserve_marker remediation RATIFIED; 10.1 schema+loader infrastructure; 10.2 kernel body + voice exemplars cutover; 10.3 soul essence cutover; 10.3b soul cards embedding + iterator rewire; 10.4 narrow canon constraint pillars + Phase 8/9 evaluator register sections rewired to YAML; **Phase 10.5** shipped + approved 2026-04-16 (archive/manifest/governance surface, plus Codex-focused audit remediation F1-F5, commit `ab4a422`); **Phase 10.5b** shipped + approved 2026-04-16 (RT1 Layer 5 pair metadata cutover, RT2 schema/validator hardening with all-six-dyads divergence enforcement, RT3 cache key rich-YAML mtime, plus R2/R3 audit remediation); **Phase 10.5c** loader rewire implemented 2026-04-16 and audit-clean in the current workspace after direct remediation (time-stable drift-review gate, narrowed child allowlist, grep/spec agreement, terminal 6-file governance synced); **Phase 10.6** hardening + closeout remediation chain completed 2026-04-17 (terminal 6-file invariant, Shawn preserve_marker coverage, `shared_canon.yaml` normalization ledger, `scripts/phase_0_verification.py`, sentence-level Layer 1 preserve-marker contract alignment, and hard-asserted required voice modes). Lettered-phase remediation complete (2026-04-13). Phase doc housekeeping complete (2026-04-14).
+**Shipped phases:** Phase 0, A, A', A'', B, C, D (2026-04-12), E (2026-04-13), F (2026-04-13), G (2026-04-13), J.1–J.4 (2026-04-13), H (2026-04-13), K (2026-04-13), Phase 4 (Whyze-Byte Validation Pipeline, 2026-04-13), Phase F-Fidelity (Positive Fidelity Test Harness, 2026-04-14), Phase 5 (Scene Director, 2026-04-14), Phase 6 (Dreams Engine, 2026-04-15), Phase 7 (HTTP Service on Port 8001, 2026-04-15), Phase 8 (LLM Relationship Evaluator, SEALED 2026-04-15), Phase 9 (Inter-woman DyadStateInternal LLM evaluator, SEALED 2026-04-16), **Phase 10.0–10.6 (YAML Source-of-Truth Migration; core ship 2026-04-16, post-ship audit/remediation sweep closed 2026-04-17)**: 10.0 gap audit + preserve_marker remediation RATIFIED; 10.1 schema+loader infrastructure; 10.2 kernel body + voice exemplars cutover; 10.3 soul essence cutover; 10.3b soul cards embedding + iterator rewire; 10.4 narrow canon constraint pillars + Phase 8/9 evaluator register sections rewired to YAML; **Phase 10.5** shipped + approved 2026-04-16 (archive/manifest/governance surface, plus Codex-focused audit remediation F1-F5, commit `ab4a422`); **Phase 10.5b** shipped + approved 2026-04-16 (RT1 Layer 5 pair metadata cutover, RT2 schema/validator hardening with all-six-dyads divergence enforcement, RT3 cache key rich-YAML mtime, plus R2/R3 audit remediation); **Phase 10.5c** loader rewire implemented 2026-04-16 and audit-clean in the current workspace after direct remediation (time-stable drift-review gate, narrowed child allowlist, grep/spec agreement, terminal 6-file governance synced); **Phase 10.6** hardening + closeout remediation chain completed 2026-04-17 (terminal 6-file invariant, Shawn preserve_marker coverage, `shared_canon.yaml` normalization ledger, `scripts/phase_0_verification.py`, sentence-level Layer 1 preserve-marker contract alignment, and hard-asserted required voice modes); **Phase 10.7 (Dreams Consistency QA Pass, SHIPPED 2026-04-17)**: sixth Dreams generator runs nightly across 10 relationships (6 inter-woman dyads + 4 woman-Whyze pairs); three verdicts (`healthy_divergence` / `concerning_drift` / `factual_contradiction`); contradicting fields land in new `dyad_state_pins` table; Phase 9 evaluator consults `is_pinned()` before each dimension write and emits `dreams_qa_pin_blocked` events on skipped writes; weekly digest at `Docs/_dreams_qa/_weekly/YYYY-WW.md` with per-relationship trajectory labels (`improving` / `stable` / `drifting`); 3-night auto-promotion heuristic; Phase 8 R1-F3 input-sanitation pattern applied to QA judge episodic memory injection. Lettered-phase remediation complete (2026-04-13). Phase doc housekeeping complete (2026-04-14).
 **Canonical authorship surface (post-10.5c terminal state):** The terminal **6 files** are the sole runtime-authoritative source for all canonical character + structured-canon content: 5 rich per-character YAMLs at `Characters/{adelia_raye,bina_malek,reina_torres,alicia_marin,shawn_kroon}.yaml` + 1 cross-character anchor file at `Characters/shared_canon.yaml`. Legacy markdown kernels, Voice files, Knowledge Stacks, Pair files, `soul_essence.py`, 15 soul card markdowns, and (post-Phase-10.5c) the 7 narrow canon YAMLs (`canon/{characters,pairs,dyads,protocols,interlocks,voice_parameters,routines}.yaml`) are all archived under `Archive/v7.1_pre_yaml/` with SHA256 manifest. Do NOT author new markdown character files or new narrow canon YAMLs. All character prose AND all structured operational config (kernel body, voice exemplars, soul essence, soul cards, evaluator registers, constraint pillars, voice inference parameters, state protocols, routines, pair objective anchors, dyad baselines, memory tiers, interlocks taxonomy) lives in the terminal 6 files.
 
 **Shipped 2026-04-16 (Codex Round 1 remediation):**
@@ -394,9 +394,9 @@ These corrections override any conflicting content in project files. Apply befor
 - **Phase 10.5 focused audit remediation (F1-F5, commit `ab4a422`)** — archive-scope narrowing honestly declaring delivered-vs-deferred scope, retired-surface cleanup (`_load_raw_kernel` + `KERNEL_PATHS` deleted; `VOICE_PATHS` retained as documented compat-fallback), AGENTS.md + seed-script rewired to rich YAML authority, `journal.txt` authored, MANIFEST.md supersession column rewritten with exact per-file field paths.
 - **Phase 10.5b R2-F1/F2/F3/F4 (this bundle, 2026-04-16)** — R2-F3 shared-canon anchoring completion (PAIR + CLASSIFICATION + MECHANISM now sourced from `shared_canon.pairs[]` objective anchor; POV fields retained from `pair_architecture`), R2-F1 OneDrive transient-lock retry (`_load_yaml_file()` bounded retry on OSError/PermissionError), R2-F2 scope correction (this §19 block), R2-F4 Step 4 execution record populated in `PHASE_10.md`.
 
-**Open ship gate:** **Phase 10.7 (Dreams Consistency QA)** per `C:\Users\Whyze\.claude\plans\plan-phase-10-7-sprightly-thunder.md`. There is no open Codex remediation left on the Phase 10.5c / 10.6 implementation surface in the current workspace; any remaining Phase 10 action is governance-only (for example, optional QA/ship bookkeeping in `Docs/_phases/PHASE_10.md` if the Project Owner wants it recorded there).
+**Open ship gate:** none on the architectural track. Phase 10 (10.0–10.7) is complete in the current workspace. Any remaining Phase 10 action is governance-only (Codex audit + Project Owner Step 6 ship sign-off).
 
-**Next phase:** **Phase 10.7**. Current verified baseline on the live tree: **1228 passed, 0 failed, 34 environmental Postgres skips, 0 xfailed**. `ruff check src tests scripts` clean. `python -m mypy --strict src` clean. Msty AI is the only consumer.
+**Next phase:** none on the architectural track — Phase 10 is the terminal architectural phase of the v7 build. Current verified baseline on the live tree: **1257 passed, 0 failed, 37 environmental Postgres skips, 0 xfailed**. `ruff check src tests scripts` clean. `python -m mypy --strict src` clean across 115 source files. Msty AI is the only consumer.
 
 ### Project-wide Quality Directive (Project Owner, 2026-04-13)
 
@@ -465,20 +465,20 @@ Four layers of canonical soul content now reach the model on every assembled pro
 
 ### Test baseline
 
-**1228 passed, 0 failed, 34 environmental Postgres skips, 0 xfailed** as of 2026-04-17 after the Phase 10.6 closeout re-audit remediation sweep. `ruff check src tests scripts` clean. `python -m mypy --strict src` clean across 105 source files. Historical per-phase test deltas live in the phase reports under `Docs/_phases/`.
+**1257 passed, 0 failed, 37 environmental Postgres skips, 0 xfailed** as of 2026-04-17 after Phase 10.7 (Dreams Consistency QA Pass) shipped (+29 unit tests + 3 environmental-skip integration tests). `ruff check src tests scripts` clean. `python -m mypy --strict src` clean across 115 source files. Historical per-phase test deltas live in the phase reports under `Docs/_phases/`.
 
 ### Historical phase records
 
 Detailed per-phase delivery notes, audit remediation logs, test-delta history, and samples live in `Docs/_phases/` (per-phase specs and reports) and `Docs/_audits/` (audit records). Do not re-duplicate that history here. Notable pointers:
 - Phase 2 end audit + C1–C4 / H1–H5 / M1–M4 / L1 remediation: `Docs/_audits/PHASE_2_AUDIT_2026-04-13.md` + `Docs/_phases/REMEDIATION_2026-04-13.md`. L2 (prose.py dead-branch review) is the only deferred item.
 - Operator runtime walkthrough (markdown → 7-layer assembled prompt): `Docs/OPERATOR_GUIDE.md`.
-- Architectural phases 4–7 shipped end-to-end; Phase 8/9 sealed; Phase 10.0–10.6 shipped and post-ship audit/remediation-synchronized. Next open: Phase 10.7 (Dreams Consistency QA).
+- Architectural phases 4–7 shipped end-to-end; Phase 8/9 sealed; Phase 10.0–10.7 shipped and post-ship audit/remediation-synchronized. Phase 10.7 closes the architectural track for the v7 build.
 
-**Backend status:** Architectural phases 1–7 shipped; Phases 8, 9, 10.0–10.6 sealed. Operational work (deployment automation, observability dashboards, Msty persona/crew model-card authoring) remains open outside the architectural track.
+**Backend status:** Architectural phases 1–7 shipped; Phases 8, 9, 10.0–10.7 sealed. Operational work (deployment automation, observability dashboards, Msty persona/crew model-card authoring) remains open outside the architectural track.
 ### Phase 10 Governance Addendum (2026-04-17)
 
-This addendum supersedes older Phase 10 status lines that still pointed to
-10.5b or 10.5c as the next open loader-rewire phase.
+This addendum supersedes older Phase 10 status lines that still pointed
+to 10.5b, 10.5c, or 10.7 as the next open loader-rewire / QA phase.
 
 - Post-Round-3 direct remediation is complete in the current workspace.
 - Local `Characters/shawn_kroon.yaml` ACL access was repaired.
@@ -496,9 +496,17 @@ This addendum supersedes older Phase 10 status lines that still pointed to
   preserve-marker contract is documented and enforced at the sentence-
   level Layer 1 unit boundary, Shawn coverage exists, and the terminal
   6-file invariant is tested directly.
-- Current verified baseline: **1228 passed, 0 failed, 34 environmental
+- Phase 10.7 (Dreams Consistency QA Pass) is shipped in the current
+  workspace: sixth nightly Dreams generator covers all 10 relationships,
+  three verdicts (`healthy_divergence` / `concerning_drift` /
+  `factual_contradiction`), pinning blocks Phase 9 drift compounding,
+  weekly trajectory digest writes ISO-week files, 3-night auto-promotion
+  heuristic, Phase 8 R1-F3 input sanitation applied to QA judge.
+  Tables `dreams_qa_log` and `dyad_state_pins` added via Alembic 005.
+- Current verified baseline: **1257 passed, 0 failed, 37 environmental
   Postgres skips, 0 xfailed**.
 - `ruff check src tests scripts` is clean.
-- `python -m mypy --strict src` is clean.
-- The next open architectural phase is **Phase 10.7**. Any remaining
-  Phase 10 work is governance-only, not implementation debt.
+- `python -m mypy --strict src` is clean across 115 source files.
+- There is no open architectural phase in the v7 build. Any remaining
+  Phase 10 work is governance-only (Codex audit + Project Owner Step 6
+  ship sign-off), not implementation debt.

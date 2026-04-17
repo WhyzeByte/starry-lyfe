@@ -114,12 +114,20 @@ async def write_new_open_loops(
     *,
     now: datetime,
     source_session_id: uuid.UUID | None = None,
+    source: str = "dreams",
 ) -> list[uuid.UUID]:
     """Insert OpenLoop rows for each new loop extracted by the generator.
 
     Expects output.structured_data["new_loops"] to be a list of dicts with
     keys {summary, urgency, loop_type?, best_next_speaker?, suggested_scene?}.
     Returns the UUIDs of the newly-inserted rows.
+
+    Phase 10.7: ``source`` defaults to ``"dreams"`` for the per-character
+    open-loops generator path; the consistency QA generator passes
+    ``source="dreams_qa"`` so healthy_divergence scene_fodder lands tagged
+    distinctly from regular Dreams open loops. Stored in OpenLoop metadata
+    where the open_loops table has a ``source`` column, otherwise as part
+    of ``loop_type`` as a fallback.
     """
     structured = output.structured_data if isinstance(output.structured_data, dict) else {}
     new_loops = structured.get("new_loops") or []
@@ -132,10 +140,15 @@ async def write_new_open_loops(
         if not summary:
             continue
         ttl = int(loop.get("ttl_hours", _NEW_LOOP_DEFAULT_TTL_HOURS))
+        # OpenLoop ORM may not have a `source` column today; record it via
+        # `metadata_` if available, falling back to `loop_type` qualifier.
+        loop_type = str(loop.get("loop_type") or "unresolved_thread")
+        if source != "dreams":
+            loop_type = f"{loop_type}:{source}"
         row = OpenLoop(
             character_id=character_id,
             loop_summary=str(summary),
-            loop_type=str(loop.get("loop_type") or "unresolved_thread"),
+            loop_type=loop_type,
             urgency=str(loop.get("urgency") or "medium"),
             best_next_speaker=loop.get("best_next_speaker"),
             suggested_scene=loop.get("suggested_scene"),
@@ -150,6 +163,78 @@ async def write_new_open_loops(
     if written:
         await session.flush()
     return written
+
+
+# ----------------------------------------------------------------------
+# Phase 10.7 — Consistency QA writers
+# ----------------------------------------------------------------------
+
+
+async def write_consistency_qa_log(
+    session: AsyncSession,
+    *,
+    run_id: uuid.UUID,
+    relationship_key: str,
+    verdict: str,
+    divergence_summary: str,
+    contradictions: list[dict[str, Any]],
+    scene_fodder: list[str],
+) -> uuid.UUID:
+    """Insert one ``dreams_qa_log`` row. One per (run, relationship)."""
+    from sqlalchemy import text
+
+    new_id = uuid.uuid4()
+    sql = text(
+        """
+        INSERT INTO starry_lyfe.dreams_qa_log
+            (id, run_id, relationship_key, verdict,
+             divergence_summary, contradictions, scene_fodder)
+        VALUES (:id, :run_id, :rk, :verdict, :summary,
+                CAST(:contras AS JSONB), CAST(:fodder AS JSONB))
+        """
+    )
+    import json as _json
+    await session.execute(
+        sql,
+        {
+            "id": new_id,
+            "run_id": run_id,
+            "rk": relationship_key,
+            "verdict": verdict,
+            "summary": divergence_summary,
+            "contras": _json.dumps(contradictions, default=str),
+            "fodder": _json.dumps(scene_fodder, default=str),
+        },
+    )
+    return new_id
+
+
+async def write_dyad_state_pin(
+    session: AsyncSession,
+    *,
+    relationship_key: str,
+    pov_character_id: str | None,
+    field_name: str,
+    pinned_value: Any,
+    pinned_reason: str,
+) -> uuid.UUID:
+    """Phase 10.7: thin pass-through to the pinning module's pin_field().
+
+    Kept on writers.py so the runner has a single import surface for all
+    Dreams DB writes. The actual pinning logic lives at
+    consistency/pinning.py to keep the Phase 9 evaluator's pin-consult on
+    the same module.
+    """
+    from .consistency.pinning import pin_field
+
+    return await pin_field(
+        session,
+        relationship_key=relationship_key,
+        pov_character_id=pov_character_id,
+        field_name=field_name,
+        pinned_value=pinned_value,
+        pinned_reason=pinned_reason,
+    )
 
 
 async def write_off_screen_events(

@@ -45,7 +45,16 @@ NARROW_VERSION = "7.1"
 
 @dataclass(frozen=True)
 class Canon:
-    """Complete validated canon state."""
+    """Complete validated canon state.
+
+    Phase 10.7: ``shared`` exposes the full ``SharedCanon`` (pairs list,
+    dyads_baseline dict, interlocks list, marriage/genealogy/property/
+    timeline anchors, memory_tiers, normalization_notes) to downstream
+    consumers — primarily the Dreams Consistency QA generator which needs
+    direct access to objective cross-character anchors when judging
+    per-character POV drift. Purely additive — existing consumers that
+    only read narrow Pydantic objects are unaffected.
+    """
 
     characters: CanonCharacters
     pairs: CanonPairs
@@ -54,6 +63,7 @@ class Canon:
     interlocks: CanonInterlocks
     voice_parameters: CanonVoiceParameters
     routines: CanonRoutines
+    shared: SharedCanon
 
 
 class CanonValidationError(ValueError):
@@ -440,6 +450,7 @@ def load_all_canon(validate_on_load: bool = True) -> Canon:
         interlocks=_build_interlocks(shared),
         voice_parameters=_build_voice_parameters(rich_chars),
         routines=_build_routines(rich_chars),
+        shared=shared,
     )
     if validate_on_load:
         from .validator import validate_cross_references
