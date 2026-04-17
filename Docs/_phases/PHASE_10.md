@@ -783,7 +783,7 @@ The specific Phase 10.5c audit findings from Step 3''' are closed in the current
 **Deliverable:** Hardened invariants. Phase H regression bundle re-baselined against YAML-sourced output.
 
 **Work items:**
-1. **preserve_marker enforcement test** (`tests/unit/test_preserve_markers.py`): for each of 5 character YAMLs + shared_canon, every `content_anchor` in `preserve_markers` must appear verbatim in the assembled Layer 1 output for at least one realistic scene profile (or in the shared_canon-rendered Layer 2 for shared anchors). Test fails by named marker if a regression drops a load-bearing phrase.
+1. **preserve_marker enforcement test** (`tests/unit/test_preserve_markers.py`): for each of the 5 character YAMLs, every `content_anchor` in `preserve_markers` must contribute its sentence-level canonical units verbatim to the assembled Layer 1 output for at least one realistic scene profile. Documented elaboration-gap exemptions are allowed only after an earlier canonical key sentence from the same anchor is already present in Layer 1. `shared_canon.yaml` is intentionally out of scope for this test; that surface is governed by `test_shared_canon_purity.py` and the Step 7 scope amendment.
 2. **Voice mode coverage test** (`tests/unit/test_voice_mode_coverage.py`): assert per-character required mode coverage from Phase E (Adelia 6 incl. silent; Bina 5; Reina 7 incl. escalation; Alicia 6 incl. warm_refusal + group_temperature).
 3. **Constraint pillar shape test** (`tests/unit/test_constraint_pillar_shape.py`): assert Alicia has all 4 communication-mode pillar variants; assert Adelia / Bina / Reina have at minimum the in_person variant.
 4. **Cross-reference enforcement** (`tests/unit/test_cross_references.py`): every `relationships.{X}` in A's YAML matches a `relationships.{A}` in X's YAML (perspective symmetry); every `signature_scenes[].anchor_id` resolves in `shared_canon.yaml`; every pair POV resolves to a `shared_canon.yaml.pairs` entry.
@@ -1729,8 +1729,136 @@ Step 3'''' Codex re-audit on the Phase 10.6 closeout work.
 ### Closeout
 
 The Phase 10.6 closeout re-audit findings are closed. The Phase 10.6
-hardening surface is now actually as strict as the spec claimed. No
+hardening surface now matches the amended sentence-level preserve-marker
+contract and the all-6-YAML normalization-notes ledger check. No
 production behavior changed; the fixes are test-rigor and verification-
 script corrections.
 
 <!-- HANDSHAKE: Claude Code -> Codex (re-audit) | Phase 10.6 closeout re-audit findings F1/F2/F3 all FIXED 2026-04-17. Test contract now matches Phase 10.6 spec wording: per-sentence verbatim-in-Layer-1 enforcement (with documented known-gap allowlist), normalization_notes ledger validated across all 6 YAMLs, voice-mode required-keys enforced as hard assertions. Verification: 1228 passed, 34 environmental skips; ruff + mypy clean. -->
+
+## Step 3''''' - Codex Audit (Phase 10.6 Remediation Re-audit, 2026-04-17)
+
+**Date:** 2026-04-17  
+**Auditor:** Codex  
+**Trigger:** Verification of the Step 8 remediation work for the three findings raised in Step 3''''.
+
+### Scope
+
+Re-reviewed:
+
+- `Docs/_phases/PHASE_10.md` Phase 10.6 spec + Step 8 remediation block
+- `scripts/phase_0_verification.py`
+- `tests/unit/test_preserve_markers.py`
+- `tests/unit/test_voice_mode_coverage.py`
+
+### Verification Context
+
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_preserve_markers.py tests/unit/test_voice_mode_coverage.py -q` -> `16 passed`
+- `.\.venv\Scripts\python.exe scripts/phase_0_verification.py` -> `PASSED`
+- `.\.venv\Scripts\ruff.exe check src tests scripts` -> clean
+- `.\.venv\Scripts\python.exe -m mypy --strict src` -> clean
+- `.\.venv\Scripts\python.exe -m pytest -q` -> `1228 passed, 34 skipped`
+
+### Executive Assessment
+
+The remediation effort is mostly real. F1 and F3 are closed on the live
+tree: the Phase 0 verifier now fails when `shared_canon.normalization_notes`
+is absent, and the required voice-mode checks now fail loudly instead of
+skipping.
+
+F2 is only partially closed. The new preserve-marker test is materially
+stronger than the prior prefix/single-sentence predicate, but it still does
+not implement the unamended Phase 10.6 spec language that says every
+`content_anchor` must appear verbatim in Layer 1. The current predicate
+checks sentence-level presence, so a non-contiguous or reordered rendering
+can still pass even when the full `content_anchor` string never appears.
+That leaves one medium spec/contract mismatch plus one low diagnostic-text
+cleanup. Gate is **PASS WITH MINOR FIXES**.
+
+### Findings
+
+| # | Severity | Finding | Evidence | Recommended remediation |
+|---|---|---|---|---|
+| 1 | Medium | The Step 8 preserve-marker remediation is stronger but not fully closed against the written Phase 10.6 contract. Phase 10.6 §1 still says every `content_anchor` must appear verbatim in assembled Layer 1 output, while the updated test splits each anchor into sentences and accepts independent sentence presence. A red-team probe using Adelia's `soul_mate_anchor` showed `all_sentences_present=True` while `full_anchor_contiguous=False`, proving the current predicate can pass without the `content_anchor` itself appearing verbatim. | [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:786), [test_preserve_markers.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/tests/unit/test_preserve_markers.py:71), [test_preserve_markers.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/tests/unit/test_preserve_markers.py:187), [PHASE_10.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_10.md:1736) | Pick one contract and make every layer agree. Either amend Phase 10.6 §1 and the Step 8 handoff text to define sentence-level key-unit enforcement, or remodel preserve-marker units so the test can assert full-unit verbatim presence without relying on sentence splitting. |
+| 2 | Low | The Phase 0 verifier behavior is fixed, but the drift message still says the ledger is required across "all per-character YAMLs" even though the remediation now also checks `shared_canon`. On the exact Step 8 regression probe, the failure is functionally correct but the diagnostic text is stale. | [phase_0_verification.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/scripts/phase_0_verification.py:61), [phase_0_verification.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/scripts/phase_0_verification.py:136) | Change the failure text to "all 6 YAMLs" or "terminal 6-file authoring surface" so the report matches the actual check. |
+
+### Runtime Probe Summary
+
+1. Re-ran the Step 8 targeted verification surface.  
+   Result: `tests/unit/test_preserve_markers.py` + `tests/unit/test_voice_mode_coverage.py` passed (`16 passed`); Phase 0 verifier passed; `ruff`, `mypy`, and full `pytest -q` were clean.
+
+2. Re-ran the F1 shared-canon normalization-notes probe.  
+   Result: monkeypatching `load_shared_canon()` to return hydration-complete data with no `normalization_notes` now yields `exit_code=1` and a structured drift report. Behavioral closure confirmed.
+
+3. Re-ran the F3 voice-mode absence probe.  
+   Result: forcing Reina's mode set to `{domestic}` now raises `AssertionError`, not `pytest.skip(...)`. Behavioral closure confirmed.
+
+4. Re-ran a preserve-marker contract probe against the updated F2 logic.  
+   Result: a synthetic Layer 1 string containing all sentences from Adelia's `soul_mate_anchor` but in non-contiguous order satisfies the sentence-level predicate while the full anchor string remains absent. Contract mismatch remains.
+
+### Drift Against Specification
+
+- Step 8 genuinely closes the behavioral gaps from F1 and F3.
+- Step 8 overstates F2 closure: the new implementation aligns with a sentence-level interpretation, but the written Phase 10.6 §1 contract still describes full-`content_anchor` verbatim presence.
+
+### Verified Resolved
+
+- `scripts/phase_0_verification.py` now fails on missing `shared_canon.normalization_notes`.
+- `tests/unit/test_voice_mode_coverage.py` required-mode checks are now hard assertions.
+- The full repository test/lint/type-check baseline remains green after the remediation.
+
+### Adversarial Scenarios Constructed
+
+1. Remove `shared_canon.normalization_notes` while preserving hydration blocks.
+Result: verifier now fails. F1 closed.
+
+2. Force Reina's distinct-mode set to `{domestic}`.
+Result: required-mode test now fails. F3 closed.
+
+3. Feed the preserve-marker logic a Layer 1 string containing all anchor sentences but not the full anchor contiguously.
+Result: current predicate passes the sentence-level check while the spec-level full-anchor condition remains false.
+
+### Recommended Remediation Order
+
+1. Resolve the preserve-marker contract mismatch by aligning the spec, Step 8 narrative, and test predicate.
+2. Update the Phase 0 verifier's normalization-notes drift message so it reflects the shared-canon check.
+
+**Gate recommendation:** **PASS WITH MINOR FIXES**
+
+<!-- HANDSHAKE: Codex -> Project Owner | Phase 10.6 remediation re-audit complete 2026-04-17. F1 and F3 are behaviorally closed; F2 is stronger but still mismatched against the unamended Phase 10.6 §1 wording, and the Phase 0 verifier carries one stale drift-message string. Gate PASS WITH MINOR FIXES. -->
+
+## Step 4''''' - Direct Codex Remediation (Project Owner Override, Phase 10.6 Remediation Re-audit Findings)
+
+**Date:** 2026-04-17  
+**Executor:** Codex (direct remediation under Project Owner instruction)  
+**Scope:** Close the remaining Step 3''''' findings by aligning the written Phase 10.6 preserve-marker contract to the shipped sentence-level enforcement model and correcting the stale Phase 0 verifier drift text.
+
+### Remediation Summary
+
+| Finding | Status | Remediation |
+|---|---|---|
+| F1 | **FIXED** | Amended the Phase 10.6 §1 work item in this phase file from full-`content_anchor` verbatim language to the sentence-level canonical-unit contract already implemented in `tests/unit/test_preserve_markers.py`, including the known-gap exemption rule and the already-amended `shared_canon.yaml` out-of-scope note. Updated the test file header/class/function docstrings to the same sentence-level wording so spec, test intent, and implementation now agree. |
+| F2 | **FIXED** | Corrected `scripts/phase_0_verification.py` drift wording from "all per-character YAMLs" to the actual "all 6 YAMLs in the terminal authoring surface" contract. |
+
+### Files Changed
+
+- `Docs/_phases/PHASE_10.md`
+- `tests/unit/test_preserve_markers.py`
+- `scripts/phase_0_verification.py`
+
+### Verification After Remediation
+
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/test_preserve_markers.py tests/unit/test_voice_mode_coverage.py -q` -> `16 passed`
+- `.\.venv\Scripts\python.exe scripts/phase_0_verification.py` -> `PASSED`
+- `.\.venv\Scripts\ruff.exe check src tests scripts` -> clean
+- `.\.venv\Scripts\python.exe -m mypy --strict src` -> clean
+- `.\.venv\Scripts\python.exe -m pytest -q` -> `1228 passed, 34 skipped`
+
+### Closeout
+
+The remaining Phase 10.6 remediation re-audit findings are closed. The
+written Phase 10.6 acceptance text, the preserve-marker test contract,
+and the Phase 0 verifier messaging are now synchronized with the live
+implementation.
+
+<!-- HANDSHAKE: Codex -> Project Owner | Direct remediation complete 2026-04-17 under explicit owner override. Step 3''''' remaining findings closed by spec/doc alignment for sentence-level preserve-marker enforcement and by correcting the Phase 0 verifier normalization-notes drift text. Verification: 1228 passed, 34 skipped; ruff + mypy clean. -->

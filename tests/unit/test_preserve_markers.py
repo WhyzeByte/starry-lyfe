@@ -2,11 +2,12 @@
 
 Strictly stronger than the YAML-body check in ``test_rich_loader.py``:
 runs the full ``assemble_context()`` pipeline for each of the 4 women
-across realistic scene profiles and asserts each ``content_anchor``
-appears verbatim in the Layer 1 rendered text. This catches any
+across realistic scene profiles and asserts each ``content_anchor``'s
+sentence-level canonical units reach Layer 1 verbatim. This catches any
 regression where Phase A structure-preserving trim, soul essence
 prepend, soul card activation, or other Layer 1 transforms drop a
-canonical phrase under budget pressure.
+load-bearing phrase under budget pressure while still allowing
+deliberate interpolation between anchored sentences.
 
 Per ``Docs/_phases/PHASE_10.md §Phase 10.6`` spec §1 + AC-10.3 +
 AC-10.11 + AC-10.12.
@@ -147,7 +148,7 @@ def _build_scene_state(character_id: str, profile: dict[str, Any]) -> SceneState
 
 
 class TestPreserveMarkersInAssembledLayer1:
-    """AC-10.3: preserve_marker content_anchors verbatim in Layer 1 output."""
+    """AC-10.3: preserve_marker sentence units verbatim in Layer 1 output."""
 
     @pytest.mark.parametrize("character_id", WOMAN_IDS)
     @pytest.mark.parametrize("profile_label,profile", _SCENE_PROFILES)
@@ -158,12 +159,13 @@ class TestPreserveMarkersInAssembledLayer1:
         profile_label: str,
         profile: dict[str, Any],
     ) -> None:
-        """Each content_anchor must appear verbatim in the assembled Layer 1 text.
+        """Each content_anchor's sentence-level canonical units must appear
+        verbatim in the assembled Layer 1 text.
 
-        Asserts the full canonical promise: not just that the anchor
-        exists in YAML, but that it survives Phase A trim + soul essence
-        prepend + pair-architecture callbacks block + soul card
-        activation and reaches the LLM prompt.
+        Asserts the canonical Phase 10.6 promise: not just that the
+        anchor exists in YAML, but that its load-bearing sentences
+        survive Phase A trim + soul essence prepend + pair-architecture
+        callbacks block + soul card activation and reach the LLM prompt.
         """
         async def stub_retrieve_memories(*args: object, **kwargs: object) -> Any:
             return _empty_bundle()

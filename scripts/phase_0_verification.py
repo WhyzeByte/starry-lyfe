@@ -138,7 +138,7 @@ def main() -> int:
     if missing_notes:
         drift.append(
             f"normalization_notes missing in: {missing_notes} "
-            f"(Phase 10.6 §9 requires the ledger across all per-character YAMLs)"
+            f"(Phase 10.6 §9 requires the ledger across all 6 YAMLs in the terminal authoring surface)"
         )
 
     # Phase 10.5c terminal authoring surface
