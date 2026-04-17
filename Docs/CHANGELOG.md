@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added (ARCHITECTURE.md 1.0.0 clean-slate rewrite — 2026-04-17)
+
+`Docs/ARCHITECTURE.md` rewritten from the 156-line 0.9.2 stub (dated 2026-04-15, pre-Phase-8-seal) into a comprehensive 708-line production reference for the v7 terminal architectural state at commit `8a7163e`. Covers 23 sections: executive summary, context, system map, 12-step request path, 115-file module registry, 7-layer assembly with guaranteed surcharges, 17-table data model with 5-migration Alembic chain, terminal 6-file canon authority, soul architecture, Dreams Engine (6 generators), Phase 10.7 Consistency QA sub-pipeline, Phase 8/9/10.7 relationship evaluators, Whyze-Byte validation, Scene Director, API surface, configuration, infrastructure, protocol droid registry, test architecture (1,257 passed / 38 environmental Postgres skips), governance, 8 architectural decisions (AD-001..AD-008), evolution summary. Phase reports under `Docs/_phases/` remain the authoritative chronological delivery record; ARCHITECTURE.md is the timeless top-down reference. CLAUDE.md §11 Docs layer note amended from "rather than" to "alongside" to reflect the coexistence. CLAUDE.md P-version P2.15 → P2.16.
+
 ### Updated (Phase 9 Step 3'' Round 3 direct Codex doc-only remediation — 2026-04-15)
 
 Project Owner explicitly authorized AGENTS.md Path C direct Codex doc-only remediation for the 3 low-severity Phase 9 documentation findings. The canonical phase record now has a single Round 1 Codex Row 5 handshake, all Phase 9 verification/status surfaces now report the live `1119 passed` / `+6` RT1 regression delta / residue-clean state, and the placeholder governance hashes are replaced with `4b50132` / `11a8af6`. No production code or tests changed. Gate: **PASS**; ready for Claude AI Step 5 QA.
