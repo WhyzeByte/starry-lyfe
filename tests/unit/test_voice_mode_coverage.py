@@ -16,8 +16,6 @@ from __future__ import annotations
 
 import contextlib
 
-import pytest
-
 from starry_lyfe.canon.rich_loader import load_rich_character
 from starry_lyfe.context.types import VoiceMode
 
@@ -61,30 +59,42 @@ class TestVoiceModeCoverage:
 
 
 class TestVoiceModeRequiredKeys:
-    """Spec-required specific mode names per character."""
+    """Spec-required specific mode names per character (Phase 10.6 §2).
+
+    Phase 10.6 closeout F3 (2026-04-17): converted from `pytest.skip(...)`
+    to hard assertions. The Phase 10.6 spec explicitly requires these
+    modes; the previous skip pattern silently passed when authoring was
+    incomplete, masking real coverage gaps. The assertions now enforce
+    the spec contract — if a required mode is removed from a rich YAML,
+    the test fails loudly instead of skipping.
+    """
 
     def test_adelia_has_silent_mode(self) -> None:
         modes = _distinct_modes("adelia")
-        # Phase E calls out silent explicitly; accept any silent-like enum
-        if not any("silent" in m.value for m in modes):
-            pytest.skip(
-                "Adelia silent-mode coverage pending; Phase E voice authoring "
-                "extension — flagged but not blocking Phase 10.6"
-            )
+        assert any("silent" in m.value for m in modes), (
+            f"Adelia rich YAML missing required `silent` voice mode "
+            f"(Phase 10.6 §2 + Phase E coverage commitment). "
+            f"Present modes: {sorted(m.value for m in modes)}"
+        )
 
-    def test_alicia_has_warm_refusal_or_group_temperature(self) -> None:
+    def test_alicia_has_warm_refusal_and_group_temperature(self) -> None:
         modes = _distinct_modes("alicia")
-        relevant = {m.value for m in modes if "refusal" in m.value or "group" in m.value}
-        if not relevant:
-            pytest.skip(
-                "Alicia warm_refusal / group_temperature coverage pending; "
-                "Phase E voice authoring extension"
-            )
+        mode_values = {m.value for m in modes}
+        has_warm_refusal = any("refusal" in v for v in mode_values)
+        has_group_temperature = any("group_temperature" in v for v in mode_values)
+        assert has_warm_refusal, (
+            f"Alicia rich YAML missing required `warm_refusal` voice mode "
+            f"(Phase 10.6 §2). Present: {sorted(mode_values)}"
+        )
+        assert has_group_temperature, (
+            f"Alicia rich YAML missing required `group_temperature` voice mode "
+            f"(Phase 10.6 §2). Present: {sorted(mode_values)}"
+        )
 
     def test_reina_has_escalation_mode(self) -> None:
         modes = _distinct_modes("reina")
-        if not any("escal" in m.value for m in modes):
-            pytest.skip(
-                "Reina escalation-mode coverage pending; Phase E voice "
-                "authoring extension"
-            )
+        assert any("escal" in m.value for m in modes), (
+            f"Reina rich YAML missing required escalation-level voice mode "
+            f"(Phase 10.6 §2 + Phase E coverage commitment). "
+            f"Present modes: {sorted(m.value for m in modes)}"
+        )

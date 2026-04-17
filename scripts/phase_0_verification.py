@@ -43,15 +43,28 @@ def _yaml_body_text(rc_yaml_path: Path) -> str:
 
 
 def _check_normalization_notes(rich_chars: dict[str, object]) -> list[str]:
-    """Phase 10.6 §9: every per-character YAML must carry a normalization_notes block.
+    """Phase 10.6 §9 + closeout: every YAML in the terminal 6 authoring surface
+    must carry a normalization_notes block.
 
-    Returns the list of character_ids missing the block (empty = clean).
+    Phase 10.6 closeout re-audit F1 (2026-04-17): tightened to also inspect
+    `Characters/shared_canon.yaml` (was previously per-character only, which
+    let a missing shared_canon ledger pass undetected).
+
+    Returns the list of authoring-surface ids missing the block (empty = clean).
     """
     missing: list[str] = []
     for char_id, rc in rich_chars.items():
         notes = getattr(rc, "normalization_notes", None)
         if not notes:
             missing.append(char_id)
+
+    # F1 (2026-04-17): also check shared_canon. Its `normalization_notes` is
+    # an extra-allow field on SharedCanon, so it shows up via `model_extra`.
+    shared = load_shared_canon()
+    shared_extras = shared.model_extra or {}
+    shared_notes = shared_extras.get("normalization_notes")
+    if not shared_notes:
+        missing.append("shared_canon")
     return missing
 
 
