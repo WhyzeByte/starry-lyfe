@@ -1,936 +1,885 @@
-# Operator Guide: Character Markdown -> Runtime Prompt
+# Operator Guide — Starry-Lyfe
 
-**Version:** 1.1 (2026-04-13)
-**Scope:** Accurate walkthrough of how character-source material becomes the seven-layer runtime prompt.
-**Audience:** Project Owner, operators, and anyone who needs the runtime map without re-reading the whole codebase.
-
----
-
-## 1. What This Document Is (And Is Not)
-
-**Is:** A runtime-oriented guide. It starts with the canonical character corpus and ends at the XML-wrapped prompt returned by `assemble_context()`.
-
-**Is not:**
-- An authoring guide. For phase-by-phase buildout rules, see `Docs/IMPLEMENTATION_PLAN_v7.1.md`.
-- A governance spec. For character-behavior rules, see `Docs/Persona_Tier_Framework_v7.1.md`.
-- A four-agent workflow guide. For SDLC rules, see `AGENTS.md`.
-- A canonical phase-status document. For shipped vs planned subsystem status, see `Docs/IMPLEMENTATION_PLAN_v7.1.md`. For the concise module and schema index, see `Docs/ARCHITECTURE.md`.
-
-This document was audited directly against the current code on 2026-04-13. The references below describe what the runtime actually does now, not what earlier phases intended to do.
+**Version:** 2.0.0
+**Date:** 2026-04-17
+**Status:** Operator runtime walkthrough for the v7 terminal architectural state at commit `8c72486`. Supersedes the 1.x markdown-era guide.
+**Audience:** the operator (Whyze) and any engineer who has to run, monitor, or troubleshoot Starry-Lyfe day-to-day.
+**Companion documents:** `Docs/ARCHITECTURE.md` (top-down as-built reference); `Docs/_phases/` (chronological delivery record); `CLAUDE.md` (governance).
 
 ---
 
-## 2. Canonical Character Corpus vs Direct Runtime Inputs
+## 0. How to read this guide
 
-Each resident character currently has four canonical markdown files under `Characters/`:
+This document teaches you how to **operate** the system. It does not re-document architecture (that's `ARCHITECTURE.md`) and it does not record history (that's `Docs/_phases/`). Each section answers an operator question:
 
-| Role | Filename Pattern | Example | Runtime Status |
-|------|------------------|---------|----------------|
-| Kernel | `{Character}_v7.1.md` | `Adelia_Raye_v7.1.md` | Loaded directly at runtime |
-| Voice | `{Character}_Voice.md` | `Adelia_Raye_Voice.md` | Loaded directly at runtime |
-| Knowledge Stack | `{Character}_Knowledge_Stack.md` | `Adelia_Raye_Knowledge_Stack.md` | Authoring source only; distilled into soul cards / soul essence |
-| Pair | `{Character}_{PairName}_Pair.md` | `Adelia_Raye_Entangled_Pair.md` | Authoring source only; distilled into soul cards / soul essence |
+- "How do I run this locally?" → §1 Quickstart
+- "What happens when Msty sends a request?" → §2 Request walkthrough
+- "How do I set up Msty?" → §3 Msty Persona Studio
+- "What does this log line mean?" → §4 Logging and §13 Glossary
+- "Did the nightly Dreams pass succeed?" → §5 Dreams operations
+- "There's a pin in `dyad_state_pins` — what do I do?" → §6 Phase 10.7 QA workflow
+- "An evaluator emitted `dreams_qa_pin_blocked` — is that bad?" → §7 Relationship evaluators
+- "I edited a character YAML — now what?" → §8 Canon edit workflow
+- "Health check is red." → §9 Health and metrics
+- "Something's broken." → §10 Troubleshooting
+- "How do I back up the DB?" → §11 Backup and restore
+- "How do I commit a change?" → §12 Dev workflow
 
-That distinction matters:
-
-- The runtime loader in [kernel_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:14) directly reads only the kernel and voice files.
-- Pair and knowledge markdown are not live-loaded by `assemble_context()`. Their runtime products are:
-  - [soul_essence.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/soul_essence.py:1)
-  - [src/starry_lyfe/canon/soul_cards/](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/soul_cards)
-
-### 2.1 Current File Layout
-
-Character markdown now lives flat in `Characters/`:
-
-- [Adelia_Raye_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Adelia_Raye_v7.1.md:1)
-- [Bina_Malek_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Bina_Malek_v7.1.md:1)
-- [Reina_Torres_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Reina_Torres_v7.1.md:1)
-- [Alicia_Marin_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Alicia_Marin_v7.1.md:1)
-
-The kernel and voice loaders still support a legacy nested fallback layout for backward compatibility; see `KERNEL_PATHS` and `VOICE_PATHS` in [kernel_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:14).
-
-### 2.2 The Four Characters
-
-| Character ID | Full Name | Pair | MBTI |
-|--------------|-----------|------|------|
-| `adelia` | Adelia Raye | Entangled | ENFP-A |
-| `bina` | Bina Malek | Circuit | ISFJ-A |
-| `reina` | Reina Torres | Kinetic | ESTP-A |
-| `alicia` | Alicia Marin | Solstice | ESFP-A |
-
-### 2.3 `<!-- PRESERVE -->` Markers
-
-The block-aware trimmer recognizes `<!-- PRESERVE -->` markers anywhere in kernel text, though they are typically used in Section 2 (`Core Identity`).
-
-```markdown
-<!-- PRESERVE -->
-I am Adelia Raye. I build fire for a living...
-<!-- /PRESERVE -->
-```
-
-Important runtime behavior:
-
-- `parse_markdown_blocks()` and `trim_text_to_budget()` in [budgets.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/budgets.py:138) protect the next content block from normal drop-priority trimming.
-- In strict kernel compilation paths, a preserved block that cannot fit its section budget raises `KernelCompilationError` instead of being silently dropped.
-- Promoted fill-tier sections use permissive trimming, so the strongest non-trimmable mechanism is now soul essence, not markdown preservation.
+Each example uses real file paths and real CLI invocations against the current working tree.
 
 ---
 
-## 3. The Runtime Surface: What The Model Receives
+## 1. Quickstart
 
-Every prompt returned by `assemble_context()` is seven XML-wrapped layers joined with `\n\n` in this fixed order:
-
-| # | Marker | Layer | Runtime Source |
-|---|--------|-------|----------------|
-| 1 | `<PERSONA_KERNEL>` | Persona kernel | Soul essence + compiled kernel body + pair soul cards |
-| 2 | `<CANON_FACTS>` | Canon facts | `retrieve_memories().canon_facts` |
-| 3 | `<MEMORY_FRAGMENTS>` | Episodic memory | `retrieve_memories().episodic_memories` |
-| 4 | `<SENSORY_GROUNDING>` | Somatic grounding | `retrieve_memories().somatic_state` + active protocol prose |
-| 5 | `<VOICE_DIRECTIVES>` | Voice directives | Pair metadata + optional baseline + selected voice exemplars |
-| 6 | `<SCENE_CONTEXT>` | Scene context | Whyze dyads + internal dyads + open loops + knowledge soul cards |
-| 7 | `<CONSTRAINTS>` | Terminal constraints | Tier 1 axioms + character pillar + scene-conditional gates |
-
-Layer markers are defined in [assembler.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/assembler.py:30).
-
-### 3.1 Terminal Anchoring
-
-Layer 7 is always last. That is enforced by:
-
-- Layer ordering inside [assemble_context()](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/assembler.py:51)
-- `AssembledPrompt.is_terminally_anchored` in [types.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/types.py:132)
-
-The structural check is literal: the final prompt must end with `</CONSTRAINTS>`.
-
----
-
-## 4. Layer 1: Kernel Path (`v7.1.md` -> compiled kernel)
-
-### 4.1 Loading
-
-`KERNEL_PATHS` in [kernel_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:18) maps each character ID to candidate kernel paths. `_load_raw_kernel()` at [line 295](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:295) resolves the first existing path and reads it as UTF-8.
-
-`_sanitize_kernel_text()` at [line 117](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:117) removes frontend-only scaffolding such as `# SYSTEM_ROLE:`, `**Version:**`, and `**Target:**`.
-
-### 4.2 Section Parsing
-
-`_parse_kernel_sections()` at [line 134](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:134) splits on `^## (\d+)\.` and returns `(section_number, section_text)` tuples.
-
-All four current kernels use 11 numbered sections:
-
-| Section | Typical Name | Example Evidence |
-|---------|--------------|------------------|
-| 1 | Runtime Directives | [Adelia_Raye_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Adelia_Raye_v7.1.md:6) |
-| 2 | Core Identity | [Bina_Malek_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Bina_Malek_v7.1.md:16) |
-| 3 | Whyze / Pair | [Reina_Torres_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Reina_Torres_v7.1.md:41) |
-| 4 | Silent Routing | [Alicia_Marin_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Alicia_Marin_v7.1.md:55) |
-| 5 | Behavioral Tier Framework | [Adelia_Raye_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Adelia_Raye_v7.1.md:69) |
-| 6 | Voice Architecture / Voice Signature | [Alicia_Marin_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Alicia_Marin_v7.1.md:99) |
-| 7 | Character-specific framework section | [Reina_Torres_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Reina_Torres_v7.1.md:120) |
-| 8 | Intimacy / orientation section | [Bina_Malek_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Bina_Malek_v7.1.md:166) |
-| 9 | Family Dynamics | [Adelia_Raye_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Adelia_Raye_v7.1.md:207) |
-| 10 | What This Is Not | [Reina_Torres_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Reina_Torres_v7.1.md:240) |
-| 11 | Astrological Architecture | [Alicia_Marin_v7.1.md](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Characters/Alicia_Marin_v7.1.md:199) |
-
-### 4.3 Section Budgets and Orders
-
-Baseline section budgets live in `SECTION_TOKEN_TARGETS` at [kernel_loader.py:62](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:62):
-
-| Section | Target Tokens |
-|---------|---------------|
-| 1 | 300 |
-| 2 | 900 |
-| 3 | 1000 |
-| 4 | 250 |
-| 5 | 900 |
-| 7 | 550 |
-| 6 | 300 |
-
-Assembly orders live at [kernel_loader.py:72-74](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:72):
-
-- `PRIMARY_SECTION_ORDER = [1, 2, 3, 4, 5, 7, 6]`
-- `EXPANSION_SECTION_ORDER = [2, 3, 5, 7, 6, 8, 9, 10, 11]`
-- `FILL_SECTION_ORDER = [8, 9, 10, 11]`
-
-### 4.4 Scene-Aware Section Promotion
-
-`scene_type_to_promoted_sections()` at [kernel_loader.py:92](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:92) maps `SceneType` to promoted sections:
-
-| SceneType | Promoted Sections |
-|-----------|-------------------|
-| `DOMESTIC` | 7, 9 |
-| `INTIMATE` | 8, 3 |
-| `CONFLICT` | 5, 7 |
-| `REPAIR` | 8, 9 |
-| `PUBLIC` | 10, 5 |
-| `GROUP` | 6, 9 |
-| `SOLO_PAIR` | 3, 8 |
-| `TRANSITION` | none |
-
-Sections already in the primary set stay primary; promotion only changes behavior for fill-tier sections 8-11.
-
-### 4.5 Compilation
-
-`compile_kernel()` at [kernel_loader.py:160](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:160) runs three stages:
-
-1. Baseline allocation to primary sections.
-2. Expansion into higher-priority sections while budget remains.
-3. Final assembly with strict trimming for original primary sections and permissive trimming for promoted fill-tier sections.
-
-`load_kernel()` at [kernel_loader.py:308](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:308) caches by `(character_id, budget, profile_name, promote_sections)`.
-
----
-
-## 5. Soul Essence and Soul Cards
-
-### 5.1 Soul Essence
-
-Soul essence is hand-authored Python, not live-loaded markdown. See [soul_essence.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/soul_essence.py:1).
-
-The `SoulEssence` dataclass supports four block families:
-
-- `identity`
-- `pair`
-- `behavioral`
-- `intimacy`
-
-`compile_kernel_with_soul()` at [kernel_loader.py:274](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:274) prepends this content to the compiled kernel body.
-
-Important current-state note:
-
-- The formatter supports all four headings.
-- The checked-in essences currently populate `identity` and `pair`.
-- `behavioral` and `intimacy` are defined in the type but are presently empty in the concrete registry, so `format_soul_essence()` currently emits only the non-empty sections for each character.
-
-See [format_soul_essence()](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/soul_essence.py:865).
-
-### 5.2 Soul Cards
-
-Soul cards are YAML-fronted markdown files under [src/starry_lyfe/canon/soul_cards/](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/soul_cards).
-
-Current directories:
-
-- `pair/` contains one always-on card per character
-- `knowledge/` contains scene-conditional cards
-
-Loader and activation code lives in [soul_cards.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/soul_cards.py:65).
-
-Supported activation rules:
-
-| Rule | Fires When |
-|------|------------|
-| `always: true` | Always active |
-| `communication_mode: [...]` | Current communication mode matches |
-| `with_character: [...]` | A listed character is present |
-| `scene_keyword: [...]` | A listed keyword appears in `scene_state.scene_description` |
-
-Activation is OR-based across rule types: the first matching rule activates the card.
-
-### 5.3 Runtime Wiring
-
-In [assemble_context()](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/assembler.py:51):
-
-- Pair cards are formatted and appended to Layer 1.
-- Knowledge cards are formatted and appended to Layer 6.
-- Token reservations happen before host-layer formatting so these merges do not silently blow past layer ceilings.
-
----
-
-## 6. Layer 5: Pair Metadata, Baseline, and Voice Exemplars
-
-### 6.1 Pair Metadata
-
-Structured pair metadata lives in [pairs.yaml](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/pairs.yaml:1). The runtime loader is [pairs_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/pairs_loader.py:1).
-
-`format_pair_metadata()` at [pairs_loader.py:87](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/pairs_loader.py:87) currently surfaces six fields:
-
-- `PAIR`
-- `CLASSIFICATION`
-- `MECHANISM`
-- `CORE METAPHOR`
-- `WHAT SHE PROVIDES`
-- `HOW SHE BREAKS HIS SPIRAL`
-
-`shared_functions` and `cadence` stay in YAML but are intentionally omitted from Layer 5.
-
-### 6.2 Character Baseline
-
-If Phase 2 retrieval returns a `CharacterBaseline`, `format_voice_directives()` also adds a compact metadata paragraph using:
-
-- `full_name`
-- `epithet`
-- `mbti`
-- `dominant_function`
-- `pair_name`
-- `heritage`
-- `profession`
-- `voice_params`
-
-Model definition: [character_baseline.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/db/models/character_baseline.py:16)
-
-### 6.3 Voice.md Structure
-
-Voice files are loaded via `VOICE_PATHS` in [kernel_loader.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:33).
-
-Each example block is expected to look like this:
-
-```markdown
-## Example 1: Mid-Thought Tangent That Resolves
-
-<!-- mode: domestic, solo_pair -->
-<!-- communication_mode: in_person -->
-
-**What it teaches the model:** Teaching prose...
-
-**User:** Prompt text...
-
-**Assistant:** Full response...
-
-**Abbreviated:** First abbreviated line...
-Continuation lines are allowed here.
-```
-
-Two important parser details:
-
-- `**Abbreviated:**` is not restricted to a single line. `_extract_voice_examples()` continues collecting subsequent non-header lines into the same abbreviated block.
-- File-order position is preserved as `index`, so tie-breaks are based on actual file order, not the example number text alone.
-
-Parser entry points:
-
-- [load_voice_guidance()](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:399)
-- [_extract_voice_examples()](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:463)
-- [load_voice_examples()](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/kernel_loader.py:568)
-
-### 6.4 Mode-Aware Exemplar Selection
-
-`derive_active_voice_modes()` in [layers.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/layers.py:90) derives the active mode set from `SceneState`.
-
-`_select_voice_exemplars()` at [layers.py:130](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/layers.py:130) then:
-
-1. Filters by `communication_mode`.
-2. Keeps examples whose modes overlap the active modes.
-3. Ranks by:
-   - count of non-`DOMESTIC` overlaps
-   - total overlap count
-   - file order
-4. Returns the top two.
-5. Falls back to file-order selection if no mode match survives.
-
-`format_voice_directives()` at [layers.py:337](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/layers.py:337) emits:
-
-- `Voice rhythm exemplars:` when the mode-aware path fires
-- `Voice calibration guidance:` when it falls back to the older teaching-note path
-
-### 6.5 VoiceMode Glossary: What The Tags Actually Do
-
-The mode tags are Layer 5 selector metadata, not standalone prompt blocks. They work like this:
-
-- `SceneState` activates one or more `VoiceMode` values through `scene_type`, modifiers, or an explicit `voice_modes` override.
-- `_select_voice_exemplars()` then prefers examples whose tags overlap the active set.
-- Non-`DOMESTIC` overlaps outrank generic domestic ties, so a specific tag like `warm_refusal` or `group_temperature` beats a generic domestic example when both are available.
-
-| VoiceMode | What It Means In Practice | Typical Activation Path |
-|-----------|---------------------------|-------------------------|
-| `domestic` | Ordinary household/private baseline. No special pressure, no formal public witness, no explicit conflict requirement. This is the everyday home register. | Default `SceneType.DOMESTIC`; also rides along with `SceneType.SOLO_PAIR` and many two-person fallback scenes |
-| `conflict` | Disagreement, veto, friction, challenge, or pushback. The character is resisting, correcting, or forcing a sharper frame. | `SceneType.CONFLICT` or explicit `voice_modes` override |
-| `intimate` | Adult romantic, sensual, or high-closeness register. Not automatically explicit sexual content; it is the physical/romantic proximity band. | `SceneType.INTIMATE` or explicit override |
-| `public` | Outside-household or witnessed register where discretion matters. The voice stays compatible with public-scene constraints and reduced intimacy surface. | `SceneType.PUBLIC` or legacy `public_scene=True` fallback |
-| `group` | Multi-woman room dynamics. The focal woman is contributing inside a group field rather than operating in a one-on-one register. | `SceneType.GROUP` or domestic fallback when more than two characters are present |
-| `repair` | Reconciliation, decompression, aftercare, or post-intensity re-regulation. The scene is about settling, mending, or holding the aftermath. | `SceneType.REPAIR` or `post_intensity_crash_active=True` |
-| `silent` | Minimal-verbal register. Meaning is carried by stillness, touch, placement, or one short line rather than extended speech. | `SceneType.REPAIR`, `silent_register_active=True`, or explicit override |
-| `solo_pair` | Focused one-on-one pair register. The scene is centered on the focal woman and Whyze rather than the group. | `SceneType.SOLO_PAIR`, `SceneType.INTIMATE`, or domestic fallback when exactly two characters are present |
-| `escalation` | Deliberate increase in intimate pressure or forward movement. The character is actively advancing the charge of the scene rather than just inhabiting intimacy. | `pair_escalation_active=True` or explicit override |
-| `warm_refusal` | Firm boundary held without coldness. The character says no, but the no preserves care, attachment, or professionalism instead of becoming a rupture. | `warm_refusal_required=True` or explicit override |
-| `group_temperature` | Group-scene temperature change rather than conversational hub behavior. The character changes the feel of the room without taking over the room. | `group_temperature_shift=True` or explicit override |
-
-Two current-state nuances:
-
-- These modes are not guaranteed to exist in every character's corpus. Coverage depends on what that character's `Voice.md` actually tags.
-- As of 2026-04-13, the checked-in Voice.md corpus contains no explicit `public`-tagged exemplars, even though `PUBLIC` is a valid runtime `VoiceMode`. When `PUBLIC` activates without a dedicated public exemplar, the selector now applies a public-safety ranking so Layer 5 prefers non-private examples over intimate, escalation, or solo-pair fallbacks unless a more specific active mode such as `warm_refusal` is explicitly in play.
-
----
-
-## 7. `SceneState`: The Runtime Control Surface
-
-`SceneState` is defined in [types.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/types.py:92).
-
-### 7.1 Fields
-
-| Field | Primary Effects |
-|-------|-----------------|
-| `present_characters` | Layer 6 dyad visibility, domestic-context Layer 5 mode accumulation, Layer 7 talk-to-each-other mandate |
-| `public_scene` | Public-scene gate in Layer 7, domestic-context `PUBLIC` activation in Layer 5 |
-| `alicia_home` | Alicia in-person assembly preflight |
-| `scene_description` | Layer 4 and Layer 6 prose, soul-card `scene_keyword` activation |
-| `communication_mode` | Layer 5 filtering, Alicia mode-specific constraint pillar, soul-card `communication_mode` activation |
-| `recalled_dyads` | Layer 6 absent-dyad inclusion |
-| `voice_modes` | Explicit VoiceMode override |
-| `scene_type` | Layer 1 section promotion and Layer 5 mode derivation |
-| `modifiers` | Layer 5 additive modes, Layer 6 absent-dyad override, Layer 7 conditional gates |
-
-### 7.2 SceneType -> VoiceMode
-
-`_SCENE_TYPE_VOICE_MODES` lives at [layers.py:52](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/layers.py:52):
-
-| SceneType | Active VoiceModes |
-|-----------|-------------------|
-| `DOMESTIC` | `DOMESTIC` |
-| `INTIMATE` | `INTIMATE`, `SOLO_PAIR` |
-| `CONFLICT` | `CONFLICT` |
-| `REPAIR` | `REPAIR`, `SILENT` |
-| `PUBLIC` | `PUBLIC` |
-| `GROUP` | `GROUP` |
-| `SOLO_PAIR` | `SOLO_PAIR`, `DOMESTIC` |
-| `TRANSITION` | `DOMESTIC` |
-
-### 7.3 Modifier -> VoiceMode Accumulation
-
-These stack on top of the `scene_type` result:
-
-| Modifier | Adds |
-|----------|------|
-| `pair_escalation_active` | `ESCALATION` |
-| `warm_refusal_required` | `WARM_REFUSAL` |
-| `silent_register_active` | `SILENT` |
-| `group_temperature_shift` | `GROUP_TEMPERATURE` |
-| `post_intensity_crash_active` | `REPAIR` |
-
-### 7.4 Modifier -> Layer 7 Effects
-
-Layer 7 injections come from [constraints.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/constraints.py:102):
-
-| Modifier / Field | Effect |
-|------------------|--------|
-| `public_scene` or `work_colleagues_present` | Public-scene gate |
-| `post_intensity_crash_active` | Character-specific crash protocol |
-| `pair_escalation_active` | Admissibility protocol |
-| `communication_mode` for Alicia | Phone / letter / video-specific pillar |
-
-### 7.5 Legacy Domestic Fallback
-
-When:
-
-- `voice_modes` is `None`
-- `scene_type == DOMESTIC`
-- no modifiers are active
-
-`derive_active_voice_modes()` falls back to domestic-context cues:
-
-- add `PUBLIC` if `public_scene=True`
-- add `SOLO_PAIR` when exactly 2 characters are present
-- add `GROUP` when more than 2 are present
-
-That preserves older callers that still rely on `present_characters` and `public_scene` rather than explicit `scene_type`.
-
-### 7.6 Phase 5: Scene Director Produces `SceneState` Automatically
-
-Until Phase 5 every caller manually constructed a `SceneState` from raw inputs. The **Scene Director** at `src/starry_lyfe/scene/` is the production front door that turns caller inputs into a `SceneState` ready for `assemble_context()`.
-
-```python
-from starry_lyfe.scene import classify_scene, SceneDirectorInput
-
-scene_state = classify_scene(
-    SceneDirectorInput(
-        user_message="adelia and bina are in the kitchen making dinner",
-        present_characters=["adelia", "bina", "whyze"],  # Whyze-included convention
-        alicia_home=True,
-    )
-)
-# scene_state.present_characters is ["adelia", "bina", "whyze"] and is ready
-# for assemble_context(). If the caller omits "whyze", the classifier
-# auto-appends it so downstream Layer 5 mode accumulation counts correctly.
-```
-
-The classifier is rule-based — keyword tables for `CommunicationMode`, `SceneType`, and each of the seven `SceneModifiers` flags. Hints (`SceneDirectorHints`) always win over inference for callers that already know the answer (HTTP UI, tests).
-
-**Absent-dyad normalization:** when the message invokes an absent woman (e.g., "thinking about reina"), the modifier field `explicitly_invoked_absent_dyad` records the bare name, and `SceneState.recalled_dyads` is populated with the dyad-key shape `"<present_woman>-<absent_name>"` that Layer 6's `format_scene_blocks()` reads at `src/starry_lyfe/context/layers.py:535-541`.
-
-For Crew Conversations, `select_next_speaker(speaker_input)` scores present women per the Talk-to-Each-Other Mandate (Vision §6, §7), Rule of One, dyad-state fitness (memory tier 4), and narrative salience. The narrative-salience rule reads `scene_state.scene_description` and the optional `speaker_input.activity_context` (Phase 6 Dreams-sourced) — a candidate named in either receives a small score boost. Dyad state is injected via a `DyadStateProvider` Protocol — the production wiring uses `build_dyad_state_provider(rows)` to wrap a list returned by `_retrieve_internal_dyads()`.
-
-See [`Docs/_phases/PHASE_5.md`](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/PHASE_5.md) for the full design (rules, weights, deferred items, known limitations).
-
-| Symbol | File:line |
-|--------|-----------|
-| `classify_scene()` | `src/starry_lyfe/scene/classifier.py:120` |
-| `select_next_speaker()` | `src/starry_lyfe/scene/next_speaker.py:115` |
-| `AliciaAwayContradictionError` | `src/starry_lyfe/scene/errors.py:6` |
-| `DyadStateProvider` Protocol | `src/starry_lyfe/scene/next_speaker.py:56` |
-| `build_dyad_state_provider()` | `src/starry_lyfe/scene/next_speaker.py:271` |
-
----
-
-## 8. Budgeting
-
-### 8.1 Default Layer Budgets
-
-`DEFAULT_BUDGETS` lives at [budgets.py:56](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/budgets.py:56):
-
-| Layer | Budget |
-|-------|--------|
-| 1 kernel | 6000 |
-| 2 canon facts | 600 |
-| 3 episodic | 1200 |
-| 4 somatic | 500 |
-| 5 voice | 900 |
-| 6 scene | 2400 |
-| 7 constraints | 900 |
-
-### 8.2 Scene Profiles
-
-`SCENE_PROFILES` lives at [budgets.py:90](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/budgets.py:90):
-
-| Profile | Kernel | Scene | Voice |
-|---------|--------|-------|-------|
-| `default` | 6000 | 2400 | 900 |
-| `pair_intimate` | 8000 | 1800 | 700 |
-| `multi_woman_group` | 5500 | 3200 | 1000 |
-| `solo` | 7000 | 1800 | 900 |
-
-### 8.3 Per-Character Kernel Scaling
-
-`resolve_kernel_budget()` at [budgets.py:66](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/budgets.py:66) applies:
-
-| Character | Multiplier | From base 6000 |
-|-----------|------------|----------------|
-| Adelia | 1.05 | 6300 |
-| Bina | 1.20 | 7200 |
-| Reina | 1.15 | 6900 |
-| Alicia | 0.85 | 5100 |
-
-### 8.4 Soul-Essence Surcharge
-
-Soul essence is outside the trimmable kernel budget. The actual current surcharge can be inspected with `soul_essence_token_estimate()` at [soul_essence.py:874](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/canon/soul_essence.py:874).
-
-As of 2026-04-13, the checked-in estimates are:
-
-| Character | Soul Essence Tokens |
-|-----------|---------------------|
-| Adelia | 1886 |
-| Bina | 1876 |
-| Reina | 1701 |
-| Alicia | 2112 |
-
-### 8.5 Trimming
-
-`trim_text_to_budget()` lives at [budgets.py:406](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/budgets.py:406).
-
-Drop strategy:
-
-1. Remove horizontal rules.
-2. Remove trailing content blocks.
-3. Remove trailing `h3` sections.
-4. Remove trailing `h2` sections.
-5. Fall back to word-level trimming when not in strict mode.
-
-Strict mode is used for core kernel compilation. Promoted fill-tier sections use permissive trimming.
-
----
-
-## 9. End-to-End Flow (`assemble_context()`)
-
-Entry point: [assembler.py:51](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/src/starry_lyfe/context/assembler.py:51)
-
-Signature:
-
-```python
-assemble_context(
-    character_id,
-    scene_context,
-    scene_state,
-    session,
-    embedding_service,
-    canon=None,
-    scene_profile="default",
-)
-```
-
-Two inputs are easy to confuse:
-
-- `scene_context`: retrieval query text passed into `retrieve_memories()`
-- `scene_state.scene_description`: descriptive scene text used by Layer 4, Layer 6, and soul-card keyword activation
-
-Runtime sequence:
-
-1. Load canon if the caller did not pass it.
-2. If Alicia is being assembled for an in-person scene while `alicia_home=False`, raise `AliciaAwayError`.
-3. Call `retrieve_memories()` for canon facts, baseline, dyads, episodic memories, open loops, and somatic state.
-4. Resolve the scene budget profile and per-character kernel scaling.
-5. Activate soul cards and split them into pair cards and knowledge cards.
-6. Reserve token space for those card bodies.
-7. Build Layer 1 through Layer 6.
-8. Merge pair cards into Layer 1 and knowledge cards into Layer 6.
-9. Build Layer 7 from `build_constraint_block(character_id, scene_state)`.
-10. XML-wrap all seven layers and join them with `\n\n`.
-11. Return `AssembledPrompt(prompt, character_id, layers, total_tokens, constraint_block_position)`.
-
----
-
-## 10. Reference Map
-
-| Concern | File | Symbol | Line |
-|---------|------|--------|------|
-| Kernel paths | `src/starry_lyfe/context/kernel_loader.py` | `KERNEL_PATHS` | 18 |
-| Voice paths | `src/starry_lyfe/context/kernel_loader.py` | `VOICE_PATHS` | 37 |
-| Section budgets | `src/starry_lyfe/context/kernel_loader.py` | `SECTION_TOKEN_TARGETS` | 62 |
-| Section orders | `src/starry_lyfe/context/kernel_loader.py` | `PRIMARY_SECTION_ORDER` / `EXPANSION_SECTION_ORDER` / `FILL_SECTION_ORDER` | 72-74 |
-| Scene promotion map | `src/starry_lyfe/context/kernel_loader.py` | `scene_type_to_promoted_sections()` | 92 |
-| Kernel compilation | `src/starry_lyfe/context/kernel_loader.py` | `compile_kernel()` | 160 |
-| Soul-wrapped kernel | `src/starry_lyfe/context/kernel_loader.py` | `compile_kernel_with_soul()` | 274 |
-| Kernel cache entry | `src/starry_lyfe/context/kernel_loader.py` | `load_kernel()` | 308 |
-| Legacy voice-guidance parse | `src/starry_lyfe/context/kernel_loader.py` | `load_voice_guidance()` | 409 |
-| Structured voice-example parse | `src/starry_lyfe/context/kernel_loader.py` | `_extract_voice_examples()` | 487 |
-| Voice-example cache | `src/starry_lyfe/context/kernel_loader.py` | `load_voice_examples()` | 592 |
-| Soul essence formatter | `src/starry_lyfe/canon/soul_essence.py` | `format_soul_essence()` | 865 |
-| Soul essence estimate | `src/starry_lyfe/canon/soul_essence.py` | `soul_essence_token_estimate()` | 905 |
-| Pair metadata load | `src/starry_lyfe/canon/pairs_loader.py` | `get_pair_metadata()` | 91 |
-| Pair metadata format | `src/starry_lyfe/canon/pairs_loader.py` | `format_pair_metadata()` | 102 |
-| Soul-card load | `src/starry_lyfe/context/soul_cards.py` | `load_soul_card()` | 65 |
-| Soul-card activation | `src/starry_lyfe/context/soul_cards.py` | `find_activated_cards()` | 100 |
-| Soul-card format | `src/starry_lyfe/context/soul_cards.py` | `format_soul_cards()` | 142 |
-| Voice-mode derivation | `src/starry_lyfe/context/layers.py` | `derive_active_voice_modes()` | 101 |
-| Exemplar ranking | `src/starry_lyfe/context/layers.py` | `_select_voice_exemplars()` | 141 |
-| Layer 1 formatter | `src/starry_lyfe/context/layers.py` | `format_kernel()` | 284 |
-| Layer 5 formatter | `src/starry_lyfe/context/layers.py` | `format_voice_directives()` | 397 |
-| Layer 6 formatter | `src/starry_lyfe/context/layers.py` | `format_scene_blocks()` | 508 |
-| Layer 7 builder | `src/starry_lyfe/context/constraints.py` | `build_constraint_block()` | 104 |
-| Layer markers | `src/starry_lyfe/context/assembler.py` | `LAYER_MARKERS` | 35 |
-| Assembler entry | `src/starry_lyfe/context/assembler.py` | `assemble_context()` | 56 |
-| Communication mode enum | `src/starry_lyfe/context/types.py` | `CommunicationMode` | 9 |
-| Scene type enum | `src/starry_lyfe/context/types.py` | `SceneType` | 18 |
-| Scene modifiers | `src/starry_lyfe/context/types.py` | `SceneModifiers` | 37 |
-| Voice modes | `src/starry_lyfe/context/types.py` | `VoiceMode` | 55 |
-| Scene state | `src/starry_lyfe/context/types.py` | `SceneState` | 93 |
-| Terminal-anchor check | `src/starry_lyfe/context/types.py` | `AssembledPrompt.is_terminally_anchored` | 132 |
-| Default budgets | `src/starry_lyfe/context/budgets.py` | `DEFAULT_BUDGETS` | 61 |
-| Per-character scaling | `src/starry_lyfe/context/budgets.py` | `resolve_kernel_budget()` | 74 |
-| Scene profiles | `src/starry_lyfe/context/budgets.py` | `SCENE_PROFILES` | 98 |
-| Budget trimmer | `src/starry_lyfe/context/budgets.py` | `trim_text_to_budget()` | 414 |
-| Soul essence raise | `src/starry_lyfe/canon/soul_essence.py` | `SoulEssenceNotFoundError` | 27 |
-| Canon validation raise | `src/starry_lyfe/canon/loader.py` | `CanonValidationError` | 81 |
-| Canonical character ID | `src/starry_lyfe/canon/schemas/enums.py` | `CharacterID` | 21 |
-| Character lookup raise | `src/starry_lyfe/canon/schemas/enums.py` | `CharacterNotFoundError` | 7 |
-| Coverage assertion helper | `src/starry_lyfe/canon/schemas/enums.py` | `_assert_complete_character_keys()` | 41 |
-| Fidelity rubric type | `src/starry_lyfe/validation/fidelity.py` | `FidelityRubric` | 41 |
-| Fidelity scoring entry | `src/starry_lyfe/validation/fidelity.py` | `score_rubric()` | 152 |
-
----
-
-## 11. Observability and Sample Artifacts
-
-### 11.1 DEBUG Logging
-
-`_select_voice_exemplars()` emits DEBUG logs from `starry_lyfe.context.layers` with keys such as:
-
-- `character_id`
-- `active_modes`
-- `candidates_count`
-- `mode_matched_count`
-- `selected_titles`
-
-The steady-state event is `voice_exemplar_selection`; fallback branches emit explicit fallback variants.
-
-### 11.2 Canonical Sample Prompts
-
-Current checked-in sample prompts live in [Docs/_phases/_samples](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/Docs/_phases/_samples).
-
-Useful sets:
-
-- `PHASE_B_assembled_*` for budget-elevated Layer 1 behavior
-- `PHASE_C_assembled_*` for soul-card activation
-- `PHASE_D_assembled_*` for pair metadata in Layer 5
-- `PHASE_E_assembled_*` for mode-aware voice exemplars
-- `PHASE_F_assembled_*` for section promotion and full VoiceMode reachability
-
-### 11.3 Regeneration Scripts
-
-Checked-in sample regeneration scripts:
-
-- [scripts/generate_phase_e_samples.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/scripts/generate_phase_e_samples.py:1)
-- [scripts/generate_phase_f_samples.py](/C:/Users/Whyze/OneDrive/Cosmology/0_ARCHE/0.4_FOUNDRY/Starry-Lyfe/scripts/generate_phase_f_samples.py:1)
-
-These are not production codepaths. They are probe harnesses that call the real assembler with local canonical sample data standing in for PostgreSQL retrieval.
-
----
-
-## 12. What This Guide Does Not Cover
-
-| Topic | See |
-|-------|-----|
-| Phase history and audit trail | `Docs/_phases/PHASE_*.md` |
-| Tier-framework doctrine | `Docs/Persona_Tier_Framework_v7.1.md` |
-| Backend vs Msty voice authority split | `Docs/ADR_001_Voice_Authority_Split.md` |
-| Msty few-shot seeding | `scripts/seed_msty_persona_studio.py` |
-| Retrieval implementation details | `src/starry_lyfe/db/retrieval.py` |
-| Canonical phase and subsystem status | `Docs/IMPLEMENTATION_PLAN_v7.1.md` |
-| Module and schema index | `Docs/ARCHITECTURE.md` |
-
----
-
-## 13. Dreams Engine (Phase 6)
-
-The Dreams Engine is the nightly batch life-simulation process that gives the characters lives between sessions. It is the only execution surface without a user in the loop: all other backend subsystems are reactive to a Whyze message; Dreams runs autonomously overnight.
-
-Master plan reference: `Docs/IMPLEMENTATION_PLAN_v7.1.md` §9. Full phase record: `Docs/_phases/PHASE_6.md`.
-
-### 13.1 Public API
-
-```python
-from starry_lyfe.dreams import run_dreams_pass, DreamsSettings, BDOne, StubBDOne
-from starry_lyfe.canon.loader import load_all_canon
-
-canon = load_all_canon()  # includes new canon.routines field
-llm_client = BDOne(BDOneSettings.from_env())  # or StubBDOne() for tests
-
-result = await run_dreams_pass(
-    session_factory=my_session_factory,
-    llm_client=llm_client,
-    canon=canon,
-)
-```
-
-`run_dreams_pass()` at `src/starry_lyfe/dreams/runner.py:65` iterates all 4 canonical characters via `CharacterID.all_strings()` with `_assert_complete_character_keys()` coverage invariant on the result. Per character: fetch session snapshot → run 5 generators → aggregate warnings and token counts.
-
-### 13.2 CLI
-
-```
-# Start the apscheduler daemon (nightly at 03:30 local by default):
-python -m starry_lyfe.dreams
-
-# Run one pass and exit (smoke test or manual catch-up):
-python -m starry_lyfe.dreams --once
-
-# Dry-run with StubBDOne (no LLM calls, no DB writes):
-python -m starry_lyfe.dreams --once --dry-run
-```
-
-Entry point: `src/starry_lyfe/dreams/daemon.py:main()`.
-
-### 13.3 Environment variables
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `STARRY_LYFE__DREAMS__SCHEDULE` | `"30 3 * * *"` | Cron expression for the nightly run |
-| `STARRY_LYFE__DREAMS__ENABLED` | `true` | Ops kill-switch for the scheduler loop |
-| `STARRY_LYFE__DREAMS__DRY_RUN` | `false` | Skip DB writes |
-| `STARRY_LYFE__DREAMS__MAX_TOKENS_PER_CHAR` | `8000` | Aggregate per-character LLM token budget |
-| `STARRY_LYFE__DREAMS__MISFIRE_GRACE_S` | `3600` | apscheduler catch-up window after missed fire |
-| `STARRY_LYFE__DREAMS__LLM_MODEL` | `anthropic/claude-sonnet-4-6` | Model passed to BDOne |
-| `STARRY_LYFE__BD1__BASE_URL` | `https://openrouter.ai/api/v1` | LLM endpoint |
-| `STARRY_LYFE__BD1__API_KEY` | `""` | OpenRouter / Anthropic API key |
-| `STARRY_LYFE__BD1__TIMEOUT` | `60` | Per-call timeout (seconds) |
-| `STARRY_LYFE__BD1__MAX_RETRIES` | `3` | Retries before circuit-break |
-| `STARRY_LYFE__BD1__CIRCUIT_THRESHOLD` | `5` | Consecutive failures before circuit opens |
-
-### 13.4 Retroactive soul-preservation wiring
-
-Dreams output passes through three retroactive invariants:
-
-- **Phase G (prose rendering):** every narrative text from a generator routes through a per-character prose renderer before being returned. Diary entries use `render_diary_prose(character_id, raw_content)` at `src/starry_lyfe/context/prose.py` — wraps raw LLM text in a three-paragraph opener/body/closer frame matched to the character's voice register.
-- **Phase A'' (Alicia-away tagging):** when Alicia's `life_state.is_away=True`, Dreams generators tag emitted artifacts with `communication_mode ∈ {phone, letter, video_call}` sampled from the canonical `alicia_communication_distribution` (0.45 / 0.20 / 0.35) in `routines.yaml`. The `episodic_memories` and `activities` tables carry a nullable `communication_mode` column (Alembic migration 003).
-- **Phase H (regression bundle):** `tests/unit/dreams/test_dreams_regression_per_character.py` runs parametrized regressions across all 4 characters — opener presence, cross-character contamination negatives, 3-paragraph structure, Alicia-away comm-mode invariants.
-
-### 13.5 Consolidation invariants
-
-- **Somatic decay:** `refresh_somatic_decay(session, character_id, now)` at `src/starry_lyfe/dreams/consolidation.py` applies exponential decay via the existing `apply_decay()` helper; updates `last_decayed_at`.
-- **Dyad delta cap:** `apply_overnight_dyad_deltas()` caps per-dimension deltas at **±0.10 per Dreams pass** (vs. ±0.03 per-turn runtime per `evaluate_and_update`). Over-cap requests are clamped with a warning logged.
-- **Loop expiry:** `expire_stale_loops(session, now)` transitions `open_loops.status` from `"open"` to `"expired"` when `expires_at < now`.
-- **Loop resolution:** `resolve_addressed_loops(session, character_id, loop_ids, now)` marks addressed loops as `resolved_by="dreams"`.
-
-### 13.6 File:line reference for key symbols
-
-| Symbol | File:line |
-|--------|-----------|
-| `run_dreams_pass()` | `src/starry_lyfe/dreams/runner.py:65` |
-| `DreamsSettings` / `.from_env()` | `src/starry_lyfe/dreams/config.py:22` |
-| `BDOne` / `StubBDOne` | `src/starry_lyfe/dreams/llm.py:96` / `:208` |
-| `generate_diary()` | `src/starry_lyfe/dreams/generators/diary.py:89` |
-| `generate_schedule()` | `src/starry_lyfe/dreams/generators/schedule.py:16` |
-| `pick_alicia_communication_mode()` | `src/starry_lyfe/dreams/alicia_mode.py:20` |
-| `render_diary_prose()` | `src/starry_lyfe/context/prose.py:502` |
-| `refresh_somatic_decay()` / `apply_overnight_dyad_deltas()` | `src/starry_lyfe/dreams/consolidation.py:57` / `:156` |
-| Alembic migrations | `alembic/versions/002_phase_6_dreams_tables.py`, `003_phase_6_episodic_comm_mode.py` |
-
----
-
-## 14. HTTP Service (Phase 7)
-
-The HTTP service exposes the Starry-Lyfe backend on **port 8001** as an OpenAI-compatible chat API. Consumed by Msty AI (direct). SHIPPED 2026-04-15.
-
-### 14.1 Boot
-
-```
-python -m starry_lyfe.api
-```
-
-`starry_lyfe.api.__main__` invokes `main.py::main()`, which loads `ApiSettings` from environment, builds the FastAPI app via `create_app()`, and starts uvicorn on the configured host/port. Lifespan startup builds the canon, DB engine + session factory, embedding service, and BD-1 client; shutdown disposes the engine.
-
-### 14.2 Environment variables
-
-| Variable | Default | Required? |
-|----------|---------|-----------|
-| `STARRY_LYFE__API__HOST` | `0.0.0.0` | no |
-| `STARRY_LYFE__API__PORT` | `8001` | no |
-| `STARRY_LYFE__API__API_KEY` | `""` | yes (or chat 401s) |
-| `STARRY_LYFE__API__CORS_ORIGINS` | `""` (no CORS) | no — comma-separated list |
-| `STARRY_LYFE__API__DEFAULT_CHARACTER` | `adelia` | no — must be a canonical character |
-| `STARRY_LYFE__API__HEALTH_BD1_PROBE` | `true` | no — F3 closure 2026-04-15. When true, `/health/ready` issues a live HEAD probe against the BD-1 provider URL (1.5s timeout). Set `false` to skip the network call. |
-| `STARRY_LYFE__API__CREW_MAX_SPEAKERS` | `3` | no — F1 closure 2026-04-15. Crew-mode multi-speaker cap (project axiom: "Max 3 choices per decision point"). |
-| `STARRY_LYFE__API__RELATIONSHIP_EVAL_LLM` | `true` | no — Phase 8 2026-04-15. When true, the post-turn relationship evaluator uses BD-1 as its primary delta-proposal source; heuristic `_propose_deltas` runs only as fallback. Set `false` to force the heuristic path (offline dev / test environments). |
-| `STARRY_LYFE__API__RELATIONSHIP_EVAL_MAX_TOKENS` | `200` | no — Phase 8. `max_tokens` passed to `BDOne.complete()` for the relationship evaluation call. 200 is enough for the required 4-field JSON response + minimal slack. |
-| `STARRY_LYFE__API__RELATIONSHIP_EVAL_TEMPERATURE` | `0.2` | no — Phase 8. Low temperature keeps evaluator output stable across runs. The ±0.03 cap absorbs residual noise regardless. |
-| `STARRY_LYFE__API__INTERNAL_RELATIONSHIP_EVAL_LLM` | `true` | no — Phase 9 2026-04-15. When true, the post-turn inter-woman dyad evaluator (`evaluate_and_update_internal`) uses BD-1 as its primary delta-proposal source for each active `DyadStateInternal` row the focal character is a member of; heuristic `_propose_internal_deltas` runs only as fallback. Set `false` to force the heuristic path (offline dev / test environments). The ±0.03 cap and Alicia-orbital active-gate apply identically either way. Reuses the Phase 8 `relationship_eval_max_tokens` + `relationship_eval_temperature` settings — Phase 9 does not introduce its own size/temperature knobs. |
-
-### 14.3 Endpoints
-
-| Method | Path | Purpose | Auth |
-|--------|------|---------|------|
-| GET    | `/health/live` | Liveness probe (always 200) | None |
-| GET    | `/health/ready` | DB + BD-1 reachability (200/503 with structured `checks` body) | None |
-| GET    | `/v1/models` | 5 OpenAI-compatible entries | None |
-| POST   | `/v1/chat/completions` | OpenAI-compatible SSE streaming chat | `X-API-Key` |
-| GET    | `/metrics` | Prometheus exposition | None |
-
-### 14.4 Character routing priority
-
-`api/routing/character.py::resolve_character_id` resolves the focal character in this order:
-
-1. `model` field matching a canonical id — **the Msty production path**. Msty Studio sends the active Persona's model name (`adelia`, `bina`, `reina`, `alicia`) in the `model` field of every request. Characters are always loaded through Personas in Msty, never through headers. Multi-character (Crew) conversations are handled by Msty Crew Mode — see §14.9.
-2. Inline `/<char>` or `/all` override at user message start — dev/test convenience.
-3. `X-SC-Force-Character` header — dev/test override only. Not used in production Msty. Useful for `curl`, observability dashboards, and non-Msty clients.
-4. `STARRY_LYFE__API__DEFAULT_CHARACTER` (default `adelia`) — fallback when no character is identifiable from any of the above.
-
-Returns a frozen `CharacterRoutingDecision` with `source` audit field (`model_field` | `inline_override` | `header` | `default`). Unknown character IDs raise `CharacterNotFoundError` → 400 with `valid_character_ids` in the body.
-
-### 14.4.1 Cost envelope (Phase 8 — 2026-04-15; Phase 9 update — 2026-04-15)
-
-The Whyze-dyad relationship evaluator (Step 12 below) issues one additional `BDOne.complete()` call per chat turn. At the default `relationship_eval_max_tokens=200` + `relationship_eval_temperature=0.2`, the round-trip averages ~300 tokens (prompt + response). Because the evaluator runs as `asyncio.create_task` after the SSE close (fire-and-forget), it does NOT contribute to user-visible latency. It DOES contribute to BD-1 request volume: at N chat turns/day, expect ~N extra evaluator calls/day. Set `STARRY_LYFE__API__RELATIONSHIP_EVAL_LLM=false` to suppress the extra traffic and force the heuristic path; the ±0.03 cap semantics are identical either way.
-
-**Phase 9 inter-woman fan-out (added 2026-04-15).** A second evaluator (`evaluate_and_update_internal`) runs as a third fire-and-forget task per turn. It selects all `DyadStateInternal` rows where the focal character is `member_a` or `member_b` AND `is_currently_active = true`, then issues one `BDOne.complete()` call per active inter-woman dyad. Per-character ceiling (Alicia home): up to **3** extra calls per turn (e.g., an Adelia turn fans out to adelia×bina + adelia×reina + adelia×alicia). With Alicia on operational travel (orbital dyads dormant via Tier 8 `life_states`), the fan-out drops to **2** for resident-continuous focal characters and **0** for Alicia herself. Across a single Crew turn with 3 speakers: maximum 9 extra calls (3 speakers × 3 active dyads), down to 6 with Alicia away. Set `STARRY_LYFE__API__INTERNAL_RELATIONSHIP_EVAL_LLM=false` to suppress the inter-woman fan-out and force the heuristic path; the ±0.03 cap and Alicia-orbital gate apply identically either way. The Whyze-dyad evaluator and the inter-woman evaluator are independently togglable.
-
-### 14.5 12-step request flow (debugging)
-
-| # | Step | Where to look |
-|---|------|---------------|
-| 1 | POST received | `api/endpoints/chat.py::chat_completions` (request log + X-Request-ID header) |
-| 2 | Msty preprocess + scene classify | `api/routing/msty.py::preprocess_msty_request` + `scene/classify_scene` |
-| 2a | Resolve `alicia_home` from Tier 8 `life_states` | `db/retrieval.py::retrieve_alicia_home` (F2 closure 2026-04-15; defaults to True when row absent) |
-| 3 | Memory retrieval | `db/retrieval.py::retrieve_memories` called at pipeline boundary so the `MemoryBundle` is shared between assembler and Crew loop |
-| 4-5 | 7-layer prompt assembly | `context/assembler.py::assemble_context` (Layer 6 includes Tier 8 Dreams activities); optional `memory_bundle=` kwarg skips the internal fetch |
-| 6-7 | LLM stream | `dreams/llm.py::BDOne.stream_complete` (single-speaker path) |
-| 8 | Whyze-Byte validation | `validation/whyze_byte.py::validate_response` (Tier 1 FAIL emits terminal error chunk) |
-| 9 | Crew sequencing (F1 closure 2026-04-15; R2-F1 carry-forward closure 2026-04-15; direct R3-F1 hardening 2026-04-15) | `api/orchestration/pipeline.py::_run_crew_turn` — loops `select_next_speaker()` up to `crew_max_speakers` times when `_is_crew_mode(ctx)` fires. Multi-speaker SSE uses inline `**Name:** ` attribution between speakers. Each speaker after the first receives the earlier speakers' validated text as a `[Earlier this turn: …]` block prepended to their `user_prompt` via `_format_crew_prior_block`, so speaker B can respond to speaker A rather than generate in isolation (the "prevents NPC Competition collapse" contract from `IMPLEMENTATION_PLAN §7`). If a prior speaker trips a Whyze-Byte FAIL, that speaker's text is not carried forward. |
-| 10 | SSE response | `api/orchestration/pipeline.py::run_chat_pipeline` (`StreamingResponse`) |
-| 12 | Post-turn fire-and-forget (Phase 8 closure 2026-04-15; Phase 9 fan-out 2026-04-15) | `api/orchestration/post_turn.py::schedule_post_turn_tasks` schedules **three** detached coroutines: (a) episodic memory extraction via `memory_extraction.py::extract_episodic`, (b) Whyze-dyad relationship evaluation via `relationship.py::evaluate_and_update`, and (c) inter-woman dyad evaluation via `internal_relationship.py::evaluate_and_update_internal`. The Whyze-dyad evaluator is LLM-primary by default — builds a canonical 4-dimension prompt via `relationship_prompts.py::build_eval_prompt`, calls `BDOne.complete()`, parses the JSON response through `parse_eval_response`, and applies the proposal through the existing ±0.03 `_clamp_delta` gate. Falls back to heuristic `_propose_deltas` on any of five conditions: `relationship_eval_llm=false` toggle, missing llm_client, circuit-breaker open, `DreamsLLMError`, parser returning None. Structured log events: `llm_eval_parsed_proposal` on success (includes all four delta values), `llm_eval_fallback_to_heuristic` on fallback (includes the `reason` field). The inter-woman evaluator (Phase 9) does the same work for the focal character's active `DyadStateInternal` rows, fanning out one `BDOne.complete()` call per active dyad with the 5-dimension `InternalRelationshipEvalResponse` schema (adds `conflict` to Phase 8's 4 dimensions). Alicia-orbital gate enforced at the SQL boundary via `is_currently_active.is_(True)`. Toggle: `STARRY_LYFE__API__INTERNAL_RELATIONSHIP_EVAL_LLM=false`. Structured log events: `internal_llm_eval_parsed_proposal` and `internal_llm_eval_fallback_to_heuristic`. |
-
-Response headers for observability:
-- `X-Request-ID` (correlate with MSE-6 logs)
-- `X-Character-ID` (focal character)
-- `X-Routing-Source` (`header|inline_override|model_field|default`)
-- `X-Session-ID` (chat_sessions row id)
-
-### 14.6 Curl reference
+### 1.1 First-time setup
 
 ```bash
-# Health
-curl -s http://localhost:8001/health/live | jq
-curl -s http://localhost:8001/health/ready | jq
+# 1. Create venv + install (uses requirements-dev.txt + editable install)
+make install
 
-# Models registry
-curl -s http://localhost:8001/v1/models | jq
+# 2. Bring up the database container (PostgreSQL 16 + pgvector)
+make docker-up
 
-# SSE streaming chat
-curl -N -X POST http://localhost:8001/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: $STARRY_LYFE__API__API_KEY" \
-  -d '{"model":"adelia","messages":[{"role":"user","content":"morning"}],"stream":true}'
+# 3. Apply migrations (head = 005_phase_10_7_dreams_qa)
+make db-migrate
 
-# Force-character via header (dev/test only — not the Msty production path)
-curl -N -X POST http://localhost:8001/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: $STARRY_LYFE__API__API_KEY" \
-  -H "X-SC-Force-Character: bina" \
-  -d '{"model":"starry-lyfe","messages":[{"role":"user","content":"hi"}],"stream":true}'
-
-# Prometheus scrape
-curl -s http://localhost:8001/metrics | head -30
+# 4. Seed Tier 1-4 + Tier 7 from the rich YAMLs
+make db-seed
 ```
 
-### 14.7 Prometheus series
+The `.env` file must exist before steps 3–4. Copy `.env.example` to `.env` and fill in:
 
-| Series | Type | Labels |
-|--------|------|--------|
-| `http_requests_total` | counter | `method`, `path`, `status` |
-| `http_chat_completions_total` | counter | `character_id`, `routing_source`, `outcome` |
-| `http_sse_tokens_total` | counter | `character_id` — counts upstream **LLM stream deltas**, not tokens. Label semantics: focal character in single-speaker mode, actual speaker in Crew mode. Name retained for Prometheus series stability. |
-| `http_request_duration_seconds` | histogram | `method`, `path` |
-| `http_chat_ttfb_seconds` | histogram | `character_id` |
+- `STARRY_LYFE__API__API_KEY` — any non-empty value (Msty must send this in `X-API-Key`).
+- `STARRY_LYFE__EXT__SFW_PROVIDER_KEY` — your OpenRouter or Anthropic key.
 
-### 14.9 Msty Studio Integration Architecture
+LM Studio (for embeddings) should be running locally on port 1234 with the model `text-embedding-nomic-embed-text-v1.5@q5_k_m` loaded. The writer path falls back to a zero vector if LM Studio is unreachable, but similarity search will be inert for those rows.
 
-Msty is the only consumer of this backend. Two Msty features map to two distinct backend paths.
+### 1.2 Daily startup (already-installed system)
 
-#### Single-character: Persona Conversations
+```bash
+# Database
+make docker-up   # idempotent; skips if already running
 
-Each character has a dedicated Persona in Msty's Persona Studio:
+# HTTP service (foreground, watchable logs)
+.venv/Scripts/python -m uvicorn starry_lyfe.api.main:app --host 0.0.0.0 --port 8001
+# Or via the entry point:
+.venv/Scripts/python -m starry_lyfe.api.main
 
-| Msty Persona | System Prompt Mode | System Prompt Content | model field |
-|---|---|---|---|
-| Adelia Raye | Replace | Blank (backend is voice authority per ADR-001) | `adelia` |
-| Bina Malek | Replace | Blank | `bina` |
-| Reina Torres | Replace | Blank | `reina` |
-| Alicia Marin | Replace | Blank | `alicia` |
+# Dreams daemon (separate terminal — long-running)
+.venv/Scripts/python -m starry_lyfe.dreams
+```
 
-When a user opens a Persona Conversation, Msty sends `model: "<character-id>"` to `/v1/chat/completions`. The backend reads the `model` field, assembles the seven-layer prompt for that character, generates the response, and validates it through Whyze-Byte. The character's voice, memory, and constraints are entirely backend-sourced — the blank Msty system prompt is the production invariant, enforced by ADR-001.
+### 1.3 Smoke check after boot
 
-The `# SYSTEM_ROLE:` header line in each kernel file (e.g., `# SYSTEM_ROLE: Adelia RAYE (The Catalyst)`) is a Msty Persona Studio authoring artifact. At runtime `_sanitize_kernel_text()` in `kernel_loader.py` strips it along with `**Version:**` and `**Target:**` before the kernel reaches the model. It never appears in the assembled prompt.
+```bash
+# Liveness (always 200 if process is alive)
+curl http://localhost:8001/health/live
 
-#### Multi-character: Crew Conversations
+# Readiness (200 only if R5 + BD-1 reachable)
+curl http://localhost:8001/health/ready
 
-Crew Mode is Msty's multi-persona feature. A Crew is a named group of Personas. When a Crew Conversation is active:
+# Models registry (5 entries: starry-lyfe + 4 character IDs)
+curl http://localhost:8001/v1/models | jq
 
-1. Msty manages the turn-taking UI and sends the full message history to the backend with each request.
-2. Prior speaker turns arrive as `role="assistant"` messages with a `name` field set to the persona id (e.g., `name: "adelia"`). The Msty system prompt may carry a roster header naming the active crew members.
-3. `preprocess_msty_request()` in `api/routing/msty.py` narrows this wide payload: it extracts the scene roster (`scene_characters`), the prior persona responses (`prior_responses`), and the latest user message. The system prompt is stripped per ADR-001.
-4. The backend's `select_next_speaker()` (Phase 5 Scene Director) scores which woman should speak next based on the Talk-to-Each-Other Mandate, Rule of One, dyad-state fitness, and narrative salience.
-5. `_run_crew_turn()` in `pipeline.py` loops up to `CREW_MAX_SPEAKERS` times, streaming each speaker's turn inline with `**Name:** ` attribution. Each speaker after the first receives the validated text of earlier speakers as a `[Earlier this turn: …]` block, so speaker B can actually respond to speaker A.
+# Real chat (replace YOUR_KEY)
+curl -N http://localhost:8001/v1/chat/completions \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "adelia",
+    "stream": true,
+    "messages": [{"role":"user","content":"Hey, how was the porch this morning?"}]
+  }'
+```
 
-Characters are never "forced" into a Crew by headers. The Crew roster is assembled in Msty by the operator choosing which Personas belong to the Crew.
+### 1.4 Run the test suite
 
-#### `SYSTEM_ROLE` headers are Persona Studio artifacts, not runtime directives
+```bash
+make check          # ruff + mypy --strict + full pytest
+make test           # unit only
+make test-integration  # integration only (skips when Postgres unreachable)
+```
 
-The `# SYSTEM_ROLE:` lines at the top of each kernel file are Msty Persona Studio display labels — they appear in the Persona authoring UI and are stripped at runtime. They are not HTTP headers. They are not injected into the assembled prompt. Operators editing kernels do not need to preserve them; they exist only for Msty's UI display layer.
-
-#### File:line reference for Msty integration
-
-| Symbol | File:line |
-|--------|-----------|
-| `preprocess_msty_request()` | `src/starry_lyfe/api/routing/msty.py:88` |
-| `MstyPreprocessed` | `src/starry_lyfe/api/routing/msty.py:45` |
-| `resolve_character_id()` | `src/starry_lyfe/api/routing/character.py:60` |
-| `_sanitize_kernel_text()` | `src/starry_lyfe/context/kernel_loader.py:117` |
-| `_run_crew_turn()` | `src/starry_lyfe/api/orchestration/pipeline.py` |
-| `select_next_speaker()` | `src/starry_lyfe/scene/next_speaker.py:115` |
-| ADR-001 (voice authority) | `Docs/ADR_001_Voice_Authority_Split.md` |
+Current baseline: **1,257 passed / 38 environmental Postgres skips / 0 failed / 0 xfailed**.
 
 ---
 
+## 2. Request walkthrough — what Msty sends → what the model receives
 
+The 12-step pipeline lives at `src/starry_lyfe/api/orchestration/pipeline.py:run_chat_pipeline()` (line 468). Here is one concrete request traced end-to-end.
 
-| Symbol | File:line |
-|--------|-----------|
-| `create_app()` | `src/starry_lyfe/api/app.py:43` |
-| `main()` (uvicorn entry) | `src/starry_lyfe/api/main.py:14` |
-| `ApiSettings` | `src/starry_lyfe/api/config.py:9` |
-| `resolve_character_id()` | `src/starry_lyfe/api/routing/character.py:60` |
-| `CharacterRoutingDecision` | `src/starry_lyfe/api/routing/character.py:39` |
-| `preprocess_msty_request()` | `src/starry_lyfe/api/routing/msty.py:88` |
-| `chat_completions()` endpoint | `src/starry_lyfe/api/endpoints/chat.py:94` |
-| `run_chat_pipeline()` | `src/starry_lyfe/api/orchestration/pipeline.py:135` |
-| `upsert_session()` | `src/starry_lyfe/api/orchestration/session.py:21` |
-| `extract_episodic()` | `src/starry_lyfe/api/orchestration/memory_extraction.py:79` |
-| `evaluate_and_update()` | `src/starry_lyfe/api/orchestration/relationship.py:97` |
-| `schedule_post_turn_tasks()` | `src/starry_lyfe/api/orchestration/post_turn.py:43` |
-| `MetricsMiddleware` | `src/starry_lyfe/api/endpoints/metrics.py:74` |
-| `BDOne.stream_complete()` | `src/starry_lyfe/dreams/llm.py:189` |
-| Alembic migration | `alembic/versions/004_phase_7_chat_sessions.py` |
+### 2.1 The HTTP request
 
-**End of Operator Guide.**
+Msty Persona Conversation sends:
+
+```json
+POST /v1/chat/completions
+X-API-Key: <key>
+Content-Type: application/json
+{
+  "model": "adelia",
+  "stream": true,
+  "messages": [
+    {"role": "user", "content": "Hey, how was the porch this morning?"}
+  ]
+}
+```
+
+For Crew Conversations, Msty also includes:
+- An empty `system` message (Persona Studio System Prompt Mode = `Replace`, blank in production per **AD-001**).
+- Prior persona responses as `assistant` messages with a `name` field (e.g., `{"role": "assistant", "name": "bina", "content": "..."}`).
+- A user message that may end with `/all` to invoke crew expansion.
+
+### 2.2 What the pipeline does (steps 1–12)
+
+| # | What | Where to look in logs |
+|---|---|---|
+| 1 | Endpoint receives request, validates `X-API-Key` | structlog `request_received` |
+| 1b | `preprocess_msty_request()` strips system prompt, extracts prior responses, builds crew roster | structlog `msty_preprocessed` (logs `roster`, `prior_speakers`) |
+| 2a | `retrieve_alicia_home()` reads Tier 8 `life_states.is_away` | DB query `life_states` |
+| 2b | `classify_scene()` returns a `SceneState` (8 scene types × 6 modifiers) | structlog `scene_classified` (logs `scene_type`, `modifiers`, `voice_mode_candidates`) |
+| 3 | `retrieve_memories()` pulls canon facts + 24h episodic + dyad states + somatic + life state + Dreams activities into `MemoryBundle` | DB queries on `canon_facts`, `episodic_memories`, `dyad_state_*`, `transient_somatic_states`, `life_states`, `activities` |
+| 4 | `MemoryBundle.activities` becomes `NextSpeakerInput.activity_context` for Crew Rule 7 | inline |
+| 5 | `assemble_context()` builds the 7-layer prompt for the focal character | structlog `context_assembled` (logs `total_tokens`, `layer_token_breakdown`, `voice_mode`); see §2.3 |
+| 6 | `BDOne.stream_complete()` opens the SSE stream upstream | structlog `bdone_request_started` (model, max_tokens, temperature) |
+| 7 | LLM honors Layer 7 terminal constraints; backend has no client-side enforcement at this stage | — |
+| 8 | `validate_response()` runs Whyze-Byte two-tier check on the buffered response | structlog `whyze_byte_validated` (per-violation rows: `level`, `category`, `note`) |
+| 9 | If Crew, `_run_crew_turn` loops `select_next_speaker()` up to `crew_max_speakers`; per-speaker assemble + validate + attribution | structlog `crew_speaker_chosen`, `crew_speaker_validated` |
+| 10 | SSE stream terminates with `finish_reason` + `data: [DONE]` | structlog `sse_stream_complete` |
+| 11 | (Msty-side Shadow Persona bookkeeping; backend not involved.) | — |
+| 12 | `schedule_post_turn_tasks()` spawns 3 fire-and-forget `asyncio.create_task` jobs: `extract_episodic`, Phase 8 `evaluate_and_update`, Phase 9 `evaluate_and_update_internal` | structlog `post_turn_scheduled`, then per-task completion events (`llm_eval_parsed_proposal`, `llm_eval_fallback_to_heuristic`, `dreams_qa_pin_blocked`, `episodic_extracted`) |
+
+The HTTP response closes after step 10. Steps 11–12 happen after the user has already received the streamed reply.
+
+### 2.3 The 7-layer assembled prompt (concrete example)
+
+Each layer is wrapped in an XML-style marker. Markers come from `context/assembler.py:38::LAYER_MARKERS`. The assembled prompt looks like this (truncated for readability):
+
+```
+<PERSONA_KERNEL>
+Adelia Raye. ENFP-A, lives at the property, runs Ozone & Ember (Adelia's
+business)...
+[soul essence — guaranteed surcharge, never trimmed]
+[pair callbacks — guaranteed surcharge]
+[kernel body, 11 numbered sections, trimmable to per-character budget]
+</PERSONA_KERNEL>
+
+<CANON_FACTS>
+- Marriage year: 2022
+- Property: Foothills County near Priddis, Alberta
+- Children: Isla (b. 2019-07-31), Daphne (b. 2021-08-18); childcare always assumed
+...
+</CANON_FACTS>
+
+<EPISODIC_MEMORY>
+- 2026-04-15 (diary): "The kitchen smelled like cardamom..."
+- 2026-04-16 (off_screen): "Alicia called from Buenos Aires; mode=phone"
+...
+</EPISODIC_MEMORY>
+
+<SOMATIC_STATE>
+fatigue=0.32, stress_residue=0.15, injury_residue=0.00 (decayed read)
+life_state: mood=settled, energy=medium, focus=family
+</SOMATIC_STATE>
+
+<VOICE_DIRECTIVES>
+Inference parameters: temperature=0.82, top_p=0.95, frequency_penalty=0.4, presence_penalty=0.3
+Mode: domestic
+[2-4 voice exemplars matching mode]
+</VOICE_DIRECTIVES>
+
+<SCENE_CONTEXT>
+Today's Dreams scene opener: "..."
+[Activated knowledge soul cards based on scene_keyword/comm_mode/with_character]
+[Open loops with status='open']
+</SCENE_CONTEXT>
+
+<WHYZE_BYTE_CONSTRAINTS>
+[Constraint pillars from canon_facts — terminal anchor, NEVER trimmed]
+</WHYZE_BYTE_CONSTRAINTS>
+```
+
+Token budget per layer (defaults, `context/budgets.py:38::LayerBudgets`):
+
+| Layer | Budget | Notes |
+|---|---|---|
+| 1 Kernel | 6,000 | scaled per-character (Adelia 6,300 / Bina 7,200 / Reina 6,900 / Alicia 5,100) PLUS guaranteed soul-essence surcharge (~1,750–2,050) PLUS pair-callbacks surcharge |
+| 2 Canon facts | 600 | |
+| 3 Episodic | 1,200 | |
+| 4 Somatic | 500 | |
+| 5 Voice | 900 | |
+| 6 Scene | 2,400 | doubled Phase C 2026-04-12 to fit knowledge soul cards |
+| 7 Constraints | 900 | terminal anchor — NEVER trimmed |
+
+**Effective Layer 1 ceiling per character:**
+
+| Character | Kernel budget | Soul essence | L1 ceiling |
+|---:|---:|---:|---:|
+| Adelia | 6,300 | ~1,900 | ~8,200 |
+| Bina | 7,200 | ~1,900 | ~9,100 |
+| Reina | 6,900 | ~1,750 | ~8,650 |
+| Alicia | 5,100 | ~2,050 | ~7,150 |
+
+### 2.4 What you can change at request time
+
+- **`model` field** routes to the focal character (`adelia` | `bina` | `reina` | `alicia` | `starry-lyfe` legacy). Production Msty path.
+- **Inline override** at the start of the user message: `/adelia`, `/bina`, `/reina`, `/alicia`, `/all` (crew expansion). Stripped before the LLM sees it. Dev/test path; not used in production Msty.
+- **`X-SC-Force-Character`** header — dev/test only. Highest precedence; bypasses model field. Never set this in production Msty.
+
+If Alicia is currently away on operations, scenes set in-person will raise `AliciaAwayContradictionError` at the classifier (HTTP 400). Use `/alicia` only when she is home or use `communication_mode` keywords (phone / letter / video_call) to route to a remote-mode scene.
+
+---
+
+## 3. Msty Persona Studio integration
+
+### 3.1 Per-character Persona setup (production)
+
+For each of Adelia, Bina, Reina, Alicia:
+
+1. **Persona Studio → New Persona**.
+2. **Name:** the character's display name (e.g., "Adelia Raye").
+3. **Model ID:** `adelia` (or `bina`, `reina`, `alicia`). Must match the canonical character IDs exactly — case-sensitive lowercase.
+4. **System Prompt Mode:** `Replace` (this is the load-bearing setting per **AD-001**).
+5. **System Prompt content:** **leave blank** in production. The backend is the sole voice authority; any content here will fight the assembled prompt.
+6. **Endpoint URL:** `http://localhost:8001/v1/chat/completions` (or wherever the API is reachable).
+7. **Headers:** add `X-API-Key: <your-key>` matching `STARRY_LYFE__API__API_KEY`.
+8. **Streaming:** enabled (SSE).
+9. **Temperature / top_p / penalties:** Msty's defaults are fine. The backend's `personas/registry.py` carries per-character inference parameters that travel with the assembled prompt; Msty-side overrides are silently ignored on the model side because we send them in the prompt body, not the API params.
+
+### 3.2 Crew Conversation setup
+
+1. **Persona Studio → New Crew**.
+2. **Add 2-4 personas** from the per-character set above.
+3. **Crew System Prompt:** leave blank (same rule).
+4. **Endpoint:** same as persona conversations.
+5. When the user wants the backend to expand into multiple speakers, end the message with `/all`. The backend's `_run_crew_turn` loop iterates up to `STARRY_LYFE__API__CREW_MAX_SPEAKERS` (default 3). Speakers arrive inline as `**Name:**\n\n<text>` with `\n\n` separators between them.
+6. The crew loop's next-speaker scoring respects the Talk-to-Each-Other Mandate (CLAUDE.md §16): if the last 2 turns were both to Whyze, w2w candidates get a reward; if a candidate just spoke non-Whyze, recency suppression applies.
+
+### 3.3 Helper script
+
+`scripts/seed_msty_persona_studio.py` produces ready-to-paste persona definitions from the rich YAMLs. Run as:
+
+```bash
+.venv/Scripts/python scripts/seed_msty_persona_studio.py --character adelia
+```
+
+Output is JSON the operator can hand-import into Persona Studio. Reads only the requested woman's YAML — does not fan out to all 5.
+
+---
+
+## 4. Logging and observability
+
+### 4.1 What's logged
+
+`structlog` is the canonical channel (MSE-6). Every entry carries `service`, `timestamp`, `level`, plus context fields. `STARRY_LYFE__LOG__LEVEL` controls verbosity (default `INFO`).
+
+### 4.2 Key event names by subsystem
+
+| Subsystem | Event name | Level | Meaning |
+|---|---|---|---|
+| API request | `request_received` | INFO | New request landed |
+| API request | `msty_preprocessed` | INFO | Crew roster + prior responses extracted |
+| Scene | `scene_classified` | INFO | SceneState built; `scene_type`, `modifiers`, `voice_mode_candidates` in extras |
+| Memory | `memory_bundle_loaded` | INFO | `MemoryBundle` shape (counts per tier) |
+| Assembly | `context_assembled` | INFO | `total_tokens`, `layer_token_breakdown`, `voice_mode`, `activated_soul_cards` |
+| Crew | `crew_speaker_chosen` | INFO | Next speaker + score breakdown (7 rules) |
+| Validation | `whyze_byte_validated` | INFO/WARNING | Per-violation rows: `level`, `category`, `note` |
+| BD-1 | `bdone_request_started` | INFO | Outbound LLM call (model, max_tokens, temperature) |
+| BD-1 | `bdone_circuit_open` | WARNING | Circuit breaker tripped — falling back to heuristic for this turn |
+| Phase 8 | `llm_eval_parsed_proposal` | INFO | Successful Phase 8 LLM eval; deltas attached |
+| Phase 8 | `llm_eval_fallback_to_heuristic` | WARNING | Phase 8 fell back; `reason` field tells you why (toggle / no-client / circuit / DreamsLLMError / parse-fail) |
+| Phase 9 | (same event names as Phase 8, distinguished by extras carrying `dyad_key`) | | |
+| Phase 10.7 | `dreams_qa_verdict` | INFO/WARNING/ERROR | Per-relationship verdict; level scales by verdict (healthy=INFO, drift=WARNING, contradiction=ERROR) |
+| Phase 10.7 | `dreams_qa_pin_created` | INFO | New pin written to `dyad_state_pins` |
+| Phase 10.7 | `dreams_qa_pin_blocked` | WARNING | Phase 9 evaluator skipped a pinned dimension; `field_name` + `relationship_key` in extras |
+| Phase 10.7 | `dreams_qa_auto_promoted` | WARNING | 3-night drift threshold hit; verdict promoted to `factual_contradiction` |
+| Phase 10.7 | `dreams_qa_memory_lookup_failed` | WARNING | Per-relationship memory window unavailable; QA pass continues with empty memories |
+| Phase 10.7 | `dreams_qa_markdown_lock_unavailable` | WARNING | File lock not acquired (stripped Python build); ledger writes proceed unsynchronized |
+| Dreams | `dreams_run_started` | INFO | Nightly pass beginning; `run_id` in extras |
+| Dreams | `dreams_run_complete` | INFO | Pass finished; `total_input_tokens`, `total_output_tokens`, `warnings_count`, `qa_pass_completed` |
+| Dreams | `dreams_consistency_qa_failed` | ERROR | The QA pass threw an unhandled exception (does NOT crash the rest of the pass) |
+| Dreams | `dreams_qa_scene_fodder_routing_failed` | ERROR | F1 routing helper failed (fodder routing is best-effort) |
+| Dreams | `dreams_qa_weekly_digest_emitted` | INFO | Sunday-UTC weekly digest written; `path` in extras |
+| Dreams | `dreams_scheduler_started` | INFO | apscheduler started; `schedule` cron + `misfire_grace_s` in extras |
+| Dreams | `dreams_scheduler_disabled` | WARNING | `STARRY_LYFE__DREAMS__ENABLED=false` — scheduler idles |
+| Dreams | `dreams_cli_pass_complete` | INFO | `--once` pass finished; aggregate result |
+| Health | (no events; structured response is the signal) | | |
+
+### 4.3 What to grep for
+
+```bash
+# Did Phase 9 skip any pinned writes today?
+grep dreams_qa_pin_blocked /var/log/starry-lyfe/*.log
+
+# Did the QA pass succeed last night?
+grep dreams_run_complete /var/log/starry-lyfe/*.log | tail -1
+
+# Was BD-1 the bottleneck on a slow turn?
+grep llm_eval_fallback_to_heuristic /var/log/starry-lyfe/*.log | tail -10
+
+# Did the crew loop hit max speakers?
+grep crew_speaker_chosen /var/log/starry-lyfe/*.log | grep -c "speaker_index=2"
+```
+
+### 4.4 Prometheus metrics
+
+`GET /metrics` exposes (no auth):
+
+| Series | Labels | Meaning |
+|---|---|---|
+| `http_requests_total` | `method`, `path`, `status` | Standard Prom counter |
+| `http_request_duration_seconds` | `path` | Histogram |
+| `http_sse_tokens_total` | `character_id` | Per labeled character (speaker in Crew, focal otherwise). Counts SSE chunks, not LLM tokens (name frozen for stability). |
+| `whyze_byte_violations_total` | `character_id`, `level`, `category` | Per-validation outcome |
+| `bdone_circuit_open` | (gauge) | 1 = open, 0 = closed |
+
+---
+
+## 5. Dreams operations
+
+### 5.1 Daemon vs `--once`
+
+```bash
+# Production (long-running daemon, default schedule "30 3 * * *" = 03:30 daily UTC)
+.venv/Scripts/python -m starry_lyfe.dreams
+
+# Manual one-shot (smoke test, catch-up after crash, ad-hoc QA pass)
+.venv/Scripts/python -m starry_lyfe.dreams --once
+
+# Dry-run with StubBDOne (no LLM calls, no DB writes — fast smoke test)
+.venv/Scripts/python -m starry_lyfe.dreams --once --dry-run
+```
+
+### 5.2 Environment variables
+
+| Var | Default | Purpose |
+|---|---|---|
+| `STARRY_LYFE__DREAMS__SCHEDULE` | `30 3 * * *` | Cron expression (5-field) |
+| `STARRY_LYFE__DREAMS__ENABLED` | `true` | `false` makes the daemon idle (logs `dreams_scheduler_disabled`) |
+| `STARRY_LYFE__DREAMS__DRY_RUN` | `false` | Persistent dry-run mode (vs the per-invocation `--dry-run` flag) |
+| `STARRY_LYFE__DREAMS__MAX_TOKENS_PER_CHAR` | `8000` | Per-character generator budget |
+| `STARRY_LYFE__DREAMS__MISFIRE_GRACE_S` | `3600` | apscheduler grace window for missed runs |
+
+### 5.3 What runs each night
+
+For each canonical character (Adelia, Bina, Reina, Alicia), in parallel via `asyncio.gather`:
+
+1. `default_snapshot_loader` reads 24h of memories, open loops, dyad states, life state.
+2. Five generators run concurrently: `schedule`, `off_screen`, `diary`, `open_loops`, `activity_design`.
+3. Writers persist the outputs inside a `session.begin()` transaction.
+4. Consolidation helpers run on the same session: somatic decay, loop expiry, addressed-loop resolution.
+
+After all per-character passes complete, the **Phase 10.7 Consistency QA** runs across the 10 relationships (6 inter-woman + 4 woman-Whyze). See §6.
+
+On Sunday UTC, the `weekly_qa_digest()` hook fires and writes `Docs/_dreams_qa/_weekly/YYYY-WW.md`.
+
+### 5.4 Verifying a pass succeeded
+
+```bash
+# Grep the most recent run
+grep "dreams_run_complete" /path/to/log | tail -1
+
+# Or check the DB
+psql -U starry_lyfe -d starry_lyfe -c "
+  SELECT run_id, count(*) AS rows
+  FROM starry_lyfe.dreams_qa_log
+  WHERE created_at >= now() - interval '1 day'
+  GROUP BY run_id;
+"
+# Expect: 10 rows (one per relationship)
+```
+
+### 5.5 Dry-run without polluting state
+
+`--dry-run` swaps `BDOne` for `StubBDOne` (canned responses) and short-circuits writes. Use it for:
+- Verifying the daemon boots cleanly after a config change
+- Validating new character YAML loads without breaking the pipeline
+- Local development without burning LLM budget
+
+---
+
+## 6. Phase 10.7 Consistency QA workflow
+
+### 6.1 What gets written each night
+
+Per nightly Dreams pass:
+- **`dreams_qa_log`** — exactly 10 rows per `run_id` (one per relationship). Verdict + summary + contradictions JSONB + scene_fodder JSONB.
+- **`dyad_state_pins`** — zero or more rows for `factual_contradiction` verdicts. Each row pins one `(relationship_key, pov_character_id, field_name)` with `operator_resolved_at IS NULL`.
+- **`open_loops`** — one row per non-empty `scene_fodder` string from `healthy_divergence` verdicts, anchored on the relationship's `pov_a`, with `loop_type="dreams_qa_scene_seed:dreams_qa"` and `best_next_speaker=pov_b`.
+- **Daily markdown ledger** at `Docs/_dreams_qa/YYYY-MM-DD_consistency.md` with three sections: `## Healthy`, `## Drift watch`, `## Operator review required`.
+
+### 6.2 Reading the daily ledger
+
+The operator should review the ledger each morning. Skip the Healthy section unless a fodder string is interesting; skim the Drift watch section for accumulating concerns; act on the Operator review required section immediately.
+
+A `factual_contradiction` entry looks like:
+
+```markdown
+- **whyze_alicia**
+  - Alicia recalls the marriage year as 2023.
+  - Contradictions:
+    - `marriage_year` (alicia): observed '2023' vs canonical '2022' (shared_canon.marriage.year)
+```
+
+That entry corresponds to a row in `dyad_state_pins` blocking Phase 9 from updating `marriage_year` until the operator resolves.
+
+### 6.3 Resolving a pin
+
+Phase 10.7 ships with no operator UI for pin resolution. The CLI path uses the `pinning` module directly:
+
+```python
+# Resolve a pin from a Python REPL or one-off script
+import asyncio
+from sqlalchemy.ext.asyncio import async_sessionmaker
+from starry_lyfe.db.config import get_db_settings
+from starry_lyfe.db.engine import build_engine, build_session_factory
+from starry_lyfe.dreams.consistency.pinning import unpin_field, list_active_pins
+
+async def main():
+    engine = build_engine(get_db_settings())
+    Session = build_session_factory(engine)
+    async with Session() as session, session.begin():
+        # See what's pinned
+        active = await list_active_pins(session)
+        for p in active:
+            print(p["relationship_key"], p["field_name"], p["pinned_value"])
+
+        # Resolve
+        await unpin_field(
+            session,
+            relationship_key="whyze_alicia",
+            pov_character_id="alicia",
+            field_name="marriage_year",
+            resolution_note="Operator confirmed 2022; Alicia's drift was scene-fodder-worthy fragment, not a fact change.",
+        )
+    await engine.dispose()
+
+asyncio.run(main())
+```
+
+Once `operator_resolved_at` is set, the unique partial index `(relationship_key, pov_character_id, field_name) WHERE operator_resolved_at IS NULL` releases the slot — Phase 9 can write the dimension again on the next post-turn evaluation.
+
+A future operator-tools phase will turn this into a CLI subcommand. Until then, this is the path. (Acceptable per Phase 10.7 plan §Out of scope.)
+
+### 6.4 The 3-night auto-promotion heuristic
+
+If the same `(relationship_key, field_name)` is flagged as `concerning_drift` in each of the last 2 nightly passes (within a 36-hour window per night to tolerate cron jitter and DST), the **third** flag's verdict auto-promotes to `factual_contradiction` and lands a pin. You'll see `dreams_qa_auto_promoted` in the logs and a new entry in the daily ledger's Operator review required section.
+
+If a relationship is genuinely drifting in canonical-acceptable ways (e.g., the relationship is supposed to evolve), unpin and document why in `resolution_note`.
+
+### 6.5 Weekly trajectory digest
+
+Every Sunday UTC, `consistency/digest.py::build_weekly()` reads the last 7 daily ledger files and emits a per-relationship trajectory at `Docs/_dreams_qa/_weekly/YYYY-WW.md`.
+
+Trajectory labels:
+- **`improving`** — drift score this week is lower than the prior 7-day window
+- **`stable`** — drift score within ±1 of the prior window
+- **`drifting`** — drift score higher than the prior window
+
+A "drifting" trend on a relationship is a structural signal; review the underlying daily ledger entries to see which fields are repeatedly flagged.
+
+### 6.6 What to do if QA itself fails
+
+The runner wraps the QA pass in a try/except (`dreams/runner.py`). If `generate_consistency_qa` throws, you'll see `dreams_consistency_qa_failed` at ERROR level and a `consistency_qa: <exc>` warning in `dreams_run_complete`. The rest of the Dreams pass (the 5 per-character generators) still completed successfully.
+
+Common causes:
+- BD-1 circuit breaker open (the QA judge LLM call failed too many times). Check `bdone_circuit_open`.
+- A rich YAML is malformed and `enumerate_all(canon)` couldn't enumerate 10 relationships. Check the loader on next boot.
+- `shared_canon.dyads_baseline` keys drifted from the seniority precedence (`adelia=0/bina=1/reina=2/alicia=3`). Run `make validate-canon`.
+
+---
+
+## 7. Relationship evaluators
+
+### 7.1 What fires after each turn
+
+The HTTP response closes after step 10. Then `schedule_post_turn_tasks()` spawns three independent `asyncio.create_task` jobs:
+
+1. `extract_episodic()` — pulls memorable beats from the last turn into `episodic_memories` with embedding via LM Studio.
+2. `evaluate_and_update()` — Phase 8 Whyze-dyad evaluator. Updates the focal character's `dyad_state_whyze` row across 5 dimensions, capped at ±0.03 each.
+3. `evaluate_and_update_internal()` — Phase 9 inter-woman evaluator. Updates each active inter-woman dyad the focal character is part of, ±0.03 each, **with Phase 10.7 pin-consult** before each dimension write.
+
+All three are fire-and-forget. A failure in any one cannot delay or corrupt the user-visible reply (AC-7.10). Failures land in the log via `add_done_callback(_log_task_outcome)`.
+
+### 7.2 LLM-primary, heuristic-fallback
+
+Both Phase 8 and Phase 9 evaluators try the LLM path first. They fall back to the heuristic `_propose_*` function on any of:
+
+1. Settings opt-out (`STARRY_LYFE__API__RELATIONSHIP_EVAL_LLM=false` or `INTERNAL_RELATIONSHIP_EVAL_LLM=false`)
+2. No `llm_client` available
+3. Circuit breaker open (`bdone_circuit_open=true`)
+4. LLM raises `DreamsLLMError`
+5. Parser returns `None` (malformed JSON)
+
+Both paths feed `_clamp_delta()` (final ±0.03 gate) and `_bound01()` ([0, 1] clamp). The cap is a hard invariant (**AD-004**) — no path bypasses it.
+
+### 7.3 Reading `dreams_qa_pin_blocked`
+
+When you see `WARNING dreams_qa_pin_blocked relationship_key=adelia_bina field_name=trust pov_character_id=None`, this is **not** an error. It means:
+
+> Phase 9 wanted to update `adelia_bina.trust` based on the latest turn, but `dyad_state_pins` carries an active symmetric pin on that field. The write was skipped. The pin is the operator's standing instruction that this dimension should not move until they resolve.
+
+If you see this event repeatedly for the same field, it means Phase 9 keeps trying to drift the dimension and the pin keeps blocking it. That's the system working as designed — the pin is doing its job. Resolve the pin (§6.3) only if you have the canonical truth that should replace the pinned value.
+
+### 7.4 Cost envelope
+
+Per-turn, fire-and-forget:
+- 1 BD-1 call for episodic extraction (~300 tokens prompt + a short response).
+- 1 BD-1 call for Phase 8 (~200 tokens, temperature 0.2).
+- Up to 3 BD-1 calls for Phase 9 — one per active inter-woman dyad the focal character is part of:
+  - **Resident-continuous focal character with Alicia home:** up to 3 calls (e.g., Adelia's evaluator updates `adelia_bina`, `adelia_reina`, `adelia_alicia`).
+  - **Resident focal character with Alicia away:** up to 2 (Alicia-orbital dyads gate out).
+  - **Alicia herself with all three orbital dyads dormant:** 0 (the SQL gate filters).
+
+Disable Phase 8 with `STARRY_LYFE__API__RELATIONSHIP_EVAL_LLM=false` or Phase 9 with `STARRY_LYFE__API__INTERNAL_RELATIONSHIP_EVAL_LLM=false` — the heuristic path runs in both cases.
+
+---
+
+## 8. Canon edit workflow
+
+### 8.1 Where to edit
+
+The terminal 6-file canonical authoring surface (post-Phase-10.5c):
+
+| File | What you edit |
+|---|---|
+| `Characters/adelia_raye.yaml` | Adelia's identity, kernel sections, soul substrate, voice, soul cards, pair architecture, family/dyad POV blocks, knowledge stack, state protocols, runtime routines |
+| `Characters/bina_malek.yaml` | Same shape for Bina |
+| `Characters/reina_torres.yaml` | Same shape for Reina |
+| `Characters/alicia_marin.yaml` | Same shape + Alicia-orbital travel data |
+| `Characters/shawn_kroon.yaml` | Operator's identity surface |
+| `Characters/shared_canon.yaml` | Marriage facts, genealogy, signature scenes, property, timeline, pairs (4), dyads_baseline (10), interlocks (6), memory_tiers, normalization_notes |
+
+**Do NOT** create new markdown character files, new narrow canon YAMLs, or any file under `src/starry_lyfe/canon/*.yaml`. Those are archived.
+
+### 8.2 The edit cycle
+
+```bash
+# 1. Edit the YAML in your editor of choice
+# 2. Validate the schema + cross-references
+make validate-canon
+
+# 3. If you changed structured DB-relevant content (canon_facts, character_baselines,
+#    dyad_state_*), reseed:
+make db-seed
+
+# 4. If you changed kernel_sections / soul_substrate / soul_cards, the next
+#    request will see the change because rich_loader keys its cache on rich-YAML
+#    mtime (Phase 10.5b RT3). No restart needed.
+
+# 5. Run the regression bundle to confirm assembled prompts didn't drift
+#    in unexpected ways:
+.venv/Scripts/python -m pytest tests/regression/ -v
+
+# 6. Commit + push (per §12)
+```
+
+### 8.3 Preserve markers
+
+Any sentence in the rich YAMLs marked with `<!-- PRESERVE -->` is a load-bearing canonical phrase. The preserve-marker enforcement test fails the build if a preserve-marked sentence stops appearing verbatim in the assembled Layer 1 output.
+
+To intentionally retire a preserve marker, remove the marker AND the sentence at the same time, then add a normalization note to `shared_canon.yaml::normalization_notes`. The test reads the ledger and exempts removed markers.
+
+### 8.4 OneDrive transient lock
+
+Editing a YAML while OneDrive is mid-sync sometimes throws `PermissionError` to the loader. The loader has a bounded retry (`_load_yaml_file`, 50/100/200/400 ms backoff) that handles this transparently. If you see `OSError` propagated, OneDrive held the file for >750 ms — wait a few seconds and retry the request.
+
+### 8.5 What never to edit
+
+- `Archive/v7.1_pre_yaml/` — read-only historical reference. Editing here changes nothing in the runtime.
+- `src/starry_lyfe/canon/*.yaml` — these were retired in Phase 10.5c and should not exist on a current checkout. If they reappear, it's a merge accident; delete them.
+
+---
+
+## 9. Health and metrics
+
+### 9.1 `/health/live`
+
+Always returns 200 if the FastAPI process is alive. Use it to verify "is the container up". Does not touch DB or BD-1.
+
+### 9.2 `/health/ready`
+
+Returns 200 only if:
+- R5 pool is open and a trivial query succeeds.
+- BD-1 is reachable (a HEAD probe to `STARRY_LYFE__EXT__SFW_PROVIDER_URL`) **if** `STARRY_LYFE__API__HEALTH_BD1_PROBE=true` (default).
+
+503 with structured reason otherwise:
+
+```json
+{
+  "ready": false,
+  "checks": {
+    "database": "ok",
+    "bd1": "circuit_open"
+  }
+}
+```
+
+If `bd1=circuit_open`, the BD-1 client tripped its breaker after consecutive failures. The system will keep falling back to the heuristic path on Phase 8/9 evaluators; chat completion will fail until BD-1 recovers or you manually reset by restarting the API service.
+
+### 9.3 `/v1/models`
+
+Returns 5 entries: `starry-lyfe` (legacy default routing) plus the four character IDs (`adelia`, `bina`, `reina`, `alicia`). All carry the same fixed epoch `1776816000` (2026-04-15 Phase 7 ship). No auth.
+
+### 9.4 `/metrics`
+
+Prometheus exposition. See §4.4 for the series list.
+
+---
+
+## 10. Troubleshooting
+
+### 10.1 "Chat completion fails with 503"
+
+Likely causes (check in order):
+1. `/health/ready` is 503. Check `bd1` field.
+2. BD-1 circuit open → restart the API service or wait the breaker timeout.
+3. R5 pool exhausted → check `psql` for too many active connections; restart API.
+
+### 10.2 "Chat completion succeeds but the response is wrong character"
+
+Check character routing precedence (`api/routing/character.py:resolve_character_id`):
+1. Was an `X-SC-Force-Character` header sent? It wins over everything.
+2. Did the user message start with `/<char>`? It wins over `model`.
+3. What did `model` resolve to? Misspellings fall back to the configured default.
+
+Look for `request_received` log line — it records the chosen character ID.
+
+### 10.3 "Crew Conversation only produces one speaker"
+
+The crew detection logic requires either:
+- `/all` override at message start, OR
+- ≥2 canonical women in the parsed roster AND ≥1 prior persona response.
+
+Check `msty_preprocessed` log — `roster` field tells you what the preprocessor saw. If the roster has fewer than 2 canonical women, Crew mode does not engage.
+
+### 10.4 "Voice mode mismatch — Adelia is being too formal"
+
+Check `scene_classified` log — `voice_mode_candidates` shows what the classifier proposed. The selected mode is also in `context_assembled`. If the mode is wrong:
+- Did the user message contain a keyword that triggered an unexpected `SceneType`? (e.g., "cancellation" → `transition`)
+- Are present_characters wrong? `assemble_context` may be inferring `solo_pair` vs `group` mistakenly.
+
+### 10.5 "AliciaAwayContradictionError"
+
+The classifier raised this because:
+- Alicia is in `present_characters`,
+- AND `alicia_home=False` (she's on operations per Tier 8 `life_states`),
+- AND `communication_mode` resolved to `IN_PERSON`.
+
+Either set Alicia home (update `life_states.is_away=false` if she's actually back), or re-route to a remote-mode scene by adding "phone", "letter", or "video_call" keywords to the user message.
+
+### 10.6 "Soul card not activating in a scene I expected"
+
+Soul cards activate via four gates (`context/soul_cards.py:127::find_activated_cards`):
+1. `always` flag
+2. `communication_mode` substring match (phone / letter / video_call / in_person)
+3. `with_character` in present characters set
+4. `scene_keyword` substring match in scene_description (case-insensitive)
+
+Check `context_assembled` log — `activated_soul_cards` lists what passed the gates. If the card you expected isn't there, walk through its YAML activation rules and the actual scene_description.
+
+### 10.7 "Phase 10.7 QA pass produced 9 rows, not 10"
+
+Most likely a `dreams_qa_memory_lookup_failed` for one relationship (it still produces a verdict, but a fallback memory window). Check the warnings list on `dreams_run_complete`; the failed relationship is named in the warning string.
+
+### 10.8 "Pin keeps blocking writes I want to allow"
+
+The pin is doing its job. Either:
+- Resolve the pin (§6.3), OR
+- Update the canonical value in `shared_canon.yaml` so the LLM judge stops flagging the contradiction. (Then the next nightly QA pass produces `healthy_divergence` and no new pin.)
+
+### 10.9 "Test suite reports environmental Postgres skips on a green run"
+
+Expected. Integration tests that need real Postgres are skip-gated. If Postgres is unreachable (e.g., `make docker-up` not run), the integration suite skips. Run `make docker-up` then re-run if you want full coverage. The unit suite should always pass regardless.
+
+### 10.10 "Markdown ledger entries appear out of order"
+
+`_emit_markdown` serializes writes via `_file_lock` (msvcrt on Windows, fcntl on POSIX). If you see `dreams_qa_markdown_lock_unavailable` warnings, the lock primitive isn't importable on this Python build — the write happened anyway but unsynchronized. Concurrent runs on the same UTC date may have collided. Manual repair if needed.
+
+---
+
+## 11. Backup and restore
+
+### 11.1 What needs backing up
+
+- **`starry-lyfe-pgdata` Docker volume** — all DB content (canon facts, episodic memories, dyad state, somatic state, life state, pins, QA log, sessions). This is the only piece that cannot be regenerated.
+- **`Characters/*.yaml`** — under git already; commit + push regularly.
+- **`.env`** — secrets. Keep a sealed copy somewhere out-of-band.
+- **`Docs/_dreams_qa/*.md`** — runtime artifacts (gitignored). Daily ledgers + weekly digests. Lose-able if you trust the underlying DB tables (`dreams_qa_log`).
+
+### 11.2 Backing up the DB
+
+```bash
+# Hot dump while container runs (recommended)
+docker exec Starry-Lyfe pg_dump -U starry_lyfe -d starry_lyfe -F c -f /tmp/starry_lyfe.dump
+docker cp Starry-Lyfe:/tmp/starry_lyfe.dump ./backups/starry_lyfe_$(date +%Y%m%d).dump
+```
+
+### 11.3 Restoring
+
+```bash
+# Drop + recreate the schema, then load the dump
+docker exec -i Starry-Lyfe pg_restore -U starry_lyfe -d starry_lyfe -c < ./backups/starry_lyfe_YYYYMMDD.dump
+```
+
+### 11.4 Docker safety rules (CLAUDE.md §2)
+
+- **Never** `docker compose down -v` — this destroys the named volume `starry-lyfe-pgdata` and every row with it.
+- **Never** `docker volume prune` while the container is stopped.
+- Use the project's rebuild script (`scripts/rebuild.ps1` or `make docker-rebuild` if defined) which knows to preserve the volume.
+- After any rebuild/restart, verify the startup log shows existing data, not the empty-database warning.
+
+### 11.5 Worst-case recovery
+
+If the DB is gone and there's no recent dump:
+1. `make docker-down` (NOT `-v`).
+2. `make docker-up` to bring up a fresh Postgres on the existing volume — if the volume survived, your data is back.
+3. If the volume is gone, you've lost all runtime state. You can re-seed the immutable tiers (1, 2, 3, 4, 7) from the rich YAMLs via `make db-seed`, but episodic memories, open loops, dyad state drift, life state, pins, and QA history are unrecoverable. This is why backups matter.
+
+---
+
+## 12. Dev workflow
+
+### 12.1 Branch + commit
+
+```bash
+git checkout -b feat/some-scope-description-of-change
+# ... edits ...
+make check                               # ruff + mypy --strict + pytest
+git add <specific files>                 # never `git add -A` (sensitive files)
+git commit -m "feat(scope): one-line summary
+
+Body explaining WHY, not WHAT.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
+git push -u origin HEAD
+```
+
+Conventional Commit prefixes (CLAUDE.md §6): `feat`, `fix`, `refactor`, `docs`, `chore`, `test`. Scope is mandatory.
+
+### 12.2 PR
+
+```bash
+gh pr create --title "scope: short title" --body "## Summary
+- bullet 1
+- bullet 2
+
+## Test plan
+- [ ] make check green
+- [ ] manual smoke against /v1/chat/completions"
+```
+
+### 12.3 The Foundry SDLC
+
+Six phases (CLAUDE.md §2): Hydration → Execution → WAF → Audit → Remediation → Merge Gate.
+- **Hydration:** scope the blast radius before writing code.
+- **Execution:** write code in the bounding box. Tests first for integration paths.
+- **WAF:** `make check` is a gate, not a conversation.
+- **Audit:** Codex (or self-audit) reviews against acceptance criteria.
+- **Remediation:** fix audit findings (max 3 attempts per cycle).
+- **Merge Gate:** Project Owner ships.
+
+### 12.4 What to update on a PR that changes structure
+
+Per CLAUDE.md §2 standing orders:
+- Touched a file → verify its docstring still matches reality.
+- Created a file → register in `Docs/ARCHITECTURE.md` Module Registry.
+- Deleted a file → remove from imports + ARCHITECTURE.md.
+- Modified a protocol droid → verify all implementations conform.
+- Changed an endpoint, env var, or migration → update ARCHITECTURE.md AND `.env.example`.
+
+---
+
+## 13. Glossary
+
+| Term | Meaning |
+|---|---|
+| **AD-NNN** | Architectural decision (numbered). Live in `Docs/ARCHITECTURE.md` §21. |
+| **AC-N.M** | Acceptance criterion (numbered per phase). Live in `Docs/_phases/PHASE_N.md`. |
+| **BD-1** | Outbound HTTP client protocol droid. `dreams/llm.py::BDOne`. Always `httpx.AsyncClient`. |
+| **Bounding Box** | The phase-defined scope a code change is allowed to touch. |
+| **Canon** | The frozen `Canon` dataclass returned by `load_all_canon()`. Single in-memory source of truth. |
+| **Canon facts** | Tier 1 — flattened immutable facts seeded from rich YAML. |
+| **Communication mode** | `phone` / `letter` / `video_call` / `in_person`. Tags Alicia-away artifacts and gates soul card activation. |
+| **Crew Mode** | Msty-side multi-character conversation. Backend expands via `_run_crew_turn` loop. |
+| **Dyad** | A two-party relationship. Six inter-woman dyads (`dyad_state_internal`) + four woman-Whyze dyads (`dyad_state_whyze`). |
+| **Dyad key** | Canonical key per relationship. Inter-woman keys use seniority order (`adelia_bina`, `bina_alicia` — not alphabetical). |
+| **Episodic memory** | Tier 5 — pgvector-embedded events extracted post-turn. 24h primary retrieval window. |
+| **F1 / F2 / F3 / F4 / F5** | Audit findings (numbered per audit round). |
+| **Focal character** | The character whose POV the current request is built around. Determined by character routing precedence. |
+| **GNK** | Config protocol droid. All env access through `*/config.py` modules, never `os.environ` elsewhere. |
+| **Healthy divergence** | Phase 10.7 QA verdict — POV gap is canonical and dramaturgically correct. Scene fodder routes to `open_loops`. |
+| **Heuristic fallback** | The `_propose_*` substring-bank scoring functions used by Phase 8/9 evaluators when LLM path is unavailable or fails. |
+| **In-person** | A scene with all parties physically together. Triggers Alicia-residence gate. |
+| **Knowledge soul card** | One of 11 per character. Activates conditionally in Layer 6 via scene_keyword / communication_mode / with_character / always. |
+| **Layer N** | One of seven prompt layers in `assemble_context`. Layer 7 is the terminal Whyze-Byte constraint anchor. |
+| **MSE-6** | Observability protocol droid. `structlog` throughout + Prometheus metrics. |
+| **Msty Persona** | A single-character conversation handle in Msty Persona Studio. Routes via `model` field. |
+| **Operator** | Whyze. The human at the keyboard. Also a canonical character (`shawn`) in the canon — distinct concepts. |
+| **Pair** | A woman-Whyze relationship. Four pairs: Entangled (Adelia), Circuit (Bina), Kinetic (Reina), Solstice (Alicia). |
+| **Pair callbacks** | Short canonical phrases from `pair_architecture.callbacks` rendered as a guaranteed-surcharge Layer 1 block. |
+| **Pair soul card** | One of 4 per character (one per other-woman + one per Whyze). Always-on in Layer 1 for the focal character. |
+| **Phase H** | The assembled-prompt regression bundle. First-class ship gate per **AD-008**. |
+| **Pin** | A row in `dyad_state_pins` blocking Phase 9 from updating a dimension until operator-resolved. |
+| **POV** | "Point of view" — a character's perspective on a relationship or event. Per-character POV is enforced divergent. |
+| **Preserve marker** | `<!-- PRESERVE -->` annotation in rich YAMLs marking load-bearing canonical phrases. Enforced by test. |
+| **R5-D4** | Database protocol droid. `db/engine.py` async pool. |
+| **Rich YAML** | One of the 5 per-character `Characters/{id}.yaml` files. Authoritative canonical source. |
+| **Run ID** | UUID assigned per Dreams run. Joins `dreams_qa_log` rows to a single nightly pass. |
+| **Scene Director** | Pre-assembly subsystem (`scene/`) that classifies scenes and selects next speakers. |
+| **`SceneState`** | The dataclass output of `classify_scene()`. Drives layer assembly + voice mode + soul card activation. |
+| **`shared_canon`** | The single cross-character objective anchor file. `pairs`, `dyads_baseline`, `interlocks`, `memory_tiers`, marriage, genealogy. |
+| **Soul cards** | YAML blocks with activation rules. 4 pair (always) + 11 knowledge (conditional) per character. |
+| **Soul essence** | Per-character `soul_substrate` block from rich YAML. Guaranteed-surcharge in Layer 1. |
+| **Symmetric pin** | A pin with `pov_character_id=NULL`. Blocks all POVs on that dimension. |
+| **Talk-to-Each-Other Mandate** | Crew-mode scoring rule rewarding woman-to-woman speaker selection after consecutive Whyze turns. |
+| **Tier N** | One of 7 memory tiers. Tier 1 canon facts, Tier 7 transient somatic state. |
+| **Voice mode** | A category of voice exemplar selection (`domestic`, `intimate`, `conflict`, `repair`, `public`, `group`, `silent`, `solo_pair`, `escalation`, `warm_refusal`, `group_temperature`). |
+| **WAF** | Workflow Acceptance Framework. `make check` = ruff + mypy --strict + pytest. |
+| **WED-15** | Error / retry protocol droid. Circuit breaker + exponential backoff. |
+| **Whyze-Byte** | The two-tier response validator. FAIL = hard stop. WARN = soft finding. |
+| **2-1B** | Health-check protocol droid. `/health/live` + `/health/ready`. |
+
+---
+
+## 14. Operator axiom cheat sheet (CLAUDE.md §16 distilled)
+
+**Character integrity.** Characters are people, not assistants. No "As an AI…". No hard-coded phrases. No phrase repetition within 3 exchanges. Reciprocity is structural — characters have genuine needs and ask for help.
+
+**Relationships.**
+- Whyze's primary romantic partner is **Adelia Raye**.
+- Bina and Reina are married to each other (Adelia introduced them in 2021).
+- All four women are intimate with Whyze in canonical and negotiated configurations.
+- **No jealousy** — structural absence, not managed tension. Do not introduce tension that is not there.
+
+**Activity distribution.** ~60% Adelia alone, ~15% Adelia + Bina, ~10% Bina alone, ~15% Reina solo or with another resident. Alicia integrates when home, pauses naturally during operational travel.
+
+**Pipeline.**
+- Whyze-Byte is mandatory on all outputs. No deliberate bypass.
+- Request-driven. Each message = full pipeline. Only Dreams runs in the background (nightly).
+- Routing precedence: header > inline > model field > default. Production Msty uses model field.
+- Per-character inference parameters in `personas/registry.py`: Adelia 0.82 > Alicia 0.75 > Reina 0.72 > Bina 0.58.
+- ±0.03 per-turn delta cap on relationship evaluators is a hard invariant.
+
+**Activities.**
+- Max 3 choices per decision point.
+- Children are never present in scenes. Childcare always assumed.
+
+**Operator profile.**
+- Strengths-first framing. Never frame cognitive characteristics as deficits.
+- No em-dashes / en-dashes as sentence interrupters. Use commas, parentheses, colons, or restructure.
+
+---
+
+## 15. Where to look next
+
+- **`Docs/ARCHITECTURE.md`** — the top-down as-built map.
+- **`Docs/_phases/PHASE_N.md`** — what shipped in each phase, with audit + remediation history.
+- **`Docs/_phases/PHASE_10.md`** — Phase 10.7 spec + Step 10 self-audit + remediation record.
+- **`journal.txt`** — Phase 10 YAML migration ledger.
+- **`CLAUDE.md`** — governance, axioms, the sacred text.
+- **`Docs/IMPLEMENTATION_PLAN_v7.1.md`** — the master plan; phase chronology + cross-phase dependencies.
+- **`Docs/Persona_Tier_Framework_v7.1.md`** — character architecture deep dive.
+- **`Vision/Starry-Lyfe_Vision_v7.1.md`** — Vision sections 5/6/7 (chosen-family architecture).
+
+If you're new to the system: read this guide §1–§3, then scan `ARCHITECTURE.md` §1–§6, then come back here for whichever subsystem you need to operate.
