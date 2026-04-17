@@ -14,6 +14,7 @@ AC-10.11 + AC-10.12.
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -22,6 +23,7 @@ import pytest
 from starry_lyfe.canon.rich_loader import (
     get_preserve_markers,
     load_rich_character,
+    verify_preserve_markers,
 )
 from starry_lyfe.context import assembler as assembler_module
 from starry_lyfe.context.assembler import assemble_context
@@ -171,3 +173,34 @@ class TestPreserveMarkersInAssembledLayer1:
                 )
 
         assert not missing, "\n".join(missing)
+
+
+# ----------------------------------------------------------------------
+# Phase 10.6 closeout (2026-04-17): Shawn preserve_marker coverage
+# ----------------------------------------------------------------------
+
+# Shawn is the operator, not a renderable character — there is no
+# `assemble_context()` Layer 1 path for him. His preserve_markers
+# enforce verbatim presence in his rich YAML body itself, via the
+# rich_loader.verify_preserve_markers helper. This closes the
+# Phase 10.6 audit gap (2026-04-17) where the original test only
+# iterated WOMAN_IDS and left Shawn's 18 canonical anchors uncovered.
+
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SHAWN_YAML_PATH = REPO_ROOT / "Characters" / "shawn_kroon.yaml"
+
+
+def test_shawn_preserve_markers_appear_verbatim_in_yaml_body() -> None:
+    """Phase 10.6 closeout AC: Shawn's preserve_marker.content_anchor strings
+    must each appear verbatim somewhere in shawn_kroon.yaml. Catches any
+    edit that paraphrases or removes a load-bearing canonical phrase."""
+    shawn = load_rich_character("shawn")
+    markers = get_preserve_markers(shawn)
+    assert markers, "Shawn rich YAML expected to carry preserve_markers (18 anchors as of 2026-04-17)"
+
+    full_text = SHAWN_YAML_PATH.read_text(encoding="utf-8")
+    errors = verify_preserve_markers(shawn, full_text=full_text)
+    assert not errors, (
+        "Shawn preserve_marker drift — anchors missing from YAML body:\n  "
+        + "\n  ".join(errors)
+    )

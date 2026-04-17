@@ -292,3 +292,30 @@ interlocks:
     tone: "Lateral, professional overlap, football argument"
     type: "alicia_orbital"
     canonical_disagreement: "European vs South American football, European peninsular Castilian vs Argentine Rioplatense"
+
+# Phase 10.6 §9 + Phase 10.6 closeout (2026-04-17): canonical drift record across all 6 YAMLs.
+# Each entry documents an authoring decision resolved during the Phase 10 migration so future
+# editors can see what was chosen, why, and from where it was lifted. Phase 0 verification
+# script (`scripts/phase_0_verification.py`) consumes this block.
+normalization_notes:
+  - field: "pairs.canonical_name"
+    resolved_value: "The {Entangled,Circuit,Kinetic,Solstice} Pair (4 entries)"
+    reason: "Lifted from legacy `pairs.yaml::pairs[].full_name` during Phase 10.5b R2-F3 establishment of `shared_canon.pairs[]` as the Layer 5 objective anchor. Phase 10.5c §2.5 extended this surface with `character`/`shared_functions`/`what_she_provides`/`how_she_breaks_spiral`/`core_metaphor`/`cadence` so narrow CanonPairs.Pair hydrates entirely from shared_canon."
+  - field: "pairs.classification"
+    resolved_value: "shared_canon strings (e.g. 'generator-governor polarity')"
+    reason: "Phase 10.5c §2.5 single-source-of-truth migration. Three different classification strings existed across narrow `pairs.yaml`, per-woman `pair_architecture.classification`, and `shared_canon.pairs[].classification`. Project Owner ratified shared_canon as the canonical objective anchor (matching Phase 10.5b R2-F3 Layer 5 decision); per-woman pair_architecture remains POV prose for prompt assembly only."
+  - field: "memory_tiers"
+    resolved_value: "7 system-level memory tier definitions (Canon Facts → Transient Somatic State)"
+    reason: "Phase 10.5c §2.4 lifted verbatim from legacy `dyads.yaml::memory_tiers`. Memory tiers are a SYSTEM-LEVEL TAXONOMY (not per-character data) so shared_canon is the right home; per Project Owner ratification of single-source-of-truth principle (R1 §2.1)."
+  - field: "dyads_baseline"
+    resolved_value: "10 dyad entries (6 inter-woman + 4 Whyze-pair) with dimension baselines"
+    reason: "Phase 10.5c §2.4 D1 lifted verbatim from legacy `dyads.yaml::dyads`. Dyad baselines are objective state (not character POV) — shared_canon is the right home. Symmetric authoring eliminates the Phase 10.5b RT2-style six-dyad divergence-enforcement complexity for this surface. Per-woman `family_and_other_dyads.with_<other>` blocks remain pure POV prose (perspective-divergence-required principle from Phase 10.5b RT2)."
+  - field: "interlocks"
+    resolved_value: "6 cross-partner interlock definitions (3 resident_continuous + 3 alicia_orbital)"
+    reason: "Phase 10.5c §2.4 I2 lifted verbatim from legacy `interlocks.yaml::interlocks`. Interlocks are objective taxonomic facts (e.g. 'The Anchor Dynamic' applies to Adelia AND Bina equally). Centralized in shared_canon matching the `pairs[]` precedent. Per-woman `family_and_other_dyads.with_<other>.interlock_name` blocks remain POV prose."
+  - field: "genealogy.gavin.birthdate"
+    resolved_value: "2018-09-12"
+    reason: "Phase 10.5c sourced from `Adelia_Raye_Knowledge_Stack.md` line 240 (now archived under `Archive/v7.1_pre_yaml/`): 'A star map of the Calgary night sky on the date of Gavin's birth (September 12, 2018).' Per Project Owner directive 2026-04-16: 'Where there are ages please include birthdates so the ages do not become stagnant.'"
+  - field: "preserve_markers (deliberate omission)"
+    resolved_value: "no preserve_markers block authored in shared_canon.yaml"
+    reason: "Phase 10.6 closeout audit (2026-04-17): `tests/unit/test_shared_canon_purity.py` enforces a stronger invariant — no per-character YAML may contradict shared_canon values. That fact-not-perception purity test supersedes preserve_markers for shared_canon's content. Preserve_markers remain authored per-character on the rich YAMLs where the prose-anchor invariant matters."
