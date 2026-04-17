@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Version:** U1.3-P2.14 | **Format:** U{universal}.{minor}-P{project}.{minor}
+**Version:** U1.3-P2.15 | **Format:** U{universal}.{minor}-P{project}.{minor}
 
 > Universal sections (Part 1) are identical across all repositories.
 > Project sections (Part 2) are customized per service.
@@ -396,7 +396,7 @@ These corrections override any conflicting content in project files. Apply befor
 
 **Open ship gate:** none on the architectural track. Phase 10 (10.0–10.7) is complete in the current workspace. Any remaining Phase 10 action is governance-only (Codex audit + Project Owner Step 6 ship sign-off).
 
-**Next phase:** none on the architectural track — Phase 10 is the terminal architectural phase of the v7 build. Current verified baseline on the live tree: **1257 passed, 0 failed, 37 environmental Postgres skips, 0 xfailed**. `ruff check src tests scripts` clean. `python -m mypy --strict src` clean across 115 source files. Msty AI is the only consumer.
+**Next phase:** none on the architectural track — Phase 10 is the terminal architectural phase of the v7 build. Current verified baseline on the live tree: **1257 passed, 0 failed, 38 environmental Postgres skips, 0 xfailed** (post-Phase-10.7 self-audit remediation F1/F2/F3, 2026-04-17). `ruff check src tests scripts` clean. `python -m mypy --strict src` clean across 115 source files. Msty AI is the only consumer.
 
 ### Project-wide Quality Directive (Project Owner, 2026-04-13)
 
@@ -465,7 +465,7 @@ Four layers of canonical soul content now reach the model on every assembled pro
 
 ### Test baseline
 
-**1257 passed, 0 failed, 37 environmental Postgres skips, 0 xfailed** as of 2026-04-17 after Phase 10.7 (Dreams Consistency QA Pass) shipped (+29 unit tests + 3 environmental-skip integration tests). `ruff check src tests scripts` clean. `python -m mypy --strict src` clean across 115 source files. Historical per-phase test deltas live in the phase reports under `Docs/_phases/`.
+**1257 passed, 0 failed, 38 environmental Postgres skips, 0 xfailed** as of 2026-04-17 after Phase 10.7 audit remediation F1/F2/F3 (+1 environmental-skip integration test for AC-10.26 scene-fodder-to-open-loops regression). Phase 10.7 initial ship (+29 unit tests + 3 environmental-skip integration tests) plus Step 10 remediation bundle. `ruff check src tests scripts` clean. `python -m mypy --strict src` clean across 115 source files. Historical per-phase test deltas live in the phase reports under `Docs/_phases/`.
 
 ### Historical phase records
 
@@ -503,7 +503,14 @@ to 10.5b, 10.5c, or 10.7 as the next open loader-rewire / QA phase.
   weekly trajectory digest writes ISO-week files, 3-night auto-promotion
   heuristic, Phase 8 R1-F3 input sanitation applied to QA judge.
   Tables `dreams_qa_log` and `dyad_state_pins` added via Alembic 005.
-- Current verified baseline: **1257 passed, 0 failed, 37 environmental
+- Phase 10.7 self-audit (2026-04-17) found 1 HIGH (AC-10.26 scene-fodder
+  routing missing despite Step 9 falsely claiming PASS) + 2 MEDIUM
+  (markdown writer race condition, test-name clarity). All three closed
+  in the remediation bundle: `_route_qa_scene_fodder_to_open_loops`
+  added to `runner.py`; `_file_lock` context manager added to
+  `notifications.py`; auto-promote test renamed for clarity. PHASE_10.md
+  Step 10 carries the corrected AC-10.26 row + remediation record.
+- Current verified baseline: **1257 passed, 0 failed, 38 environmental
   Postgres skips, 0 xfailed**.
 - `ruff check src tests scripts` is clean.
 - `python -m mypy --strict src` is clean across 115 source files.

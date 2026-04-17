@@ -170,3 +170,66 @@ async def test_consistency_qa_writes_pin_on_factual_contradiction(
         row = result.first()
         assert row is not None
         assert row[0] >= 1
+
+
+async def test_healthy_divergence_scene_fodder_lands_in_open_loops(
+    seeded_session,  # noqa: ARG001
+) -> None:
+    """Phase 10.7 AC-10.26 regression: healthy_divergence scene_fodder
+    routed via runner._route_qa_scene_fodder_to_open_loops becomes
+    OpenLoop rows tagged with the dreams_qa source qualifier."""
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    from starry_lyfe.dreams.generators.consistency_qa import generate_consistency_qa
+    from starry_lyfe.dreams.runner import _route_qa_scene_fodder_to_open_loops
+
+    canon = load_all_canon()
+    bind = seeded_session.bind
+    session_factory = async_sessionmaker(bind=bind, expire_on_commit=False)
+
+    run_id = uuid.uuid4()
+    healthy_payload = {
+        "relationship_key": "adelia_bina",
+        "verdict": QAVerdict.HEALTHY_DIVERGENCE.value,
+        "divergence_summary": "Bina sees grounding; Adelia sees buoyancy.",
+        "contradictions": [],
+        "scene_fodder": [
+            "Bina notices the cardamom Adelia missed.",
+            "Adelia teases Bina about the over-precise paella timer.",
+        ],
+    }
+    llm_client = _SyntheticStubBDOne(
+        verdicts_by_key={"adelia_bina": healthy_payload}
+    )
+
+    qa_result = await generate_consistency_qa(
+        run_id=run_id,
+        canon=canon,
+        llm_client=llm_client,
+        session_factory=session_factory,
+        now=datetime(2026, 4, 17, 3, 0, 0, tzinfo=UTC),
+    )
+
+    await _route_qa_scene_fodder_to_open_loops(
+        qa_result, canon, session_factory,
+        datetime(2026, 4, 17, 3, 0, 0, tzinfo=UTC),
+    )
+
+    async with session_factory() as session:
+        result = await session.execute(
+            text(
+                "SELECT loop_summary, loop_type, character_id, best_next_speaker "
+                "FROM starry_lyfe.open_loops "
+                "WHERE loop_type LIKE '%:dreams_qa' "
+                "AND character_id = 'adelia' "
+                "ORDER BY created_at DESC LIMIT 5"
+            )
+        )
+        rows = list(result)
+        # Two scene_fodder strings → two rows tagged dreams_qa.
+        assert len(rows) >= 2
+        loop_types = {r[1] for r in rows}
+        # Writer qualifies non-default source via loop_type:source.
+        assert "dreams_qa_scene_seed:dreams_qa" in loop_types
+        speakers = {r[3] for r in rows}
+        assert "bina" in speakers

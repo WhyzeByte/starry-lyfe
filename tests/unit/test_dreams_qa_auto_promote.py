@@ -63,8 +63,14 @@ async def test_should_promote_returns_false_with_no_history() -> None:
 
 
 @pytest.mark.asyncio
-async def test_should_promote_returns_true_at_exactly_threshold_minus_one() -> None:
-    """If THRESHOLD_NIGHTS - 1 prior nights all flagged the same field, promote."""
+async def test_should_promote_triggers_when_tonight_completes_threshold_chain() -> None:
+    """When THRESHOLD_NIGHTS - 1 prior nights all flagged the same field, the
+    third (current) flag completes the chain and the function returns True.
+
+    Naming note: ``should_promote`` is consulted ON the contradicting night.
+    THRESHOLD_NIGHTS=3 means "promote on the 3rd consecutive night", so
+    seeing 2 prior qualifying nights is the trigger.
+    """
     now = datetime(2026, 4, 17, 3, 0, 0, tzinfo=UTC)
     rows = [
         {

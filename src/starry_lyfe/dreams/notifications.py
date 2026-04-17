@@ -20,9 +20,13 @@ The module is extensible — future webhook/email destinations slot into
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+import os
+import sys
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager, suppress
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import IO
 
 from .consistency.schemas import Contradiction, QAVerdict
 
@@ -90,22 +94,64 @@ def _ensure_daily_file(path: Path) -> None:
     path.write_text(skeleton, encoding="utf-8")
 
 
-def _emit_markdown(
-    verdict: QAVerdict,
+@contextmanager
+def _file_lock(handle: IO[str]) -> Iterator[None]:
+    """Cross-platform exclusive file lock for the duration of the block.
+
+    Phase 10.7 F2 remediation: defends ``_emit_markdown`` against the
+    read-modify-write race that could clobber a verdict when two Dreams
+    runs collide on the same UTC date (cron jitter, manual replay,
+    systemd retry). Uses ``msvcrt.locking`` on Windows and ``fcntl.flock``
+    on POSIX. Falls back to a no-op if neither module is importable
+    (very old or stripped-down Python builds) — a warning is logged but
+    no exception is raised, preserving the best-effort dispatcher
+    contract.
+    """
+    if sys.platform == "win32":
+        try:
+            import msvcrt
+
+            # LK_LOCK blocks until the lock is acquired. Lock 1 byte at the
+            # current position; on Windows the byte range is enough to
+            # serialize concurrent writers.
+            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+            try:
+                yield
+            finally:
+                # Re-position to the byte we locked before unlocking.
+                handle.seek(0)
+                with suppress(OSError):
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            return
+        except (ImportError, OSError) as exc:
+            logger.warning(
+                "dreams_qa_markdown_lock_unavailable",
+                extra={"platform": sys.platform, "error": str(exc)},
+            )
+            yield
+            return
+    try:
+        import fcntl
+
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    except (ImportError, OSError) as exc:
+        logger.warning(
+            "dreams_qa_markdown_lock_unavailable",
+            extra={"platform": sys.platform, "error": str(exc)},
+        )
+        yield
+
+
+def _render_entry(
     relationship_key: str,
     divergence_summary: str,
     contradictions: list[Contradiction],
-    *,
-    now: datetime | None = None,
-) -> None:
-    """Append a verdict entry to the daily markdown ledger."""
-    path = _daily_file_path(now)
-    _ensure_daily_file(path)
-    text = path.read_text(encoding="utf-8")
-    section_header = _VERDICT_SECTION_HEADER[verdict]
-    if section_header not in text:
-        # Schema drift; append to end as fallback rather than crash.
-        text += f"\n{section_header}\n\n"
+) -> str:
+    """Render the markdown bullet for a single verdict entry."""
     entry_lines: list[str] = [
         f"- **{relationship_key}**",
         f"  - {divergence_summary}" if divergence_summary else "",
@@ -118,16 +164,47 @@ def _emit_markdown(
                 f"    - `{c.field_name}`{pov_str}: observed {c.observed_value!r} "
                 f"vs canonical {c.canonical_value!r} ({c.shared_canon_field})"
             )
-    entry = "\n".join(line for line in entry_lines if line) + "\n"
+    return "\n".join(line for line in entry_lines if line) + "\n"
 
-    # Insert the entry RIGHT AFTER the section header, preserving the rest.
+
+def _emit_markdown(
+    verdict: QAVerdict,
+    relationship_key: str,
+    divergence_summary: str,
+    contradictions: list[Contradiction],
+    *,
+    now: datetime | None = None,
+) -> None:
+    """Append a verdict entry to the daily markdown ledger.
+
+    Phase 10.7 F2: the read-modify-write critical section is wrapped in
+    ``_file_lock`` so two concurrent Dreams runs on the same UTC date
+    serialize cleanly instead of clobbering each other.
+    """
+    path = _daily_file_path(now)
+    _ensure_daily_file(path)
+    section_header = _VERDICT_SECTION_HEADER[verdict]
+    entry = _render_entry(relationship_key, divergence_summary, contradictions)
     insertion_marker = section_header + "\n\n"
-    if insertion_marker in text:
-        text = text.replace(insertion_marker, insertion_marker + entry, 1)
-    else:
-        # Fallback: append to end.
-        text = text.rstrip() + f"\n\n{section_header}\n\n{entry}"
-    path.write_text(text, encoding="utf-8")
+
+    # Open r+ so we can lock the file handle while doing read-modify-write.
+    # New file is guaranteed to exist (created by _ensure_daily_file).
+    with path.open("r+", encoding="utf-8") as handle, _file_lock(handle):
+        # Re-read inside the lock — another writer may have appended
+        # between _ensure_daily_file and this point.
+        handle.seek(0)
+        text = handle.read()
+        if section_header not in text:
+            text += f"\n{section_header}\n\n"
+        if insertion_marker in text:
+            text = text.replace(insertion_marker, insertion_marker + entry, 1)
+        else:
+            text = text.rstrip() + f"\n\n{section_header}\n\n{entry}"
+        handle.seek(0)
+        handle.truncate()
+        handle.write(text)
+        handle.flush()
+        os.fsync(handle.fileno())
 
 
 # Public dispatcher table — extensible. Add (callable, name) tuples here for

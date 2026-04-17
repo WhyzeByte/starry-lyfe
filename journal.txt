@@ -403,3 +403,60 @@ WAF result:
 End of v7 architectural track. Phase 10.7 is the terminal architectural
 phase. Subsequent work is operational (deployment automation,
 observability dashboards, Msty persona/crew model-card authoring).
+
+------------------------------------------------------------
+Phase 10.7 — Self-audit + remediation F1/F2/F3 (2026-04-17)
+------------------------------------------------------------
+Independent post-ship structural audit (Project Owner request "Audit
+Phase 7", interpreted as Phase 10.7) returned FAIL with 1 HIGH + 2
+MEDIUM findings. All three closed in this remediation bundle.
+
+F1 (HIGH) — AC-10.26 violation: scene_fodder never written to open_loops.
+  - generate_consistency_qa() returned scene_fodder for healthy_divergence
+    but neither the generator nor the runner called write_new_open_loops()
+    with source="dreams_qa". The Step 9 execution record falsely claimed
+    PASS; the writer signature was wired but no call site existed.
+  - Fix: added runner._route_qa_scene_fodder_to_open_loops() that, after
+    the QA pass completes, iterates HEALTHY_DIVERGENCE checks and writes
+    one OpenLoop row per non-empty scene_fodder string. Anchored on
+    relationship.pov_a so the row surfaces in either character's
+    open-loop scan; pov_b lands as best_next_speaker. The writer's
+    source="dreams_qa" qualifies loop_type to "dreams_qa_scene_seed:dreams_qa".
+  - Routing wrapped in try/except so failures become warnings, not crashes.
+  - New integration regression at
+    tests/integration/test_dreams_consistency_glue.py
+    ::test_healthy_divergence_scene_fodder_lands_in_open_loops asserts
+    rows land tagged correctly with the right counterpart speaker.
+
+F2 (MEDIUM) — Markdown ledger race condition.
+  - _emit_markdown did read_text() → in-memory replace() → write_text()
+    with no file lock. Two concurrent Dreams runs on the same UTC date
+    (cron jitter / manual replay / systemd retry) would clobber each
+    other.
+  - Fix: added _file_lock(handle) cross-platform context manager
+    (msvcrt.locking on Windows, fcntl.flock on POSIX, no-op fallback
+    with warning on stripped builds). Refactored _emit_markdown to open
+    "r+", hold the lock for the full read-modify-write critical section,
+    re-read inside the lock, truncate + write + fsync before releasing.
+  - Extracted _render_entry() helper to keep the lock-protected section
+    focused.
+
+F3 (MEDIUM) — Auto-promote test name read backward.
+  - Renamed test_should_promote_returns_true_at_exactly_threshold_minus_one
+    to test_should_promote_triggers_when_tonight_completes_threshold_chain
+    with an explanatory docstring noting that THRESHOLD_NIGHTS=3 means
+    "promote on the 3rd consecutive night" — should_promote is consulted
+    ON the contradicting night, so seeing 2 prior qualifying nights is
+    the trigger.
+
+WAF after remediation:
+  - pytest: 1257 passed, 0 failed, 38 environmental Postgres skips,
+    0 xfailed (+1 environmental-skip integration test for AC-10.26).
+  - ruff check src tests scripts: clean.
+  - python -m mypy --strict src: clean across 115 source files.
+
+Lesson recorded in PHASE_10.md Step 10: Step 9 self-review missed F1
+because it relied on the writer-signature change as evidence of
+integration. Signature changes are necessary but not sufficient — the
+call site must exist. Future Step 9 records should include grep
+verification per AC before claiming PASS.

@@ -266,6 +266,24 @@ async def run_dreams_pass(
         total_output += consistency_qa_result.output_tokens
         if consistency_qa_result.warnings:
             warnings.extend(f"consistency_qa: {w}" for w in consistency_qa_result.warnings)
+
+        # Phase 10.7 AC-10.26: route healthy_divergence scene_fodder into
+        # open_loops with source="dreams_qa" so they surface as scene seeds
+        # the next time both halves of the relationship are present.
+        # Anchored on pov_a (canonical relationship key ordering); pov_b is
+        # the suggested counterpart speaker.
+        try:
+            await _route_qa_scene_fodder_to_open_loops(
+                consistency_qa_result, canon, session_factory, now
+            )
+        except Exception as exc:  # noqa: BLE001 — fodder routing is best-effort
+            logger.exception(
+                "dreams_qa_scene_fodder_routing_failed",
+                extra={"run_id": str(run_id)},
+            )
+            warnings.append(
+                f"consistency_qa_fodder_routing: {type(exc).__name__}: {exc}"
+            )
     except Exception as exc:  # noqa: BLE001 — QA pass failure must not crash Dreams
         logger.exception(
             "dreams_consistency_qa_failed",
@@ -308,6 +326,77 @@ async def run_dreams_pass(
         warnings=warnings,
         consistency_qa=consistency_qa_result,
     )
+
+
+# ---------------------------------------------------------------------------
+# Phase 10.7 — QA scene-fodder routing helper
+# ---------------------------------------------------------------------------
+
+
+async def _route_qa_scene_fodder_to_open_loops(
+    qa_result: Any,
+    canon: Canon,
+    session_factory: SessionFactory,
+    now: datetime,
+) -> None:
+    """Persist healthy_divergence scene fodder as open_loops with source='dreams_qa'.
+
+    AC-10.26: each non-empty ``scene_fodder`` string from a HEALTHY_DIVERGENCE
+    verdict becomes one OpenLoop row tagged via ``loop_type='dreams_qa_scene_seed:dreams_qa'``
+    (the writer qualifies non-default sources in loop_type since the OpenLoop
+    table has no ``source`` column today). The row is anchored to the
+    relationship's pov_a so it surfaces in either character's open-loop scan;
+    pov_b lands as ``best_next_speaker``. Quietly skips checks with empty fodder.
+    """
+    from .consistency.relationships import enumerate_all
+    from .consistency.schemas import QAVerdict
+
+    rels = {r.relationship_key: r for r in enumerate_all(canon)}
+    rows_to_write: list[tuple[str, dict[str, Any]]] = []
+    for check in qa_result.relationship_checks:
+        if check.verdict is not QAVerdict.HEALTHY_DIVERGENCE:
+            continue
+        rel = rels.get(check.relationship_key)
+        if rel is None:
+            continue
+        for fodder in check.scene_fodder:
+            if not fodder:
+                continue
+            rows_to_write.append(
+                (
+                    rel.pov_a,
+                    {
+                        "summary": str(fodder),
+                        "loop_type": "dreams_qa_scene_seed",
+                        "urgency": "low",
+                        "best_next_speaker": rel.pov_b,
+                        "suggested_scene": (
+                            f"Healthy divergence between {rel.pov_a} and "
+                            f"{rel.pov_b}: {check.divergence_summary}"
+                        ),
+                    },
+                )
+            )
+    if not rows_to_write:
+        return
+    async with session_factory() as session, session.begin():
+        for character_id, loop_dict in rows_to_write:
+            output = GenerationOutput(
+                kind="open_loops",
+                raw_llm_text="",
+                rendered_prose="",
+                structured_data={"new_loops": [loop_dict]},
+                input_tokens=0,
+                output_tokens=0,
+                warnings=[],
+            )
+            await write_new_open_loops(
+                session,
+                character_id=character_id,
+                output=output,
+                now=now,
+                source="dreams_qa",
+            )
 
 
 # ---------------------------------------------------------------------------
