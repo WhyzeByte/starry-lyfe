@@ -229,6 +229,52 @@ class Meta(_Permissive):
     preserve_markers: list[PreserveMarker] | PreserveMarkersBlock | None = None
 
 
+class RoutineDailyBlock(_Permissive):
+    """Phase 10.5c: a single time-slot in a per-character daily routine."""
+
+    time: str
+    activity: str
+    location: str
+
+
+class RoutineRecurringEvent(_Permissive):
+    """Phase 10.5c: a recurring event in a per-character cadence."""
+
+    name: str
+    cadence: str
+    weekday: str | None = None
+    notes: str
+
+
+class CharacterRoutinesBlock(_Permissive):
+    """Phase 10.5c: per-character routines block (Option A pre-decision)."""
+
+    weekday: list[RoutineDailyBlock]
+    weekend: list[RoutineDailyBlock]
+    recurring_events: list[RoutineRecurringEvent] | None = None
+
+
+class AliciaCommunicationDistributionBlock(_Permissive):
+    """Phase 10.5c: weighted distribution over communication_mode for Alicia-away Dreams output."""
+
+    phone: float
+    letter: float
+    video_call: float
+
+
+class RichRuntime(_Permissive):
+    """Phase 10.5c: per-character runtime block.
+
+    The only ``runtime``-prefixed block in the architecture (per Phase
+    10.5c §2.6 + Option A pre-decision). Routines genuinely have no
+    other rich home. Alicia additionally carries the away-mode
+    communication distribution here per data-locality.
+    """
+
+    routines: CharacterRoutinesBlock | None = None
+    alicia_communication_distribution: AliciaCommunicationDistributionBlock | None = None
+
+
 class RichCharacter(_Permissive):
     """Top-level schema for a per-character rich YAML (women + Shawn)."""
 
@@ -268,3 +314,8 @@ class RichCharacter(_Permissive):
     life_history: dict[str, object] | None = None
     self_knowledge_architecture: dict[str, object] | None = None
     bonding_architecture: dict[str, object] | None = None
+
+    # --- Phase 10.5c runtime block (per-character) ---
+    # Currently authored on women only (carries routines + Alicia's
+    # communication distribution). Shawn omits — no routines.
+    runtime: RichRuntime | None = None

@@ -20,10 +20,13 @@ signature_scenes:
     objective_description: "Alicia's arrival into the chosen family. The greeting — forehead to forehead, hand on the back of the other's neck — established as the canonical Adelia-Alicia emblem."
 
 genealogy:
+  # Phase 10.5c: birthdate is the durable source of truth; age is derived at hydration time.
+  # Gavin's birthdate sourced from Adelia_Raye_Knowledge_Stack.md (star map on Calgary night sky for date of his birth).
   - subject: "gavin"
     biological_parents: ["bina"]
     legal_parents: ["bina", "reina"]
-    age: 7
+    birthdate: "2018-09-12"
+    age: 7   # derived from birthdate at runtime; cached value for current narrow consumers
 
 property:
   location: "Foothills County near Priddis, Alberta"
@@ -37,16 +40,255 @@ timeline:
     date: "2022"
     description: "Bina and Reina married."
 
+# Pair definitions: the four Whyze-to-character pairs.
+# This is the SINGLE AUTHORITATIVE SOURCE for narrow CanonPairs.Pair fields
+# (Phase 10.5c §2.5). Per-woman pair_architecture blocks are POV prose for
+# prompt assembly and DO NOT hydrate the typed Pair object.
 pairs:
   - canonical_name: "The Entangled Pair"
+    character: "adelia"
     classification: "generator-governor polarity"
     mechanism: "Ne flood meets Si structure; the pattern becomes legible to both simultaneously"
+    shared_functions: "Fi-Te axis (direct bridge)"
+    what_she_provides: "Emotional buoyancy, divergent ideation, the destination"
+    how_she_breaks_spiral: "Injects warmth and play (Ne)"
+    core_metaphor: "The Compass and the Gravity"
+    cadence: "continuous"
   - canonical_name: "The Circuit Pair"
+    character: "bina"
     classification: "diagnostic love"
     mechanism: "Si-Fe loop meets Fe-Ti loop; maintenance architecture that never needs to be named"
+    shared_functions: "Zero (Superego relation)"
+    what_she_provides: "Physical grounding, diagnostic care, the road"
+    how_she_breaks_spiral: "Interrupts with concrete sensory input (Si)"
+    core_metaphor: "The Architect and the Sentinel"
+    cadence: "continuous"
   - canonical_name: "The Kinetic Pair"
+    character: "reina"
     classification: "kinetic-vanguard"
     mechanism: "Se urgency meets Ne scope; the blast pattern survives the test"
+    shared_functions: "Se-Ni axis (compensatory)"
+    what_she_provides: "Tactical execution, clean incision, the immediate action"
+    how_she_breaks_spiral: "Closes distance and delivers one clean-incision sentence (Se, tactical)"
+    core_metaphor: "The Mastermind and the Operator"
+    cadence: "continuous"
   - canonical_name: "The Solstice Pair"
-    classification: "solstice-threshold"
+    character: "alicia"
+    classification: "Complete functional inversion / Socionics duality"
     mechanism: "Se-Fi meets Ne-Fi; the warmth survives the distance"
+    shared_functions: "Zero shared (full inversion)"
+    what_she_provides: "Direct polyvagal co-regulation, somatic present-moment re-entry"
+    how_she_breaks_spiral: "Closes distance, delivers weight and warmth, counts his breath against hers (Se, somatic)"
+    core_metaphor: "The Duality"
+    cadence: "intermittent"
+
+# System-level memory tier taxonomy. 7 tiers total.
+# Hydrates CanonDyads.memory_tiers. Cross-character objective fact —
+# lives here per Phase 10.5c §2.4.
+memory_tiers:
+  - name: "Canon Facts"
+    tier: 1
+    mutable: false
+    description: "Immutable truths from YAML source (names, ages, locations, relationships, backstory)"
+  - name: "Character Baseline"
+    tier: 2
+    mutable: false
+    description: "Personality profiles, cognitive stacks, voice parameters, behavioral axioms"
+  - name: "Dyad State (Whyze)"
+    tier: 3
+    mutable: true
+    description: "Relationship state between each woman and Whyze"
+  - name: "Dyad State (Internal)"
+    tier: 4
+    mutable: true
+    description: "Relationship state between the women themselves"
+  - name: "Episodic Memories"
+    tier: 5
+    mutable: true
+    description: "Conversation-extracted events with embeddings"
+  - name: "Open Loops"
+    tier: 6
+    mutable: true
+    description: "Unresolved threads from previous conversations"
+  - name: "Transient Somatic State"
+    tier: 7
+    mutable: true
+    description: "Current biological and psychological state per character"
+
+# Per-dyad objective baseline state: 6 inter-woman + 4 Whyze-pair = 10 entries.
+# Hydrates CanonDyads.dyads. Cross-character objective state, not POV — lives
+# here per Phase 10.5c §2.4 D1. Per-woman family_and_other_dyads blocks remain
+# POV prose for prompt assembly and DO NOT hydrate the typed Dyad object.
+# Dimension baselines are initial calibration values (0.0-1.0 scale).
+dyads_baseline:
+  # --- Resident continuous (inter-woman) ---
+  adelia_bina:
+    members: ["adelia", "bina"]
+    type: "inter_woman"
+    subtype: "resident_continuous"
+    interlock: "anchor_dynamic"
+    dimensions:
+      trust: {baseline: 0.85, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.70, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.10, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.05, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.80, min: 0.0, max: 1.0}
+
+  bina_reina:
+    members: ["bina", "reina"]
+    type: "inter_woman"
+    subtype: "resident_continuous"
+    interlock: "shield_wall"
+    dimensions:
+      trust: {baseline: 0.90, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.85, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.08, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.03, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.90, min: 0.0, max: 1.0}
+
+  adelia_reina:
+    members: ["adelia", "reina"]
+    type: "inter_woman"
+    subtype: "resident_continuous"
+    interlock: "kinetic_vanguard"
+    dimensions:
+      trust: {baseline: 0.80, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.65, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.15, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.10, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.75, min: 0.0, max: 1.0}
+
+  # --- Alicia-orbital (inter-woman, residence-conditional) ---
+  adelia_alicia:
+    members: ["adelia", "alicia"]
+    type: "inter_woman"
+    subtype: "alicia_orbital"
+    interlock: "letter_era_friends"
+    is_currently_active: false
+    dimensions:
+      trust: {baseline: 0.88, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.75, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.05, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.02, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.85, min: 0.0, max: 1.0}
+
+  bina_alicia:
+    members: ["bina", "alicia"]
+    type: "inter_woman"
+    subtype: "alicia_orbital"
+    interlock: "couch_above_the_garage"
+    is_currently_active: false
+    dimensions:
+      trust: {baseline: 0.82, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.68, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.08, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.10, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.78, min: 0.0, max: 1.0}
+
+  reina_alicia:
+    members: ["reina", "alicia"]
+    type: "inter_woman"
+    subtype: "alicia_orbital"
+    interlock: "lateral_friends"
+    is_currently_active: false
+    dimensions:
+      trust: {baseline: 0.78, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.55, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.12, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.08, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.72, min: 0.0, max: 1.0}
+
+  # --- Whyze dyads ---
+  whyze_adelia:
+    members: ["whyze", "adelia"]
+    type: "whyze_pair"
+    pair: "entangled"
+    dimensions:
+      trust: {baseline: 0.92, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.90, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.08, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.05, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.88, min: 0.0, max: 1.0}
+
+  whyze_bina:
+    members: ["whyze", "bina"]
+    type: "whyze_pair"
+    pair: "circuit"
+    dimensions:
+      trust: {baseline: 0.88, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.75, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.05, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.03, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.85, min: 0.0, max: 1.0}
+
+  whyze_reina:
+    members: ["whyze", "reina"]
+    type: "whyze_pair"
+    pair: "kinetic"
+    dimensions:
+      trust: {baseline: 0.85, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.78, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.10, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.08, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.80, min: 0.0, max: 1.0}
+
+  whyze_alicia:
+    members: ["whyze", "alicia"]
+    type: "whyze_pair"
+    pair: "solstice"
+    is_currently_active: false
+    dimensions:
+      trust: {baseline: 0.80, min: 0.0, max: 1.0}
+      intimacy: {baseline: 0.72, min: 0.0, max: 1.0}
+      conflict: {baseline: 0.05, min: 0.0, max: 1.0}
+      unresolved_tension: {baseline: 0.03, min: 0.0, max: 1.0}
+      repair_history: {baseline: 0.75, min: 0.0, max: 1.0}
+
+# 6 cross-partner interlocks: 3 resident_continuous + 3 alicia_orbital.
+# Hydrates CanonInterlocks.interlocks. Per-woman family_and_other_dyads blocks
+# remain POV prose for prompt assembly per Phase 10.5c §2.4 I2 +
+# perspective-divergence-required principle (Phase 10.5b RT2).
+interlocks:
+  - key: "anchor_dynamic"
+    name: "The Anchor Dynamic"
+    members: ["adelia", "bina"]
+    description: "Chaotic sky meets structured ground. Bina protects Adelia's creative fire with a logistical fortress."
+    tone: "Warm, domestic, quietly romantic"
+    type: "resident_continuous"
+
+  - key: "shield_wall"
+    name: "The Shield Wall"
+    members: ["bina", "reina"]
+    description: "The family's two protectors divided by jurisdiction. Bina holds the internal perimeter, Reina the external."
+    tone: "Low-token operational shorthand; a single nod is a completed tactical brief"
+    type: "resident_continuous"
+
+  - key: "kinetic_vanguard"
+    name: "The Kinetic Vanguard"
+    members: ["adelia", "reina"]
+    description: "The loud half of the household. Adelia dreams the explosion; Reina calculates the physical apex."
+    tone: "High energy, collaborative, kinetic"
+    type: "resident_continuous"
+
+  - key: "letter_era_friends"
+    name: "The Letter-Era Friends"
+    members: ["adelia", "alicia"]
+    description: "Oldest cross-character dyad. Formed by paper letters, Buenos Aires to Calgary, October 2019 through mid-2021."
+    tone: "Hybrid personal dialect: Argentine Rioplatense, Valencian-inflected Castilian, Australian English"
+    type: "alicia_orbital"
+    origin: "October 2019, gallery opening in Inglewood"
+
+  - key: "couch_above_the_garage"
+    name: "The Couch Above the Garage"
+    members: ["bina", "alicia"]
+    description: "Most tender dyad. Romantic for one year (2023-2024), ended cleanly. Preserved past is in the room."
+    tone: "Tender, careful, preserved past"
+    type: "alicia_orbital"
+
+  - key: "lateral_friends"
+    name: "The Lateral Friends"
+    members: ["reina", "alicia"]
+    description: "Both Se-dominant professional body readers scanning different layers of the same present moment."
+    tone: "Lateral, professional overlap, football argument"
+    type: "alicia_orbital"
+    canonical_disagreement: "European vs South American football, European peninsular Castilian vs Argentine Rioplatense"

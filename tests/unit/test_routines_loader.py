@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from starry_lyfe.canon.loader import load_all_canon, load_routines
+from starry_lyfe.canon.loader import load_all_canon
 from starry_lyfe.canon.routines_loader import (
     clear_routines_cache,
     get_alicia_communication_distribution,
@@ -15,23 +15,23 @@ from starry_lyfe.canon.schemas.enums import CharacterNotFoundError
 
 class TestRoutinesYaml:
     def test_routines_yaml_loads_without_error(self) -> None:
-        canon = load_routines()
+        canon = load_all_canon().routines
         assert canon.version == "7.1"
         assert len(canon.routines) == 4
 
     def test_all_four_characters_have_stanzas(self) -> None:
-        canon = load_routines()
+        canon = load_all_canon().routines
         keys = {k.value for k in canon.routines}
         assert keys == {"adelia", "bina", "reina", "alicia"}
 
     def test_each_character_has_weekday_and_weekend_blocks(self) -> None:
-        canon = load_routines()
+        canon = load_all_canon().routines
         for char_id, stanza in canon.routines.items():
             assert len(stanza.weekday) >= 1, f"{char_id} missing weekday blocks"
             assert len(stanza.weekend) >= 1, f"{char_id} missing weekend blocks"
 
     def test_alicia_communication_distribution_present(self) -> None:
-        canon = load_routines()
+        canon = load_all_canon().routines
         dist = canon.alicia_communication_distribution
         total = dist.phone + dist.letter + dist.video_call
         # Approximately 1.0 (not strictly enforced per schema).
@@ -63,6 +63,6 @@ class TestCanonIntegration:
 
     def test_routines_stanza_key_matches_character_field(self) -> None:
         """The schema validator enforces this — regress against stanza/key mismatch."""
-        canon = load_routines()
+        canon = load_all_canon().routines
         for char_id, stanza in canon.routines.items():
             assert stanza.character == char_id

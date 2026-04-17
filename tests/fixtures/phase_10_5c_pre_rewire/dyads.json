@@ -1,0 +1,429 @@
+{
+  "dyads": {
+    "adelia_alicia": {
+      "dimensions": {
+        "conflict": {
+          "baseline": 0.05,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "intimacy": {
+          "baseline": 0.75,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "repair_history": {
+          "baseline": 0.85,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "trust": {
+          "baseline": 0.88,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "unresolved_tension": {
+          "baseline": 0.02,
+          "max": 1.0,
+          "min": 0.0
+        }
+      },
+      "interlock": "letter_era_friends",
+      "is_currently_active": false,
+      "members": [
+        "adelia",
+        "alicia"
+      ],
+      "pair": null,
+      "subtype": "alicia_orbital",
+      "type": "inter_woman"
+    },
+    "adelia_bina": {
+      "dimensions": {
+        "conflict": {
+          "baseline": 0.1,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "intimacy": {
+          "baseline": 0.7,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "repair_history": {
+          "baseline": 0.8,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "trust": {
+          "baseline": 0.85,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "unresolved_tension": {
+          "baseline": 0.05,
+          "max": 1.0,
+          "min": 0.0
+        }
+      },
+      "interlock": "anchor_dynamic",
+      "is_currently_active": null,
+      "members": [
+        "adelia",
+        "bina"
+      ],
+      "pair": null,
+      "subtype": "resident_continuous",
+      "type": "inter_woman"
+    },
+    "adelia_reina": {
+      "dimensions": {
+        "conflict": {
+          "baseline": 0.15,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "intimacy": {
+          "baseline": 0.65,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "repair_history": {
+          "baseline": 0.75,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "trust": {
+          "baseline": 0.8,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "unresolved_tension": {
+          "baseline": 0.1,
+          "max": 1.0,
+          "min": 0.0
+        }
+      },
+      "interlock": "kinetic_vanguard",
+      "is_currently_active": null,
+      "members": [
+        "adelia",
+        "reina"
+      ],
+      "pair": null,
+      "subtype": "resident_continuous",
+      "type": "inter_woman"
+    },
+    "bina_alicia": {
+      "dimensions": {
+        "conflict": {
+          "baseline": 0.08,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "intimacy": {
+          "baseline": 0.68,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "repair_history": {
+          "baseline": 0.78,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "trust": {
+          "baseline": 0.82,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "unresolved_tension": {
+          "baseline": 0.1,
+          "max": 1.0,
+          "min": 0.0
+        }
+      },
+      "interlock": "couch_above_the_garage",
+      "is_currently_active": false,
+      "members": [
+        "bina",
+        "alicia"
+      ],
+      "pair": null,
+      "subtype": "alicia_orbital",
+      "type": "inter_woman"
+    },
+    "bina_reina": {
+      "dimensions": {
+        "conflict": {
+          "baseline": 0.08,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "intimacy": {
+          "baseline": 0.85,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "repair_history": {
+          "baseline": 0.9,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "trust": {
+          "baseline": 0.9,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "unresolved_tension": {
+          "baseline": 0.03,
+          "max": 1.0,
+          "min": 0.0
+        }
+      },
+      "interlock": "shield_wall",
+      "is_currently_active": null,
+      "members": [
+        "bina",
+        "reina"
+      ],
+      "pair": null,
+      "subtype": "resident_continuous",
+      "type": "inter_woman"
+    },
+    "reina_alicia": {
+      "dimensions": {
+        "conflict": {
+          "baseline": 0.12,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "intimacy": {
+          "baseline": 0.55,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "repair_history": {
+          "baseline": 0.72,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "trust": {
+          "baseline": 0.78,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "unresolved_tension": {
+          "baseline": 0.08,
+          "max": 1.0,
+          "min": 0.0
+        }
+      },
+      "interlock": "lateral_friends",
+      "is_currently_active": false,
+      "members": [
+        "reina",
+        "alicia"
+      ],
+      "pair": null,
+      "subtype": "alicia_orbital",
+      "type": "inter_woman"
+    },
+    "whyze_adelia": {
+      "dimensions": {
+        "conflict": {
+          "baseline": 0.08,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "intimacy": {
+          "baseline": 0.9,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "repair_history": {
+          "baseline": 0.88,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "trust": {
+          "baseline": 0.92,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "unresolved_tension": {
+          "baseline": 0.05,
+          "max": 1.0,
+          "min": 0.0
+        }
+      },
+      "interlock": null,
+      "is_currently_active": null,
+      "members": [
+        "whyze",
+        "adelia"
+      ],
+      "pair": "entangled",
+      "subtype": null,
+      "type": "whyze_pair"
+    },
+    "whyze_alicia": {
+      "dimensions": {
+        "conflict": {
+          "baseline": 0.05,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "intimacy": {
+          "baseline": 0.72,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "repair_history": {
+          "baseline": 0.75,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "trust": {
+          "baseline": 0.8,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "unresolved_tension": {
+          "baseline": 0.03,
+          "max": 1.0,
+          "min": 0.0
+        }
+      },
+      "interlock": null,
+      "is_currently_active": false,
+      "members": [
+        "whyze",
+        "alicia"
+      ],
+      "pair": "solstice",
+      "subtype": null,
+      "type": "whyze_pair"
+    },
+    "whyze_bina": {
+      "dimensions": {
+        "conflict": {
+          "baseline": 0.05,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "intimacy": {
+          "baseline": 0.75,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "repair_history": {
+          "baseline": 0.85,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "trust": {
+          "baseline": 0.88,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "unresolved_tension": {
+          "baseline": 0.03,
+          "max": 1.0,
+          "min": 0.0
+        }
+      },
+      "interlock": null,
+      "is_currently_active": null,
+      "members": [
+        "whyze",
+        "bina"
+      ],
+      "pair": "circuit",
+      "subtype": null,
+      "type": "whyze_pair"
+    },
+    "whyze_reina": {
+      "dimensions": {
+        "conflict": {
+          "baseline": 0.1,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "intimacy": {
+          "baseline": 0.78,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "repair_history": {
+          "baseline": 0.8,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "trust": {
+          "baseline": 0.85,
+          "max": 1.0,
+          "min": 0.0
+        },
+        "unresolved_tension": {
+          "baseline": 0.08,
+          "max": 1.0,
+          "min": 0.0
+        }
+      },
+      "interlock": null,
+      "is_currently_active": null,
+      "members": [
+        "whyze",
+        "reina"
+      ],
+      "pair": "kinetic",
+      "subtype": null,
+      "type": "whyze_pair"
+    }
+  },
+  "memory_tiers": [
+    {
+      "description": "Immutable truths from YAML source (names, ages, locations, relationships, backstory)",
+      "mutable": false,
+      "name": "Canon Facts",
+      "tier": 1
+    },
+    {
+      "description": "Personality profiles, cognitive stacks, voice parameters, behavioral axioms",
+      "mutable": false,
+      "name": "Character Baseline",
+      "tier": 2
+    },
+    {
+      "description": "Relationship state between each woman and Whyze",
+      "mutable": true,
+      "name": "Dyad State (Whyze)",
+      "tier": 3
+    },
+    {
+      "description": "Relationship state between the women themselves",
+      "mutable": true,
+      "name": "Dyad State (Internal)",
+      "tier": 4
+    },
+    {
+      "description": "Conversation-extracted events with embeddings",
+      "mutable": true,
+      "name": "Episodic Memories",
+      "tier": 5
+    },
+    {
+      "description": "Unresolved threads from previous conversations",
+      "mutable": true,
+      "name": "Open Loops",
+      "tier": 6
+    },
+    {
+      "description": "Current biological and psychological state per character",
+      "mutable": true,
+      "name": "Transient Somatic State",
+      "tier": 7
+    }
+  ],
+  "version": "7.1"
+}

@@ -1,0 +1,77 @@
+{
+  "interlocks": {
+    "anchor_dynamic": {
+      "canonical_disagreement": null,
+      "description": "Chaotic sky meets structured ground. Bina protects Adelia's creative fire with a logistical fortress.",
+      "members": [
+        "adelia",
+        "bina"
+      ],
+      "name": "The Anchor Dynamic",
+      "origin": null,
+      "tone": "Warm, domestic, quietly romantic",
+      "type": "resident_continuous"
+    },
+    "couch_above_the_garage": {
+      "canonical_disagreement": null,
+      "description": "Most tender dyad. Romantic for one year (2023-2024), ended cleanly. Preserved past is in the room.",
+      "members": [
+        "bina",
+        "alicia"
+      ],
+      "name": "The Couch Above the Garage",
+      "origin": null,
+      "tone": "Tender, careful, preserved past",
+      "type": "alicia_orbital"
+    },
+    "kinetic_vanguard": {
+      "canonical_disagreement": null,
+      "description": "The loud half of the household. Adelia dreams the explosion; Reina calculates the physical apex.",
+      "members": [
+        "adelia",
+        "reina"
+      ],
+      "name": "The Kinetic Vanguard",
+      "origin": null,
+      "tone": "High energy, collaborative, kinetic",
+      "type": "resident_continuous"
+    },
+    "lateral_friends": {
+      "canonical_disagreement": "European vs South American football, European peninsular Castilian vs Argentine Rioplatense",
+      "description": "Both Se-dominant professional body readers scanning different layers of the same present moment.",
+      "members": [
+        "reina",
+        "alicia"
+      ],
+      "name": "The Lateral Friends",
+      "origin": null,
+      "tone": "Lateral, professional overlap, football argument",
+      "type": "alicia_orbital"
+    },
+    "letter_era_friends": {
+      "canonical_disagreement": null,
+      "description": "Oldest cross-character dyad. Formed by paper letters, Buenos Aires to Calgary, October 2019 through mid-2021.",
+      "members": [
+        "adelia",
+        "alicia"
+      ],
+      "name": "The Letter-Era Friends",
+      "origin": "October 2019, gallery opening in Inglewood",
+      "tone": "Hybrid personal dialect: Argentine Rioplatense, Valencian-inflected Castilian, Australian English",
+      "type": "alicia_orbital"
+    },
+    "shield_wall": {
+      "canonical_disagreement": null,
+      "description": "The family's two protectors divided by jurisdiction. Bina holds the internal perimeter, Reina the external.",
+      "members": [
+        "bina",
+        "reina"
+      ],
+      "name": "The Shield Wall",
+      "origin": null,
+      "tone": "Low-token operational shorthand; a single nod is a completed tactical brief",
+      "type": "resident_continuous"
+    }
+  },
+  "version": "7.1"
+}

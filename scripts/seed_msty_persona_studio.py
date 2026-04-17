@@ -24,7 +24,7 @@ import sys
 from pathlib import Path
 from typing import TypedDict
 
-from starry_lyfe.canon.rich_loader import load_all_rich_characters
+from starry_lyfe.canon.rich_loader import load_rich_character
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -53,11 +53,12 @@ def _extract_few_shots_from_rich(character_id: str) -> list[FewShotEntry]:
     ``id``, an ``assistant`` block, and either a ``user`` line or a
     ``user_setup`` description. Entries missing either end are skipped
     (authoring-in-progress cases).
+
+    Read only the requested character YAML. The Msty export is a
+    four-woman surface, so a lock or ACL issue on an unrelated fifth
+    file must not fan out through the whole export path.
     """
-    chars = load_all_rich_characters()
-    rc = chars.get(character_id)
-    if rc is None:
-        return []
+    rc = load_rich_character(character_id)
 
     fs = rc.voice.few_shots
     if fs is None or not fs.examples:

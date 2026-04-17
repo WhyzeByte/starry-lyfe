@@ -19,8 +19,9 @@ Per ``Docs/_phases/PHASE_10.md §Phase 10.6`` spec §8 + §9.
 
 from __future__ import annotations
 
-import tempfile
+import shutil
 from pathlib import Path
+from uuid import uuid4
 
 # The 22 v7.0 residue tokens from Handoff section 8.1.
 V70_RESIDUE_TOKENS: list[str] = [
@@ -64,6 +65,15 @@ ALLOWED_PATTERNS: list[tuple[str, str]] = [
     ("sheismo", "Rioplatense"),
     ("sheismo", "voseo"),
 ]
+
+
+def _make_repo_local_tempdir() -> Path:
+    """Create a writable scratch directory inside the repo workspace."""
+    root = Path(__file__).resolve().parents[2] / ".test_tmp"
+    root.mkdir(exist_ok=True)
+    path = root / f"residue_{uuid4().hex}"
+    path.mkdir()
+    return path
 
 
 def _is_allowed(token: str, line: str) -> bool:
@@ -232,8 +242,8 @@ def test_normalization_notes_token_excluded() -> None:
     normalization_notes document RESOLVED drift — referencing the legacy
     token is the audit trail, not the drift itself. Phase 9 QA-1 closure.
     """
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp_path = Path(tmp)
+    tmp_path = _make_repo_local_tempdir()
+    try:
         yaml_dir = tmp_path / "Characters"
         yaml_dir.mkdir()
         (yaml_dir / "test_char.yaml").write_text(
@@ -252,12 +262,14 @@ def test_normalization_notes_token_excluded() -> None:
         assert "Aliyeh" not in tokens_found, (
             "Aliyeh inside normalization_notes should be excluded"
         )
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
 
 
 def test_token_outside_normalization_notes_still_fails() -> None:
     """v7.0 tokens OUTSIDE normalization_notes: blocks still fail."""
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp_path = Path(tmp)
+    tmp_path = _make_repo_local_tempdir()
+    try:
         yaml_dir = tmp_path / "Characters"
         yaml_dir.mkdir()
         (yaml_dir / "test_char.yaml").write_text(
@@ -272,12 +284,14 @@ def test_token_outside_normalization_notes_still_fails() -> None:
         assert "Aliyeh" in tokens_found, (
             "Aliyeh outside normalization_notes must still be caught"
         )
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
 
 
 def test_normalization_exclusion_does_not_mask_other_blocks() -> None:
     """Exclusion is scoped to normalization_notes only, not adjacent blocks."""
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp_path = Path(tmp)
+    tmp_path = _make_repo_local_tempdir()
+    try:
         yaml_dir = tmp_path / "Characters"
         yaml_dir.mkdir()
         (yaml_dir / "test_char.yaml").write_text(
@@ -292,6 +306,8 @@ def test_normalization_exclusion_does_not_mask_other_blocks() -> None:
         assert "Golden Pair" in tokens_found, (
             "Golden Pair in pair_architecture (not normalization_notes) must fail"
         )
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
 
 
 # ---------------------------------------------------------------------------

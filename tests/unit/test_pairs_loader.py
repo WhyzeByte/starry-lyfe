@@ -7,7 +7,6 @@ import sys
 from pathlib import Path
 
 import pytest
-import yaml
 
 from starry_lyfe.canon.pairs_loader import (
     PairMetadata,
@@ -62,11 +61,13 @@ class TestPairsLoader:
         assert get_pair_metadata("alicia").full_name == "The Solstice Pair"
 
     def test_all_eight_fields_present(self) -> None:
+        # Phase 10.5c: classification + mechanism now source from shared_canon.pairs[]
+        # (single-source-of-truth migration, R1 §2.5). Strings updated accordingly.
         clear_pair_cache()
         meta = get_pair_metadata("bina")
         assert meta.full_name == "The Circuit Pair"
-        assert meta.classification == "Orthogonal Opposition"
-        assert meta.mechanism == "Total division of operational domains"
+        assert meta.classification == "diagnostic love"
+        assert meta.mechanism.startswith("Si-Fe loop meets Fe-Ti loop")
         assert meta.core_metaphor == "The Architect and the Sentinel"
         assert meta.what_she_provides != ""
         assert meta.how_she_breaks_spiral != ""
@@ -96,12 +97,15 @@ class TestFormatPairMetadata:
             assert "CADENCE:" not in block.upper()
 
     def test_all_four_canonical_phrases(self) -> None:
+        # Phase 10.5c: classification strings migrated to shared_canon.pairs[]
+        # (single-source-of-truth migration, R1 §2.5). The four objective
+        # anchors are the shared_canon-authored values.
         clear_pair_cache()
         expected = {
-            "adelia": ("The Entangled Pair", "Intuitive Symbiosis", "The Compass and the Gravity"),
-            "bina": ("The Circuit Pair", "Orthogonal Opposition", "The Architect and the Sentinel"),
-            "reina": ("The Kinetic Pair", "Asymmetrical Leverage", "The Mastermind and the Operator"),
-            "alicia": ("The Solstice Pair", "Complete Jungian Duality", "The Duality"),
+            "adelia": ("The Entangled Pair", "generator-governor polarity", "The Compass and the Gravity"),
+            "bina": ("The Circuit Pair", "diagnostic love", "The Architect and the Sentinel"),
+            "reina": ("The Kinetic Pair", "kinetic-vanguard", "The Mastermind and the Operator"),
+            "alicia": ("The Solstice Pair", "Complete functional inversion / Socionics duality", "The Duality"),
         }
         for char_id, (pair_name, classification, metaphor) in expected.items():
             block = format_pair_metadata(char_id)
@@ -144,17 +148,25 @@ class TestErrorHandling:
 
 
 class TestSingleParse:
-    """F4: YAML parsed once, not per character."""
+    """F4: pair metadata hydrated once, not per character.
 
-    def test_four_characters_single_yaml_parse(self) -> None:
+    Phase 10.5c: pairs_loader now sources from shared_canon.pairs[] via
+    rich_loader.load_shared_canon. The parse-once invariant is enforced
+    by counting load_shared_canon calls instead of yaml.safe_load.
+    """
+
+    def test_four_characters_single_load_shared_canon(self) -> None:
         from unittest.mock import patch
 
         clear_pair_cache()
-        with patch("starry_lyfe.canon.pairs_loader.yaml.safe_load", wraps=__import__("yaml").safe_load) as mock_load:
+        with patch(
+            "starry_lyfe.canon.pairs_loader.load_shared_canon",
+            wraps=__import__("starry_lyfe.canon.rich_loader", fromlist=["load_shared_canon"]).load_shared_canon,
+        ) as mock_load:
             for char_id in ["adelia", "bina", "reina", "alicia"]:
                 get_pair_metadata(char_id)
             assert mock_load.call_count == 1, (
-                f"YAML parsed {mock_load.call_count} times instead of 1"
+                f"shared_canon loaded {mock_load.call_count} times instead of 1"
             )
 
 
@@ -259,24 +271,33 @@ class TestLayer5Integration:
 
 
 class TestPairsLoaderMissingEntriesR21:
-    """R-2.1: authoring a character without a pairs.yaml entry fails loudly at load."""
+    """R-2.1: authoring a character without a shared_canon.pairs entry fails loudly.
+
+    Phase 10.5c: pairs_loader now sources from shared_canon.pairs[]. The
+    missing-entries fail-loud invariant moves to the load_shared_canon
+    surface — if shared_canon.pairs is missing entries, _ensure_loaded
+    raises a single ValueError listing every missing character→pair_key.
+    """
 
     def test_pairs_loader_import_reports_all_missing_at_once(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """Missing pair rows must fail on module import, not only on first access."""
-        original_safe_load = yaml.safe_load
+        """Missing pair entries must fail on module import (re-import), not only on first access."""
+        from starry_lyfe.canon import pairs_loader, rich_loader
+        from starry_lyfe.canon.shared_schema import SharedCanon
 
-        def fake_safe_load(text: str) -> dict[str, object]:
-            data = original_safe_load(text)
-            assert isinstance(data, dict)
-            pairs = dict(data.get("pairs", {}))
-            pairs.pop("circuit", None)
-            pairs.pop("kinetic", None)
-            return {**data, "pairs": pairs}
+        original_load = rich_loader.load_shared_canon
+        full = original_load()
+        # Remove two pairs so bina and reina lack mappings.
+        retained = [sp for sp in (full.pairs or [])
+                    if sp.canonical_name not in ("The Circuit Pair", "The Kinetic Pair")]
+        partial_dump = full.model_dump()
+        partial_dump["pairs"] = [sp.model_dump() for sp in retained]
+        partial = SharedCanon.model_validate(partial_dump)
 
-        monkeypatch.setattr(yaml, "safe_load", fake_safe_load)
+        monkeypatch.setattr(rich_loader, "load_shared_canon", lambda: partial)
+        monkeypatch.setattr(pairs_loader, "load_shared_canon", lambda: partial)
 
         with pytest.raises(ValueError) as excinfo:
             _load_pairs_loader_module("starry_lyfe.canon.pairs_loader_import_r21")
@@ -284,34 +305,28 @@ class TestPairsLoaderMissingEntriesR21:
         msg = str(excinfo.value)
         assert "bina->circuit" in msg
         assert "reina->kinetic" in msg
-        assert "pairs.yaml is missing entries" in msg
+        assert "shared_canon.pairs is missing entries" in msg
 
     def test_pairs_loader_reports_all_missing_at_once(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """Two missing pair entries must surface in ONE error listing both.
-
-        Before R-2.1 this was a silent skip that deferred to per-access ValueError.
-        """
+        """Two missing pair entries must surface in ONE error listing both."""
         from starry_lyfe.canon import pairs_loader as pl
+        from starry_lyfe.canon import rich_loader
+        from starry_lyfe.canon.shared_schema import SharedCanon
 
         # Force a fresh load
         clear_pair_cache()
 
-        # Patch yaml.safe_load within pairs_loader to return canon minus two pairs
-        original = pl.yaml.safe_load
+        full = rich_loader.load_shared_canon()
+        retained = [sp for sp in (full.pairs or [])
+                    if sp.canonical_name not in ("The Circuit Pair", "The Kinetic Pair")]
+        partial_dump = full.model_dump()
+        partial_dump["pairs"] = [sp.model_dump() for sp in retained]
+        partial = SharedCanon.model_validate(partial_dump)
 
-        def fake_safe_load(text: str) -> dict:
-            data = original(text)
-            # Remove two pairs so two characters lack mappings
-            pairs = dict(data.get("pairs", {}))
-            pairs.pop("circuit", None)
-            pairs.pop("kinetic", None)
-            data["pairs"] = pairs
-            return data
-
-        monkeypatch.setattr(pl.yaml, "safe_load", fake_safe_load)
+        monkeypatch.setattr(pl, "load_shared_canon", lambda: partial)
 
         with pytest.raises(ValueError) as excinfo:
             pl._ensure_loaded()
@@ -320,7 +335,7 @@ class TestPairsLoaderMissingEntriesR21:
         # Both missing entries must be in the single error message
         assert "bina->circuit" in msg
         assert "reina->kinetic" in msg
-        assert "pairs.yaml is missing entries" in msg
+        assert "shared_canon.pairs is missing entries" in msg
 
         # Cleanup
         clear_pair_cache()

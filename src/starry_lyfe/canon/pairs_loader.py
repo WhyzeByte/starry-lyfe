@@ -1,27 +1,27 @@
 """Pair metadata loader for runtime Layer 5 structured data.
 
-Surfaces canonical pair fields from pairs.yaml as typed metadata
-that rides in Layer 5 (Voice Directives) alongside voice guidance.
-This is intentional redundancy with Layer 1 soul essence prose —
-different register (structured data vs narrative) for scene-level
-reasoning without modifying the soul essence content.
+Phase 10.5c rewire (2026-04-16): sources from ``Characters/shared_canon.yaml``
+``pairs[]`` (the single authoritative source per §2.5 of
+PHASE_10_5c_MAPPING.md) instead of the legacy ``pairs.yaml`` file.
+Public API (``PairMetadata`` dataclass, ``get_pair_metadata``,
+``format_pair_metadata``) is preserved so callers in tests + Layer 5
+prompt assembly stay green without modification.
+
+Cache semantics preserved: single hydration on first access,
+``clear_pair_cache()`` resets state for tests.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 
-import yaml
-
+from .rich_loader import load_shared_canon
 from .schemas.enums import CharacterNotFoundError, _assert_complete_character_keys
-
-PAIRS_YAML = Path(__file__).resolve().parent / "pairs.yaml"
 
 
 @dataclass(frozen=True)
 class PairMetadata:
-    """Typed pair metadata from pairs.yaml. All fields required."""
+    """Typed pair metadata sourced from shared_canon.pairs[]. All fields required."""
 
     full_name: str
     classification: str
@@ -41,55 +41,67 @@ _CHARACTER_TO_PAIR: dict[str, str] = {
 }
 _assert_complete_character_keys(_CHARACTER_TO_PAIR, "_CHARACTER_TO_PAIR")
 
+_PAIR_NAME_TO_KEY: dict[str, str] = {
+    "The Entangled Pair": "entangled",
+    "The Circuit Pair": "circuit",
+    "The Kinetic Pair": "kinetic",
+    "The Solstice Pair": "solstice",
+}
+
 _pair_cache: dict[str, PairMetadata] = {}
-_yaml_loaded: bool = False
+_loaded: bool = False
 
 
 def _ensure_loaded() -> None:
-    """Parse pairs.yaml once and populate the full character cache."""
-    global _yaml_loaded  # noqa: PLW0603
-    if _yaml_loaded:
+    """Hydrate from shared_canon.pairs[] once and populate the per-character cache."""
+    global _loaded  # noqa: PLW0603
+    if _loaded:
         return
 
-    if not PAIRS_YAML.exists():
-        msg = f"pairs.yaml not found at {PAIRS_YAML}"
+    shared = load_shared_canon()
+    if shared.pairs is None:
+        msg = "shared_canon.pairs is missing — required for pair metadata hydration"
         raise FileNotFoundError(msg)
 
-    data = yaml.safe_load(PAIRS_YAML.read_text(encoding="utf-8"))
-    pairs = data.get("pairs", {})
+    by_pair_key: dict[str, PairMetadata] = {}
+    for sp in shared.pairs:
+        pair_key = _PAIR_NAME_TO_KEY.get(sp.canonical_name)
+        if pair_key is None:
+            msg = f"Unknown shared_canon pair canonical_name: {sp.canonical_name!r}"
+            raise ValueError(msg)
+        by_pair_key[pair_key] = PairMetadata(
+            full_name=sp.canonical_name,
+            classification=sp.classification or "",
+            mechanism=sp.mechanism or "",
+            what_she_provides=sp.what_she_provides or "",
+            how_she_breaks_spiral=sp.how_she_breaks_spiral or "",
+            core_metaphor=sp.core_metaphor or "",
+            shared_functions=sp.shared_functions or "",
+            cadence=sp.cadence or "continuous",
+        )
 
     missing: list[str] = []
     for char_id, pair_key in _CHARACTER_TO_PAIR.items():
-        pair_data = pairs.get(pair_key)
-        if pair_data is None:
+        if pair_key not in by_pair_key:
             missing.append(f"{char_id}->{pair_key}")
             continue
-        _pair_cache[char_id] = PairMetadata(
-            full_name=pair_data["full_name"],
-            classification=pair_data["classification"],
-            mechanism=pair_data["mechanism"],
-            what_she_provides=pair_data["what_she_provides"],
-            how_she_breaks_spiral=pair_data["how_she_breaks_spiral"],
-            core_metaphor=pair_data["core_metaphor"],
-            shared_functions=pair_data["shared_functions"],
-            cadence=pair_data["cadence"],
-        )
+        _pair_cache[char_id] = by_pair_key[pair_key]
 
     if missing:
         # R-2.1 remediation: collect all missing entries and raise a single
         # error listing them, rather than deferring to per-access ValueError.
         expected_keys = sorted(set(_CHARACTER_TO_PAIR.values()))
         msg = (
-            f"pairs.yaml is missing entries for: {missing}. "
+            f"shared_canon.pairs is missing entries for: {missing}. "
             f"Expected pair_keys: {expected_keys}"
         )
         raise ValueError(msg)
 
-    _yaml_loaded = True
+    _loaded = True
 
 
 def get_pair_metadata(character_id: str) -> PairMetadata:
-    """Load pair metadata for a character from pairs.yaml (cached, single parse)."""
+    """Load pair metadata for a character (cached, single hydration)."""
     _ensure_loaded()
 
     if character_id not in _pair_cache:
@@ -117,9 +129,9 @@ def format_pair_metadata(character_id: str) -> str:
 
 def clear_pair_cache() -> None:
     """Clear the pair metadata cache (useful for testing)."""
-    global _yaml_loaded  # noqa: PLW0603
+    global _loaded  # noqa: PLW0603
     _pair_cache.clear()
-    _yaml_loaded = False
+    _loaded = False
 
 
 # R-2.1: missing pair manifest entries must fail at module import rather than

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -89,3 +90,36 @@ def test_main_emits_rich_yaml_authority_marker(capsys: pytest.CaptureFixture[str
         "Characters/{name}.yaml::voice.few_shots.examples[]"
     )
     assert "Phase 10 rich YAML" in parsed["authority"]
+
+
+def test_seed_reads_only_requested_woman_yaml(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Phase 10.5 direct remediation: no all-five-character fanout on export."""
+    module = _load_seed_module()
+    requested: list[str] = []
+
+    def fake_load_rich_character(character_id: str) -> Any:
+        requested.append(character_id)
+        assert character_id in {"adelia", "bina", "reina", "alicia"}
+        example = {
+            "id": f"{character_id}_example",
+            "user": "hello",
+            "assistant": "world",
+        }
+        return SimpleNamespace(
+            voice=SimpleNamespace(
+                few_shots=SimpleNamespace(examples=[example]),
+            ),
+        )
+
+    monkeypatch.setattr(
+        module,
+        "load_all_rich_characters",
+        lambda: (_ for _ in ()).throw(AssertionError("should not load all characters")),
+        raising=False,
+    )
+    monkeypatch.setattr(module, "load_rich_character", fake_load_rich_character)
+
+    configs = module.build_persona_configs()
+
+    assert requested == ["adelia", "bina", "reina", "alicia"]
+    assert [cfg["character_id"] for cfg in configs] == requested

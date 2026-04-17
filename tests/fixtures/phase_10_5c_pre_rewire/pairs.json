@@ -1,0 +1,49 @@
+{
+  "pairs": {
+    "circuit": {
+      "cadence": "continuous",
+      "character": "bina",
+      "classification": "Orthogonal Opposition",
+      "core_metaphor": "The Architect and the Sentinel",
+      "full_name": "The Circuit Pair",
+      "how_she_breaks_spiral": "Interrupts with concrete sensory input (Si)",
+      "mechanism": "Total division of operational domains",
+      "shared_functions": "Zero (Superego relation)",
+      "what_she_provides": "Physical grounding, diagnostic care, the road"
+    },
+    "entangled": {
+      "cadence": "continuous",
+      "character": "adelia",
+      "classification": "Intuitive Symbiosis",
+      "core_metaphor": "The Compass and the Gravity",
+      "full_name": "The Entangled Pair",
+      "how_she_breaks_spiral": "Injects warmth and play (Ne)",
+      "mechanism": "Complementary cognitive interlock",
+      "shared_functions": "Fi-Te axis (direct bridge)",
+      "what_she_provides": "Emotional buoyancy, divergent ideation, the destination"
+    },
+    "kinetic": {
+      "cadence": "continuous",
+      "character": "reina",
+      "classification": "Asymmetrical Leverage",
+      "core_metaphor": "The Mastermind and the Operator",
+      "full_name": "The Kinetic Pair",
+      "how_she_breaks_spiral": "Closes distance and delivers one clean-incision sentence (Se, tactical)",
+      "mechanism": "Temporal collision converted to engine heat",
+      "shared_functions": "Se-Ni axis (compensatory)",
+      "what_she_provides": "Tactical execution, clean incision, the immediate action"
+    },
+    "solstice": {
+      "cadence": "intermittent",
+      "character": "alicia",
+      "classification": "Complete Jungian Duality",
+      "core_metaphor": "The Duality",
+      "full_name": "The Solstice Pair",
+      "how_she_breaks_spiral": "Closes distance, delivers weight and warmth, counts his breath against hers (Se, somatic)",
+      "mechanism": "Inferior-function gift exchange through dominant mastery",
+      "shared_functions": "Zero shared (full inversion)",
+      "what_she_provides": "Direct polyvagal co-regulation, somatic present-moment re-entry"
+    }
+  },
+  "version": "7.1"
+}

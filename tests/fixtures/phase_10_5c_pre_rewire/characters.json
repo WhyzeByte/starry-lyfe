@@ -1,0 +1,299 @@
+{
+  "characters": {
+    "adelia": {
+      "age": 37,
+      "astrology": {
+        "moon": "Libra",
+        "sun": "Gemini",
+        "venus": "Taurus"
+      },
+      "birthdate": "1988-06-05",
+      "birthplace": "Valencia, Spain",
+      "business": "Ozone & Ember",
+      "children": [],
+      "cognitive_function_stack": [
+        "Ne",
+        "Fi",
+        "Te",
+        "Si"
+      ],
+      "current_residence": "Foothills County, Alberta",
+      "dominant_function": "Ne",
+      "employer": null,
+      "epithet": "The Catalyst",
+      "family_notes": null,
+      "full_name": "Adelia Raye",
+      "heritage": "Valencian-Australian",
+      "is_resident": true,
+      "languages": [
+        {
+          "context": "default",
+          "register_name": "Australian English"
+        },
+        {
+          "context": "kitchen, family, under pressure",
+          "register_name": "Valencian-inflected Castilian via Sydney diaspora"
+        }
+      ],
+      "mbti": "ENFP-A",
+      "operational_travel": null,
+      "pair_name": "entangled",
+      "parents": {
+        "father": {
+          "name": "Joaquin Raye",
+          "origin": "Valencia, Spain",
+          "profession": "Marine electrician"
+        },
+        "mother": {
+          "name": "Ines Raye",
+          "origin": "Valencia, Spain",
+          "profession": "Graphic designer"
+        }
+      },
+      "profession": "Pyrotechnician, installation artist, embedded systems engineer",
+      "raised_in": "Marrickville, Sydney, Australia",
+      "role": "character",
+      "siblings": null,
+      "spouse": null,
+      "unit": null
+    },
+    "alicia": {
+      "age": 33,
+      "astrology": null,
+      "birthdate": "1992-04-27",
+      "birthplace": "Famaillá, Tucumán province, Argentina",
+      "business": null,
+      "children": [],
+      "cognitive_function_stack": [
+        "Se",
+        "Fi",
+        "Te",
+        "Ni"
+      ],
+      "current_residence": "Foothills County, Alberta",
+      "dominant_function": "Se",
+      "employer": "Argentine Cancillería (MRECIC)",
+      "epithet": "The Sun",
+      "family_notes": null,
+      "full_name": "Alicia Marin",
+      "heritage": "Argentine",
+      "is_resident": true,
+      "languages": [
+        {
+          "context": "default, interior life, counting under breath",
+          "register_name": "Argentine Rioplatense"
+        },
+        {
+          "context": "professional, household",
+          "register_name": "English"
+        }
+      ],
+      "mbti": "ESFP-A",
+      "operational_travel": "Frequently away on consular operations",
+      "pair_name": "solstice",
+      "parents": {
+        "father": {
+          "name": "Ramon Marin",
+          "origin": "Famaillá, Tucumán",
+          "profession": "Agricultural worker"
+        },
+        "mother": {
+          "name": "Pilar Marin",
+          "origin": "Famaillá, Tucumán",
+          "profession": "House cleaner"
+        }
+      },
+      "profession": "Senior consular officer",
+      "raised_in": "Famaillá, Tucumán",
+      "role": "character",
+      "siblings": [
+        {
+          "location": "Famaillá",
+          "name": "Joaquin",
+          "occupation": "Ferretería owner"
+        },
+        {
+          "location": "Rosario",
+          "name": "Carmen",
+          "occupation": "Night-shift nurse"
+        }
+      ],
+      "spouse": null,
+      "unit": "Dirección General de Asuntos Consulares, crisis response"
+    },
+    "bina": {
+      "age": 40,
+      "astrology": null,
+      "birthdate": null,
+      "birthplace": "Urmia, Iran",
+      "business": "Loth Wolf Hypersport",
+      "children": [
+        {
+          "age": 7,
+          "birthdate": null,
+          "name": "Gavin",
+          "relationship": "biological son from prior relationship"
+        }
+      ],
+      "cognitive_function_stack": [
+        "Si",
+        "Fe",
+        "Ti",
+        "Ne"
+      ],
+      "current_residence": "Foothills County, Alberta",
+      "dominant_function": "Si",
+      "employer": null,
+      "epithet": "The Sentinel",
+      "family_notes": {
+        "ex_partner": {
+          "name": "Kael",
+          "status": "No contact, restraining order"
+        },
+        "parents_status": "Both deceased",
+        "twin_brother": {
+          "name": "Arash",
+          "status": "MIA (Canadian Armed Forces)"
+        }
+      },
+      "full_name": "Bina Malek",
+      "heritage": "Assyrian-Iranian Canadian",
+      "is_resident": true,
+      "languages": [
+        {
+          "context": "default, professional",
+          "register_name": "English"
+        },
+        {
+          "context": "family, kitchen, private grief",
+          "register_name": "Suret (Assyrian Neo-Aramaic)"
+        },
+        {
+          "context": "Iranian diaspora community",
+          "register_name": "Farsi"
+        }
+      ],
+      "mbti": "ISFJ-A",
+      "operational_travel": null,
+      "pair_name": "circuit",
+      "parents": {
+        "father": {
+          "name": "Farhad Malek",
+          "origin": "Urmia, Iran",
+          "profession": "Industrial mechanic"
+        },
+        "mother": {
+          "name": "Shirin Malek",
+          "origin": "Urmia, Iran",
+          "profession": "Homemaker"
+        }
+      },
+      "profession": "Red Seal mechanic",
+      "raised_in": "Edmonton, Alberta",
+      "role": "character",
+      "siblings": null,
+      "spouse": "reina",
+      "unit": null
+    },
+    "reina": {
+      "age": 36,
+      "astrology": null,
+      "birthdate": "1990-03-28",
+      "birthplace": "Barcelona, Spain",
+      "business": "Solo practice, Okotoks",
+      "children": [],
+      "cognitive_function_stack": [
+        "Se",
+        "Ti",
+        "Fe",
+        "Ni"
+      ],
+      "current_residence": "Foothills County, Alberta",
+      "dominant_function": "Se",
+      "employer": null,
+      "epithet": "The Operator",
+      "family_notes": null,
+      "full_name": "Reina Torres",
+      "heritage": "Barcelona Catalan-Castilian",
+      "is_resident": true,
+      "languages": [
+        {
+          "context": "default, legal",
+          "register_name": "English"
+        },
+        {
+          "context": "school, Barcelona identity",
+          "register_name": "Catalan"
+        },
+        {
+          "context": "home, bar, under pressure",
+          "register_name": "European peninsular Castilian"
+        }
+      ],
+      "mbti": "ESTP-A",
+      "operational_travel": null,
+      "pair_name": "kinetic",
+      "parents": {
+        "father": {
+          "name": "Rafael Torres",
+          "origin": "Granada, Andalusia",
+          "profession": "Bar owner"
+        },
+        "mother": {
+          "name": "Mercè Benítez",
+          "origin": "Barcelona, Catalonia",
+          "profession": "Primary school teacher"
+        }
+      },
+      "profession": "Criminal defence lawyer",
+      "raised_in": "Gracia, Barcelona",
+      "role": "character",
+      "siblings": null,
+      "spouse": "bina",
+      "unit": null
+    }
+  },
+  "operator": {
+    "whyze": {
+      "age": 46,
+      "astrology": {
+        "moon": "Scorpio",
+        "sun": "Libra",
+        "venus": "Scorpio"
+      },
+      "children": [
+        {
+          "age": 6,
+          "birthdate": null,
+          "name": "Isla",
+          "relationship": "daughter"
+        },
+        {
+          "age": 4,
+          "birthdate": null,
+          "name": "Daphne",
+          "relationship": "daughter"
+        }
+      ],
+      "clinical": {
+        "asd_level": 2,
+        "twice_exceptional": true
+      },
+      "cognitive_function_stack": [
+        "Ni",
+        "Te",
+        "Fi",
+        "Se"
+      ],
+      "disc": "CD with Action extension",
+      "dominant_function": "Ni",
+      "full_name": "Shawn Kroon",
+      "handle": "Whyze",
+      "mbti": "INTJ-T",
+      "profile_file": "Characters/Shawn/Shawn_Kroon_v7.0.md",
+      "profile_version": "7.0",
+      "role": "operator"
+    }
+  },
+  "version": "7.1"
+}

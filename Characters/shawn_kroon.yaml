@@ -199,13 +199,36 @@ identity:
   role: "operator"
   chapter_status: "Between missions"
   mbti: "INTJ-T"
+  cognitive_function_stack: ["Ni", "Te", "Fi", "Se"]
+  dominant_function: "Ni"
   disc: "CD with atypical Action extension"
+  astrology:   # Phase 10.5c: narrow Operator.astrology (was missing at identity level; see family_center / pair_architecture mirrors elsewhere)
+    sun: "Libra"
+    moon: "Scorpio"
+    venus: "Scorpio"
   neurotype:
     clinical_identity:
       - "Twice-exceptional"
       - "ASD Level 2"
       - "ADHD Combined Type"
+    narrow_clinical:   # Phase 10.5c: single-source narrow Operator.clinical (typed shape)
+      asd_level: 2
+      twice_exceptional: true
     core_correction: "The architecture is not globally weak or globally gifted. It is extremely spiky and channel-dependent."
+  # Phase 10.5c: narrow Operator hydration metadata (single source).
+  profile_file: "Characters/Shawn/Shawn_Kroon_v7.0.md"
+  profile_version: "7.0"
+  # Phase 10.5c: single-source narrow Operator.children (narrow shape; rich spouse_and_children.daughters carries fuller prose).
+  # birthdate is the durable source of truth; age is derived (computed at hydration time) so it never stagnates.
+  children:
+    - name: "Isla"
+      birthdate: "2019-07-31"
+      age: 6   # derived from birthdate at runtime; cached value for current narrow consumers
+      relationship: "daughter"
+    - name: "Daphne"
+      birthdate: "2021-08-18"
+      age: 4
+      relationship: "daughter"
   chosen_anchor: "I am essential because I am me."
   birthplace: "Calgary, Alberta, Canada"
   raised_in: "South Calgary: Deer Run, Midnapore, and Sundance"
@@ -1607,6 +1630,38 @@ behavioral_framework:
       - "written externalization"
       - "novel angle on the stuck problem"
     warning: "The correct prescription is often simple and concrete. Over-intellectualizing the recovery can itself become avoidance."
+
+  # Phase 10.5c: single-source narrow CanonProtocols.protocols entries owned by Whyze (operator).
+  # Aggregates with adelia/bina/reina/alicia state_protocols across all 5 character files.
+  state_protocols:
+    red_team_stabilization:
+      name: "Red Team Stabilization"
+      primary_character: "whyze"
+      secondary_characters: []
+      category: "cognitive_support"
+      description: "Deliberate adversarial analysis of own plans and decisions."
+      entry_conditions: "High-stakes decision requiring worst-case validation"
+    perfection_anchoring:
+      name: "Perfection Anchoring"
+      primary_character: "whyze"
+      secondary_characters: ["adelia", "bina"]
+      category: "cognitive_support"
+      description: "Re-grounding when the perfection drive runs ungoverned."
+      entry_conditions: "Turbulent correction drive spiraling without governor"
+    alexithymia_protocol:
+      name: "Alexithymia Protocol"
+      primary_character: "whyze"
+      secondary_characters: ["adelia", "bina", "reina", "alicia"]
+      category: "biological_limit"
+      description: "Handling the alexithymia delay. Emotions arrive late; body shows before words."
+      entry_conditions: "Whyze unable to name emotional state despite somatic indicators"
+    interoceptive_override:
+      name: "Interoceptive Override"
+      primary_character: "whyze"
+      secondary_characters: ["bina", "alicia"]
+      category: "biological_limit"
+      description: "Handling the interoceptive gap. Body signals not reaching consciousness during Ni-Te loops."
+      entry_conditions: "Whyze has not eaten, slept, or moved; body ignored"
 
 canon_facts:
   - category: "identity"

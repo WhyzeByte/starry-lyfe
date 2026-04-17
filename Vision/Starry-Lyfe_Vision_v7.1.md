@@ -197,16 +197,16 @@ The vision is the root of a document tree. Every piece of content compressed out
 - `Scene_Director_Spec.md` *(new)* — five-mode Scene Director table, Crew Mode configuration, next-speaker selection logic.
 - `Intimacy_Architecture.md` *(new)* — romantic encounter architecture, intimate registers per character, aftercare protocols. Carved out of the vision in v7.1.
 
-**Character canon (rich YAML — post-Phase 10.5, 2026-04-16)**
+**Character canon (rich YAML — terminal 6-file authoring surface, post-Phase 10.5c 2026-04-16)**
 
-The v7.1 per-character markdown kernels + Voice + Pair + Knowledge Stack files were consolidated into a single rich YAML per character during the Phase 10 YAML Source-of-Truth Migration. Each YAML now carries kernel sections, voice exemplars (with mode + communication_mode tags), soul substrate prose, soul cards (pair + knowledge), per-character evaluator register sections, and constraint pillars as typed blocks. The legacy markdowns are archived under `Archive/v7.1_pre_yaml/` with SHA256 manifest.
+The v7.1 per-character markdown kernels + Voice + Pair + Knowledge Stack files were consolidated into rich YAMLs during Phase 10 (YAML Source-of-Truth Migration). Phase 10.5c (2026-04-16) completed the migration by rewiring `load_all_canon()` to source from rich YAML + `shared_canon.yaml` and archiving the 7 narrow operational YAMLs. The canonical authoring surface is now exactly **6 files**: 5 rich per-character YAMLs + 1 shared_canon. Every typed runtime object (characters, pairs, dyads, protocols, interlocks, voice_parameters, routines, memory_tiers) hydrates from these 6 files. The legacy markdowns (16 character files), `soul_essence.py`, 15 soul card markdowns, and 7 narrow canon YAMLs are all archived under `Archive/v7.1_pre_yaml/` with SHA256 manifest.
 
-- **Adelia Raye** — `Characters/adelia_raye.yaml` (kernel, voice, soul substrate, soul cards, evaluator register, constraint pillars, Entangled Pair perspective).
+- **Adelia Raye** — `Characters/adelia_raye.yaml` (kernel, voice, voice.inference_parameters, soul substrate, soul cards, evaluator register, constraint pillars, Entangled Pair perspective, behavioral_framework.state_protocols, runtime.routines).
 - **Bina Malek** — `Characters/bina_malek.yaml` (Circuit Pair).
 - **Reina Torres** — `Characters/reina_torres.yaml` (Kinetic Pair).
-- **Alicia Marin** — `Characters/alicia_marin.yaml` (Solstice Pair, 4-variant communication-mode pillars).
-- **Whyze (operator)** — `Characters/shawn_kroon.yaml` (operator profile with full psychometrics, family-of-origin, property layout, hobbies, continuity layers).
-- **Shared canon** — `Characters/shared_canon.yaml` (objective facts where divergence would create continuity contradictions: marriage record, signature scene anchors, genealogy, property, timeline, canonical pair names).
+- **Alicia Marin** — `Characters/alicia_marin.yaml` (Solstice Pair, 4-variant communication-mode pillars, runtime.alicia_communication_distribution).
+- **Whyze (operator)** — `Characters/shawn_kroon.yaml` (operator profile with full psychometrics, family-of-origin, property layout, hobbies, continuity layers, behavioral_framework.state_protocols for operator-owned protocols).
+- **Shared canon** — `Characters/shared_canon.yaml` (objective cross-character facts: marriage record, signature scene anchors, genealogy, property, timeline, canonical pair definitions with all 8 narrow Pair fields, dyad baselines for the 10 canonical dyads, system memory tiers, cross-partner interlocks taxonomy).
 
 The v7.1 essence-vs-life principle (architecture that writes to the soul, life that honors her own) is preserved verbatim: what lives in each per-character YAML is HER voice on her own architecture; what lives in `shared_canon.yaml` is what objectively happened. Divergence between two women's perspectives on the same relationship is dramaturgically required, not a bug.
 

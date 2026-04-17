@@ -209,7 +209,7 @@ All character data, world facts, and constraints originate from **rich per-chara
 - `Characters/shawn_kroon.yaml` — operator profile + continuity layers + his perspective on each pair.
 - `Characters/shared_canon.yaml` — objective facts where divergence would create continuity contradictions (marriage record, signature scene anchors, genealogy, property, timeline, canonical pair names).
 
-The legacy narrow canon at `src/starry_lyfe/canon/{characters,pairs,dyads,protocols,interlocks,voice_parameters,routines}.yaml` is still consulted at runtime via `load_all_canon()` pending the Phase 10.5b loader rewire (`load_all_canon()` will reconstruct the 7 narrow Pydantic objects from rich YAML fields in memory). The 16 per-character markdown files, `soul_essence.py`, and 15 soul card markdowns are archived under `Archive/v7.1_pre_yaml/` with SHA256 manifest (shipped Phase 10.5, 2026-04-16).
+The 16 per-character markdown files, `soul_essence.py`, 15 soul card markdowns, and (post-Phase-10.5c) the 7 narrow canon YAMLs (`canon/{characters,pairs,dyads,protocols,interlocks,voice_parameters,routines}.yaml`) are all archived under `Archive/v7.1_pre_yaml/` with SHA256 manifest (Phase 10.5 shipped 2026-04-16; Phase 10.5c shipped 2026-04-16 awaiting end-of-phase Codex audit). `load_all_canon()` now reconstructs the 7 narrow Pydantic objects from rich YAML + `shared_canon.yaml` in memory via `loader._build_*` helpers (Phase 10.5c §2). The terminal authoring surface is the 6 files above; no narrow YAMLs or markdown character files remain in the runtime hot path.
 
 This is what enables the deduplication rule between backend-injected operator context and Msty's User Persona — there cannot be two sources of truth without drift, so rich YAML wins everywhere.
 

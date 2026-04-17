@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-import yaml
 from pydantic import ValidationError
 
 from starry_lyfe.canon import validator as canon_validator
@@ -182,9 +181,15 @@ def test_interlock_rejects_duplicate_members() -> None:
         )
 
 
-def test_protocol_extension_requires_source_tag(canon_dir: Path) -> None:
-    """Extra protocols must be explicitly tagged with an approved source."""
-    data = yaml.safe_load((canon_dir / "protocols.yaml").read_text(encoding="utf-8"))
+def test_protocol_extension_requires_source_tag() -> None:
+    """Extra protocols must be explicitly tagged with an approved source.
+
+    Phase 10.5c: protocols.yaml archived; build test data inline from the
+    live canon to validate the schema-level enforcement without depending
+    on the legacy file path.
+    """
+    canon = load_all_canon()
+    data = canon.protocols.model_dump()
     data["protocols"]["surprise_protocol"] = {
         "name": "Surprise Protocol",
         "primary_character": "adelia",
@@ -239,12 +244,15 @@ def test_load_all_canon_with_validate_on_load_true_raises_on_corruption(
     """load_all_canon(validate_on_load=True) must raise CanonValidationError on broken cross-refs."""
     from starry_lyfe.canon import loader as canon_loader
     from starry_lyfe.canon.loader import CanonValidationError
+    from starry_lyfe.canon.rich_loader import load_shared_canon
 
-    # Load a real interlocks instance then delete a referenced key, mirroring
-    # the existing monkeypatch pattern used in the validator tests above.
-    base_interlocks = canon_loader.load_interlocks()
+    # Phase 10.5c: per-narrow loaders are gone; build interlocks via the new
+    # _build_interlocks helper, corrupt the result, then monkeypatch the helper.
+    base_interlocks = canon_loader._build_interlocks(load_shared_canon())
     del base_interlocks.interlocks["anchor_dynamic"]
-    monkeypatch.setattr(canon_loader, "load_interlocks", lambda: base_interlocks)
+    monkeypatch.setattr(
+        canon_loader, "_build_interlocks", lambda _shared: base_interlocks
+    )
 
     with pytest.raises(CanonValidationError) as excinfo:
         canon_loader.load_all_canon(validate_on_load=True)

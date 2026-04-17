@@ -27,9 +27,16 @@ class Parent(BaseModel):
 
 
 class ChildEntry(BaseModel):
-    """A child in the household."""
+    """A child in the household.
+
+    Phase 10.5c: ``birthdate`` is the durable source of truth (so ``age``
+    does not stagnate as time passes). Hydration computes current ``age``
+    from ``birthdate`` when authored; the authored ``age`` field remains
+    as a cached value used only when ``birthdate`` is absent.
+    """
 
     name: str
+    birthdate: str | None = None
     age: int = Field(ge=0)
     relationship: str
 

@@ -2,6 +2,7 @@
 
 **Generated:** 2026-04-16 (Phase 10.5 C1)
 **Supersession column rewrite:** 2026-04-16 (Phase 10.5 remediation F5 — exact per-file field paths)
+**Phase 10.5c extension:** 2026-04-16 — 7 narrow canon YAMLs archived after `load_all_canon()` rewire to source from rich YAML + `shared_canon.yaml`
 
 **Purpose:** SHA256-verifiable record of the legacy authoring surfaces retired in the YAML Source-of-Truth Migration (Phase 10).
 
@@ -45,6 +46,13 @@ The **Superseded by** column gives the exact per-file destination field path in 
 | `Archive/v7.1_pre_yaml/Characters/Reina_Torres_v7.1.md` | `9307862862562661d553bcd305640b1ac6b92f1b682625eae502340067346a04` | `Characters/reina_torres.yaml::kernel_sections[]` (11 numbered sections) + `Characters/reina_torres.yaml::soul_substrate` + `Characters/reina_torres.yaml::meta.preserve_markers` |
 | `Archive/v7.1_pre_yaml/Characters/Reina_Torres_Voice.md` | `06e1e7d9f467c6f5e9b3714851806bbf0e0db647d9c73fbd0ed82cb126311039` | `Characters/reina_torres.yaml::voice.baseline` + `Characters/reina_torres.yaml::voice.few_shots.examples[]` |
 | `Archive/v7.1_pre_yaml/canon/soul_essence.py` | `c6bed51ad622b4f9072b0f16b8a8b4be61b1cc6a063d57c3a04dbc9988fff991` | `Characters/{adelia_raye,bina_malek,reina_torres,alicia_marin}.yaml::soul_substrate.{identity_blocks,pair_blocks,behavioral_blocks,intimacy_blocks,chosen_family_blocks,mission_blocks}` (accessed via `rich_loader.format_soul_essence_from_rich`) |
+| `Archive/v7.1_pre_yaml/canon/narrow/characters.yaml` | `90d32143638479fce9ab3cf5d53749ae9abc0b4506f236e8d9d450e1a2e29801` | `Characters/{adelia_raye,bina_malek,reina_torres,alicia_marin}.yaml::identity` (4 women) + `Characters/shawn_kroon.yaml::identity` (operator) — hydrated by `loader._build_characters` (Phase 10.5c) |
+| `Archive/v7.1_pre_yaml/canon/narrow/pairs.yaml` | `ad2ff3ce5c87f84ef9a4ec9dd9097dc58dfef55b46a42eecb281cff440e6bd2c` | `Characters/shared_canon.yaml::pairs[]` (single authoritative source per Phase 10.5c §2.5) — hydrated by `loader._build_pairs` |
+| `Archive/v7.1_pre_yaml/canon/narrow/dyads.yaml` | `64499236218b0c5d369dc0a80f03b58b224206d9b8de04083e7bcc4e10f27387` | `Characters/shared_canon.yaml::dyads_baseline` (10 entries) + `Characters/shared_canon.yaml::memory_tiers` (7 entries) — hydrated by `loader._build_dyads` (Phase 10.5c §2.4 D1) |
+| `Archive/v7.1_pre_yaml/canon/narrow/protocols.yaml` | `e53331d2465032a6e66d724d3fcaf43304093a952324a9b134219277e9a3a75c` | `Characters/{adelia_raye,bina_malek,reina_torres,alicia_marin,shawn_kroon}.yaml::behavioral_framework.state_protocols` (13 entries aggregated across 5 files) — hydrated by `loader._build_protocols` (Phase 10.5c §2.7) |
+| `Archive/v7.1_pre_yaml/canon/narrow/interlocks.yaml` | `04320c9a53ff47ebbe1c190390bdcc5374cb130e80e77943eb08b290576ec107` | `Characters/shared_canon.yaml::interlocks[]` (6 entries, centralized objective taxonomy per Phase 10.5c §2.4 I2) — hydrated by `loader._build_interlocks` |
+| `Archive/v7.1_pre_yaml/canon/narrow/voice_parameters.yaml` | `47b5a700ec97dc9fb72138db9054d5bb949d675eadc4c538ee17cb17cbcc85df` | `Characters/{adelia_raye,bina_malek,reina_torres,alicia_marin}.yaml::voice.inference_parameters` (renamed from `voice.runtime_sampling_hints` and extended with 5 narrow VoiceParameter fields per Phase 10.5c §2.2) — hydrated by `loader._build_voice_parameters` |
+| `Archive/v7.1_pre_yaml/canon/narrow/routines.yaml` | `fcd9ee3d64d94679faa475ed7ae4abea7b8403ad441ec36f50f9a87c0d2aa004` | `Characters/{adelia_raye,bina_malek,reina_torres,alicia_marin}.yaml::runtime.routines` + `Characters/alicia_marin.yaml::runtime.alicia_communication_distribution` (Option A pre-decision per Phase 10.5c §2.6) — hydrated by `loader._build_routines` |
 
 ## Retirement rationale
 
@@ -53,6 +61,7 @@ Phase 10.0 through 10.4 migrated every runtime consumer to rich YAML sources. Ph
 - **16 character markdown files** (`Characters/*.md`): 4 files per woman (kernel v7.1, Voice, Knowledge_Stack, Pair). Superseded by per-character YAML blocks. (Phase 10.2 + 10.3 rewires.)
 - **`src/starry_lyfe/canon/soul_essence.py`**: the hardcoded Python module holding 45 soul substrate blocks. Superseded by `Characters/{name}.yaml::soul_substrate`. (Phase 10.3 C1 rewire.)
 - **15 soul card markdowns** (`src/starry_lyfe/canon/soul_cards/`): 11 knowledge cards + 4 pair cards. Superseded by per-character YAML `soul_cards[]` entries, each indexed by `source_file` for precise per-markdown traceability. (Phase 10.3b rewire.)
+- **7 narrow canon YAMLs** (`src/starry_lyfe/canon/{characters,pairs,dyads,protocols,interlocks,voice_parameters,routines}.yaml`): operational config + structured taxonomies. Superseded by rich YAML + `shared_canon.yaml` per the Phase 10.5c mapping. `load_all_canon()` hydrates the 7 narrow Pydantic objects from rich sources via `loader._build_*` helpers. (Phase 10.5c rewire.)
 
 ## Explicitly NOT archived (honest scope declaration)
 
@@ -60,7 +69,7 @@ Two categories of legacy material are NOT present in this archive and are NOT ca
 
 1. **Shawn Kroon markdown sources** (`Characters/Shawn/Shawn_Kroon_v7.0.md`, `Characters/Shawn/Shawn_Kroon_Knowledge_Stack.md`): deleted from the repository in an earlier phase, before Phase 10.5 began. Not on disk; cannot be archived. Canonical Shawn authoring now lives at `Characters/shawn_kroon.yaml`. Historical references to these files remain as embedded prose inside archived women's markdown and inside `canon/soul_essence.py`.
 
-2. **The 7 narrow canon YAMLs** (`src/starry_lyfe/canon/{characters,pairs,dyads,interlocks,protocols,routines,voice_parameters}.yaml`): still on the runtime hot path via `load_all_canon()`. Archival is deferred to **Phase 10.5c** (narrow canon loader rewire) — a dedicated sub-phase that will rewire `load_all_canon()` to build `Canon` objects from rich YAML + `shared_canon.yaml` in-memory, at which point these 7 YAMLs become archive candidates.
+2. ~~**The 7 narrow canon YAMLs**~~: archived 2026-04-16 by Phase 10.5c after `load_all_canon()` was rewired to source from rich YAML + `shared_canon.yaml` via `loader._build_*` helpers. See the 7 entries above.
 
 ## Verification
 

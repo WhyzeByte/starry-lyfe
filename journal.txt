@@ -218,3 +218,107 @@ Retired by deletion before 10.5 began (not archivable):
 End of Phase 10 migration journal. Subsequent phases (10.5c narrow
 canon rewire, 10.7 Dreams Consistency QA) will append their own
 entries below as they ship.
+
+---
+
+2026-04-16 — Phase 10.5 + 10.5b SHIPPED (Project Owner Step 6)
+
+Phase 10.5 (Archive + Governance) + Phase 10.5b (RT1 Layer 5 pair metadata
+cutover to rich YAML + RT2 schema/validator hardening with all-six-dyads
+divergence enforcement + RT3 cache key rich-YAML mtime inclusion) shipped
+by Project Owner on 2026-04-16 after Claude AI Step 5 QA APPROVED FOR SHIP.
+
+Step 5 QA gate (9/9 PASS):
+  1. pytest -q              — 1255 passed, 0 failed, 0 skipped, 0 xfailed
+  2. loader viability       — all 5 rich YAMLs + shared_canon load; 0 cross-ref errors
+  3. ruff + mypy --strict   — clean across 105 source files
+  4. preserve markers       — 62/62 verbatim
+  5. v7.0 residue           — 7/7 tests green
+  6. sample integrity       — 4/4 terminal-anchored, 0 PRESERVE leaks
+  7. Vision A5 substrate    — 18/18 per-character probes hit
+  8. Vision A6 dual-presence — 4/4 samples carry pair name in both
+                              kernel body AND soul card (shared_canon-sourced)
+  9. governance coherence   — CLAUDE.md + PHASE_10.md + IMPL_PLAN aligned
+
+Commits sealed:
+  069db4b + 509b0ff + ab4a422  (Phase 10.5)
+  005cbff + dbdc515             (Phase 10.5b)
+  R3 direct remediation in workspace (Shawn ACL repair + seed script
+  decoupling + residue-grep scratch path normalization)
+
+2026-04-16 — Phase 10.5c SPEC RATIFIED (Project Owner)
+
+Phase 10.5c (narrow canon loader rewire) spec at PHASE_10.md §Phase 10.5c
+ratified by Project Owner 2026-04-16. Includes 3 sub-commits (C1 pre-flight
+mapping audit, C2 hydration implementation, C3 archive + governance) and
+10 phase-level ACs.
+
+Routines architectural question pre-decided as Option A: per-character
+`runtime.routines` block in each rich character YAML. Rationale:
+data locality (routines are per-character structured data); matches
+existing per-character pattern (state_protocols, inference_parameters,
+pair_architecture, knowledge_stack); preserves fact/perception
+classification principle from Phase 10.0 (routines don't belong in
+shared_canon because they aren't shared facts); reaches terminal 6-file
+state cleanly without 7th-file carve-out.
+
+Claude Code authorized to begin C1 (pre-flight mapping audit) producing
+`Docs/_phases/PHASE_10_5c_MAPPING.md`.
+
+After Phase 10.5c ships, only Phase 10.7 (Dreams Consistency QA) remains.
+
+### 2026-04-16 — Phase 10.5c SHIPPED (C1 + C2 + C3)
+
+C1 mapping audit + C1.4 authoring completed under Project Owner ratification
+of the single-source-of-truth principle (R1 §2 of
+Docs/_phases/PHASE_10_5c_MAPPING.md). Each woman's rich identity gained the
+narrow-required fields directly (cognitive_function_stack, dominant_function,
+is_resident, spouse, family_notes, siblings, astrology, employer, unit,
+canonical_label/canonical_list, etc.). voice.runtime_sampling_hints renamed
+to voice.inference_parameters and extended with the 5 missing narrow
+VoiceParameter fields. behavioral_framework.state_protocols dict authored
+per character (13 protocols total: 4 Adelia + 1 Bina + 2 Reina + 2 Alicia +
+4 Shawn). shared_canon.yaml gained 4 new objective taxonomies (memory_tiers,
+dyads_baseline, interlocks, plus 6-field expansion of pairs[]).
+runtime.routines block authored per Option A pre-decision. Birthdates added
+universally; Bina's authored from canonical-constraint inference (1985-12-27,
+the only date in the year-window where Capricorn Sun + Cancer Moon are
+astronomically simultaneous).
+
+C2 rewired load_all_canon() to source from rich YAML + shared_canon via 7
+_build_* helpers. compute_age_from_birthdate() helper hydrates current age
+from authored birthdates. Pre-rewire fixtures captured at
+tests/fixtures/phase_10_5c_pre_rewire/. Path-guard test asserts no opens of
+src/starry_lyfe/canon/*.yaml during load. Drift-review test (replaces
+bit-identical AC-10.5c.4 per R1 §2.8) compares post-rewire output against
+pre-rewire fixtures with EXPECTED_DRIFT_RATIONALIZATIONS allowlist:
+voice temperature axiom alignments (Bina 0.58, Reina 0.72, Alicia 0.75 per
+CLAUDE.md §16), pair classifications migrated to shared_canon strings
+(Phase 10.5b R2-F3 + C1.4 §2.5), Bina astrology surfaced from rich,
+diacritics restored on Reina/Alicia parents + Alicia birthplace, children
+gain birthdates, Shawn rich-preserved disc + full_name. pairs_loader.py and
+routines_loader.py rewired to source from shared_canon and rich runtime
+respectively; public APIs preserved so all callers stay green without
+modification. 5 production consumers (db/seed.py, api/app.py,
+context/assembler.py, dreams/daemon.py, canon/validator.py) UNCHANGED.
+
+C3 archived 7 narrow YAMLs to Archive/v7.1_pre_yaml/canon/narrow/ via
+git mv (preserves history). MANIFEST.md extended with 7 new SHA256 entries
+mapped to exact superseding rich YAML field paths. Dead-code cleanup:
+internal_relationship_prompts.py docstring updated (deferred-to-10.5c note
+removed). Governance: CLAUDE.md §19, IMPLEMENTATION_PLAN_v7.1.md §A3,
+Vision/Starry-Lyfe_Vision_v7.1.md Appendix B all updated to declare the
+terminal 6-file authoring surface (5 rich + 1 shared_canon).
+PHASE_10.md AC-10.5c.4 amended (bit-identical → drift-review against
+allowlist of intentional rationalizations); AC-10.5c.5 amended (5 production
+consumers + 1 internal validator recursion, not 6).
+
+Test baseline: 1223 passed + 34 environmental Postgres skips, 0 failed,
+0 xfailed (= pre-C2 1255 + 2 new rewire tests under same Postgres-down env).
+ruff check src tests clean. python -m mypy --strict src clean across 105
+source files. git ls-files src/starry_lyfe/canon/*.yaml empty.
+
+End-of-phase Codex audit dispatch awaits per Project Owner directive
+2026-04-16 ("Codex will audit at the end of Phase 10.5"). On Codex PASS →
+Project Owner Step 6 ship of Phase 10.5c → Phase 10.7 (Dreams Consistency QA)
+becomes the sole remaining open architectural phase.

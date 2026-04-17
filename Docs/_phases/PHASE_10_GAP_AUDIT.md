@@ -146,7 +146,7 @@ Per `PHASE_10.md` §1.4 rules. This table classifies the relationship-bearing ca
 | Property location: Foothills County near Priddis, Alberta | CLAUDE.md §18 | `property.location` |
 | Property layout (main house, mezzanine, bay, garage apartment) | Kernels | `property.layout` |
 | Adelia introduced Bina and Reina (2021) | CLAUDE.md §16 | `timeline.adelia_introduced_bina_reina` |
-| 4 canonical pair names: Entangled, Completed Circuit, Kinetic, Solstice | `pairs.yaml` | `pairs[].canonical_name` |
+| 4 canonical pair names: Entangled, Circuit, Kinetic, Solstice (full form: "The X Pair") | `pairs.yaml` | `pairs[].canonical_name` |
 | 6 canonical dyad keys + subtypes | `dyads.yaml` | (derived from per-character POV blocks) |
 | Gavin's age: 7 | CLAUDE.md §18 | `genealogy.gavin.age` |
 
@@ -202,7 +202,7 @@ Each woman carries 3 inter-woman POV blocks (one for each of her inter-woman dya
 | Character | Pair POV block |
 |---|---|
 | Adelia | `pair_architecture.her_pov` (Entangled Pair) |
-| Bina | `pair_architecture.her_pov` (Completed Circuit Pair) |
+| Bina | `pair_architecture.her_pov` (The Circuit Pair) |
 | Reina | `pair_architecture.her_pov` (Kinetic Pair) |
 | Alicia | `pair_architecture.her_pov` (Solstice Pair) |
 | Shawn | `pairs.entangled.his_pov`, `pairs.circuit.his_pov`, `pairs.kinetic.his_pov`, `pairs.solstice.his_pov` |

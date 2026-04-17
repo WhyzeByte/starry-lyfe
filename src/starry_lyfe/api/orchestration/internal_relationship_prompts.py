@@ -12,8 +12,8 @@ Authority: `Docs/_phases/PHASE_9.md` §Pre-execution +
 `Characters/{name}.yaml::kernel_sections` §5/§7/§8/§9 (Phase 10.5
 rich-YAML cutover — legacy markdown kernels archived under
 `Archive/v7.1_pre_yaml/`) +
-`src/starry_lyfe/canon/dyads.yaml` (narrow canon retirement
-deferred to Phase 10.5c).
+`Characters/shared_canon.yaml::dyads_baseline` (Phase 10.5c —
+narrow canon archived; dyad baselines now hydrate from shared_canon).
 """
 
 from __future__ import annotations
