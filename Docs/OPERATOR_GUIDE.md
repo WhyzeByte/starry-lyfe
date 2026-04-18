@@ -1,10 +1,11 @@
 # Operator Guide — Starry-Lyfe
 
-**Version:** 2.0.0
+**Version:** 2.1.0
 **Date:** 2026-04-17
-**Status:** Operator runtime walkthrough for the v7 terminal architectural state at commit `8c72486`. Supersedes the 1.x markdown-era guide.
+**Status:** Operator runtime walkthrough for the post-Phase-11 (Cross-Persona Context Injection) tree.
 **Audience:** the operator (Whyze) and any engineer who has to run, monitor, or troubleshoot Starry-Lyfe day-to-day.
 **Companion documents:** `Docs/ARCHITECTURE.md` (top-down as-built reference); `Docs/_phases/` (chronological delivery record); `CLAUDE.md` (governance).
+**Runtime baseline:** 1267 passed / 41 environmental Postgres skips / 0 failed / 0 xfailed (target — see PHASE_11.md for the post-merge count).
 
 ---
 
@@ -25,7 +26,7 @@ This document teaches you how to **operate** the system. It does not re-document
 - "How do I back up the DB?" → §11 Backup and restore
 - "How do I commit a change?" → §12 Dev workflow
 
-Each example uses real file paths and real CLI invocations against the current working tree.
+Each example uses live repo paths and Windows/PowerShell-safe commands unless explicitly marked illustrative.
 
 ---
 
@@ -33,7 +34,7 @@ Each example uses real file paths and real CLI invocations against the current w
 
 ### 1.1 First-time setup
 
-```bash
+```powershell
 # 1. Create venv + install (uses requirements-dev.txt + editable install)
 make install
 
@@ -47,23 +48,25 @@ make db-migrate
 make db-seed
 ```
 
-The `.env` file must exist before steps 3–4. Copy `.env.example` to `.env` and fill in:
+The runtime env must exist before steps 3–4. Ensure `.env` carries at least:
 
 - `STARRY_LYFE__API__API_KEY` — any non-empty value (Msty must send this in `X-API-Key`).
-- `STARRY_LYFE__EXT__SFW_PROVIDER_KEY` — your OpenRouter or Anthropic key.
+- `STARRY_LYFE__BD1__API_KEY` — the BD-1 provider key actually read by `BDOneSettings.from_env()`.
+- `STARRY_LYFE__BD1__BASE_URL` — optional if you are using the default `https://openrouter.ai/api/v1`.
+- `STARRY_LYFE__DREAMS__LLM_MODEL` — optional if you are using the default model.
 
 LM Studio (for embeddings) should be running locally on port 1234 with the model `text-embedding-nomic-embed-text-v1.5@q5_k_m` loaded. The writer path falls back to a zero vector if LM Studio is unreachable, but similarity search will be inert for those rows.
 
 ### 1.2 Daily startup (already-installed system)
 
-```bash
+```powershell
 # Database
 make docker-up   # idempotent; skips if already running
 
 # HTTP service (foreground, watchable logs)
-.venv/Scripts/python -m uvicorn starry_lyfe.api.main:app --host 0.0.0.0 --port 8001
-# Or via the entry point:
 .venv/Scripts/python -m starry_lyfe.api.main
+# Or via uvicorn's factory mode:
+.venv/Scripts/python -m uvicorn starry_lyfe.api.app:create_app --factory --host 0.0.0.0 --port 8001
 
 # Dreams daemon (separate terminal — long-running)
 .venv/Scripts/python -m starry_lyfe.dreams
@@ -71,21 +74,21 @@ make docker-up   # idempotent; skips if already running
 
 ### 1.3 Smoke check after boot
 
-```bash
+```powershell
 # Liveness (always 200 if process is alive)
-curl http://localhost:8001/health/live
+curl.exe http://localhost:8001/health/live
 
 # Readiness (200 only if R5 + BD-1 reachable)
-curl http://localhost:8001/health/ready
+curl.exe http://localhost:8001/health/ready
 
 # Models registry (5 entries: starry-lyfe + 4 character IDs)
-curl http://localhost:8001/v1/models | jq
+curl.exe http://localhost:8001/v1/models
 
 # Real chat (replace YOUR_KEY)
-curl -N http://localhost:8001/v1/chat/completions \
-  -H "X-API-Key: YOUR_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
+curl.exe -N http://localhost:8001/v1/chat/completions `
+  -H "X-API-Key: YOUR_KEY" `
+  -H "Content-Type: application/json" `
+  --data-raw '{
     "model": "adelia",
     "stream": true,
     "messages": [{"role":"user","content":"Hey, how was the porch this morning?"}]
@@ -94,19 +97,20 @@ curl -N http://localhost:8001/v1/chat/completions \
 
 ### 1.4 Run the test suite
 
-```bash
-make check          # ruff + mypy --strict + full pytest
+```powershell
+make check          # current Makefile gate: ruff + mypy + unit pytest bundle
 make test           # unit only
 make test-integration  # integration only (skips when Postgres unreachable)
+.venv/Scripts/python -m pytest -q  # full suite
 ```
 
-Current baseline: **1,257 passed / 38 environmental Postgres skips / 0 failed / 0 xfailed**.
+Current baseline: **1,258 passed / 39 environmental Postgres skips / 0 failed / 0 xfailed**.
 
 ---
 
 ## 2. Request walkthrough — what Msty sends → what the model receives
 
-The 12-step pipeline lives at `src/starry_lyfe/api/orchestration/pipeline.py:run_chat_pipeline()` (line 468). Here is one concrete request traced end-to-end.
+The 12-step pipeline lives at `src/starry_lyfe/api/orchestration/pipeline.py:run_chat_pipeline()` (line 137). Here is one concrete request traced end-to-end.
 
 ### 2.1 The HTTP request
 
@@ -128,26 +132,26 @@ Content-Type: application/json
 For Crew Conversations, Msty also includes:
 - An empty `system` message (Persona Studio System Prompt Mode = `Replace`, blank in production per **AD-001**).
 - Prior persona responses as `assistant` messages with a `name` field (e.g., `{"role": "assistant", "name": "bina", "content": "..."}`).
-- A user message that may end with `/all` to invoke crew expansion.
+- The current user message for the persona bubble being generated.
 
 ### 2.2 What the pipeline does (steps 1–12)
 
-| # | What | Where to look in logs |
+| # | What | Observable surface |
 |---|---|---|
-| 1 | Endpoint receives request, validates `X-API-Key` | structlog `request_received` |
-| 1b | `preprocess_msty_request()` strips system prompt, extracts prior responses, builds crew roster | structlog `msty_preprocessed` (logs `roster`, `prior_speakers`) |
-| 2a | `retrieve_alicia_home()` reads Tier 8 `life_states.is_away` | DB query `life_states` |
-| 2b | `classify_scene()` returns a `SceneState` (8 scene types × 6 modifiers) | structlog `scene_classified` (logs `scene_type`, `modifiers`, `voice_mode_candidates`) |
-| 3 | `retrieve_memories()` pulls canon facts + 24h episodic + dyad states + somatic + life state + Dreams activities into `MemoryBundle` | DB queries on `canon_facts`, `episodic_memories`, `dyad_state_*`, `transient_somatic_states`, `life_states`, `activities` |
-| 4 | `MemoryBundle.activities` becomes `NextSpeakerInput.activity_context` for Crew Rule 7 | inline |
-| 5 | `assemble_context()` builds the 7-layer prompt for the focal character | structlog `context_assembled` (logs `total_tokens`, `layer_token_breakdown`, `voice_mode`); see §2.3 |
-| 6 | `BDOne.stream_complete()` opens the SSE stream upstream | structlog `bdone_request_started` (model, max_tokens, temperature) |
+| 1 | Endpoint validates `X-API-Key`, preprocesses the Msty payload, resolves routing, upserts `chat_sessions` best-effort | Response headers `X-Request-ID`, `X-Character-ID`, `X-Routing-Source`, `X-Session-ID`; `chat.py` |
+| 1b | `preprocess_msty_request()` extracts prior responses + system-prompt roster hints | No dedicated success log today; inspect `api/routing/msty.py` or the downstream scene-context behavior |
+| 2a | `retrieve_alicia_home()` reads Tier 8 `life_states.is_away` | Success is silent; failure logs `alicia_home_resolution_failed` |
+| 2b | `classify_scene()` returns a `SceneState` (8 scene types × 6 modifiers) | Success is silent; failure logs `scene_classification_failed` |
+| 3 | `retrieve_memories()` pulls canon facts + baseline + dyad states + semantic episodic top-k + open loops + somatic + life state + Dreams activities into `MemoryBundle` | Success is silent; failure logs `memory_retrieval_failed` |
+| 4 | `MemoryBundle.activities` remains available inside retrieval / assembly context | No dedicated log today |
+| 5 | `assemble_context()` builds the 7-layer prompt for the focal character | Success is silent; failure logs `context_assembly_failed`; see §2.3 |
+| 6 | `BDOne.stream_complete()` opens the upstream SSE stream | Success is silent; failures log `upstream_stream_failed` |
 | 7 | LLM honors Layer 7 terminal constraints; backend has no client-side enforcement at this stage | — |
-| 8 | `validate_response()` runs Whyze-Byte two-tier check on the buffered response | structlog `whyze_byte_validated` (per-violation rows: `level`, `category`, `note`) |
-| 9 | If Crew, `_run_crew_turn` loops `select_next_speaker()` up to `crew_max_speakers`; per-speaker assemble + validate + attribution | structlog `crew_speaker_chosen`, `crew_speaker_validated` |
-| 10 | SSE stream terminates with `finish_reason` + `data: [DONE]` | structlog `sse_stream_complete` |
+| 8 | `validate_response()` runs Whyze-Byte on the buffered response | Tier-1 FAIL produces terminal SSE chunk `WHYZE_BYTE_FAIL`; unexpected validator exception logs `validation_failed_unexpectedly` |
+| 9 | Msty handles Crew bubble sequencing client-side; backend returns one routed persona response per request | No dedicated backend event beyond the normal single-speaker path |
+| 10 | SSE stream terminates with `finish_reason` + `data: [DONE]` | Client-visible SSE close; no dedicated completion log today |
 | 11 | (Msty-side Shadow Persona bookkeeping; backend not involved.) | — |
-| 12 | `schedule_post_turn_tasks()` spawns 3 fire-and-forget `asyncio.create_task` jobs: `extract_episodic`, Phase 8 `evaluate_and_update`, Phase 9 `evaluate_and_update_internal` | structlog `post_turn_scheduled`, then per-task completion events (`llm_eval_parsed_proposal`, `llm_eval_fallback_to_heuristic`, `dreams_qa_pin_blocked`, `episodic_extracted`) |
+| 12 | `schedule_post_turn_tasks()` spawns 3 fire-and-forget `asyncio.create_task` jobs: `extract_episodic`, Phase 8 `evaluate_and_update`, Phase 9 `evaluate_and_update_internal` | No dedicated schedule event; downstream failures log `post_turn_task_failed`, and evaluator/memory subtasks emit their own events |
 
 The HTTP response closes after step 10. Steps 11–12 happen after the user has already received the streamed reply.
 
@@ -171,16 +175,16 @@ business)...
 ...
 </CANON_FACTS>
 
-<EPISODIC_MEMORY>
+<MEMORY_FRAGMENTS>
 - 2026-04-15 (diary): "The kitchen smelled like cardamom..."
 - 2026-04-16 (off_screen): "Alicia called from Buenos Aires; mode=phone"
 ...
-</EPISODIC_MEMORY>
+</MEMORY_FRAGMENTS>
 
-<SOMATIC_STATE>
+<SENSORY_GROUNDING>
 fatigue=0.32, stress_residue=0.15, injury_residue=0.00 (decayed read)
 life_state: mood=settled, energy=medium, focus=family
-</SOMATIC_STATE>
+</SENSORY_GROUNDING>
 
 <VOICE_DIRECTIVES>
 Inference parameters: temperature=0.82, top_p=0.95, frequency_penalty=0.4, presence_penalty=0.3
@@ -194,9 +198,9 @@ Today's Dreams scene opener: "..."
 [Open loops with status='open']
 </SCENE_CONTEXT>
 
-<WHYZE_BYTE_CONSTRAINTS>
-[Constraint pillars from canon_facts — terminal anchor, NEVER trimmed]
-</WHYZE_BYTE_CONSTRAINTS>
+<CONSTRAINTS>
+[Tier 1 axioms + per-character YAML constraint pillars + scene/modifier gates — terminal anchor, NEVER trimmed]
+</CONSTRAINTS>
 ```
 
 Token budget per layer (defaults, `context/budgets.py:38::LayerBudgets`):
@@ -223,7 +227,7 @@ Token budget per layer (defaults, `context/budgets.py:38::LayerBudgets`):
 ### 2.4 What you can change at request time
 
 - **`model` field** routes to the focal character (`adelia` | `bina` | `reina` | `alicia` | `starry-lyfe` legacy). Production Msty path.
-- **Inline override** at the start of the user message: `/adelia`, `/bina`, `/reina`, `/alicia`, `/all` (crew expansion). Stripped before the LLM sees it. Dev/test path; not used in production Msty.
+- **Inline override** at the start of the user message: `/adelia`, `/bina`, `/reina`, `/alicia`. Stripped before the LLM sees it. Dev/test path; not used in production Msty.
 - **`X-SC-Force-Character`** header — dev/test only. Highest precedence; bypasses model field. Never set this in production Msty.
 
 If Alicia is currently away on operations, scenes set in-person will raise `AliciaAwayContradictionError` at the classifier (HTTP 400). Use `/alicia` only when she is home or use `communication_mode` keywords (phone / letter / video_call) to route to a remote-mode scene.
@@ -244,7 +248,7 @@ For each of Adelia, Bina, Reina, Alicia:
 6. **Endpoint URL:** `http://localhost:8001/v1/chat/completions` (or wherever the API is reachable).
 7. **Headers:** add `X-API-Key: <your-key>` matching `STARRY_LYFE__API__API_KEY`.
 8. **Streaming:** enabled (SSE).
-9. **Temperature / top_p / penalties:** Msty's defaults are fine. The backend's `personas/registry.py` carries per-character inference parameters that travel with the assembled prompt; Msty-side overrides are silently ignored on the model side because we send them in the prompt body, not the API params.
+9. **Temperature / top_p / penalties:** the canonical voice parameters live in the rich YAML `voice.inference_parameters` surface and render into Layer 5, but the live chat pipeline still passes `request.temperature` through to BD-1 when the client supplies it (default `0.7` otherwise). So Msty-side API params are not hard-overridden by canon today.
 
 ### 3.2 Crew Conversation setup
 
@@ -252,18 +256,20 @@ For each of Adelia, Bina, Reina, Alicia:
 2. **Add 2-4 personas** from the per-character set above.
 3. **Crew System Prompt:** leave blank (same rule).
 4. **Endpoint:** same as persona conversations.
-5. When the user wants the backend to expand into multiple speakers, end the message with `/all`. The backend's `_run_crew_turn` loop iterates up to `STARRY_LYFE__API__CREW_MAX_SPEAKERS` (default 3). Speakers arrive inline as `**Name:**\n\n<text>` with `\n\n` separators between them.
-6. The crew loop's next-speaker scoring respects the Talk-to-Each-Other Mandate (CLAUDE.md §16): if the last 2 turns were both to Whyze, w2w candidates get a reward; if a candidate just spoke non-Whyze, recency suppression applies.
+5. **Context: Contextual** (per Msty docs step 5 — *"Contextual where they are aware of persona responses before theirs"*). This is the load-bearing setting for normal conversation behavior. With **Independent**, each persona answers as if speaking alone.
+6. **Trigger: Auto** so personas respond automatically in roster order on each user turn.
+
+**How the cross-persona thread reaches the backend (Phase 11, AD-009).** Msty owns the persona-per-bubble sequencing — it fans out one HTTP request per persona's turn, with the prior personas' responses included as `role="assistant"` messages with a `name` field. The backend's `_format_crew_prior_block` helper extracts those into a framed `[Earlier in this conversation: …]` block prepended to the focal persona's `user_prompt`, so each new persona sees what the prior personas said and can riff on it. When `prior_responses` is empty (single-persona Persona Conversations), the helper is a no-op.
 
 ### 3.3 Helper script
 
 `scripts/seed_msty_persona_studio.py` produces ready-to-paste persona definitions from the rich YAMLs. Run as:
 
-```bash
-.venv/Scripts/python scripts/seed_msty_persona_studio.py --character adelia
+```powershell
+.venv/Scripts/python scripts/seed_msty_persona_studio.py
 ```
 
-Output is JSON the operator can hand-import into Persona Studio. Reads only the requested woman's YAML — does not fan out to all 5.
+Output is JSON the operator can hand-import into Persona Studio. The current script emits all four women's few-shot configs in one payload; there is no `--character` filter today.
 
 ---
 
@@ -271,27 +277,28 @@ Output is JSON the operator can hand-import into Persona Studio. Reads only the 
 
 ### 4.1 What's logged
 
-`structlog` is the canonical channel (MSE-6). Every entry carries `service`, `timestamp`, `level`, plus context fields. `STARRY_LYFE__LOG__LEVEL` controls verbosity (default `INFO`).
+The current tree uses standard Python `logging`, not `structlog`. Both entry points (`starry_lyfe.api.main` and `starry_lyfe.dreams.daemon`) boot with `logging.basicConfig(level=logging.INFO)`, write to stdout/stderr by default, and attach selected `extra={...}` fields on some events. There is no env-driven log-level hookup wired into boot today.
 
 ### 4.2 Key event names by subsystem
 
 | Subsystem | Event name | Level | Meaning |
 |---|---|---|---|
-| API request | `request_received` | INFO | New request landed |
-| API request | `msty_preprocessed` | INFO | Crew roster + prior responses extracted |
-| Scene | `scene_classified` | INFO | SceneState built; `scene_type`, `modifiers`, `voice_mode_candidates` in extras |
-| Memory | `memory_bundle_loaded` | INFO | `MemoryBundle` shape (counts per tier) |
-| Assembly | `context_assembled` | INFO | `total_tokens`, `layer_token_breakdown`, `voice_mode`, `activated_soul_cards` |
-| Crew | `crew_speaker_chosen` | INFO | Next speaker + score breakdown (7 rules) |
-| Validation | `whyze_byte_validated` | INFO/WARNING | Per-violation rows: `level`, `category`, `note` |
-| BD-1 | `bdone_request_started` | INFO | Outbound LLM call (model, max_tokens, temperature) |
-| BD-1 | `bdone_circuit_open` | WARNING | Circuit breaker tripped — falling back to heuristic for this turn |
-| Phase 8 | `llm_eval_parsed_proposal` | INFO | Successful Phase 8 LLM eval; deltas attached |
-| Phase 8 | `llm_eval_fallback_to_heuristic` | WARNING | Phase 8 fell back; `reason` field tells you why (toggle / no-client / circuit / DreamsLLMError / parse-fail) |
-| Phase 9 | (same event names as Phase 8, distinguished by extras carrying `dyad_key`) | | |
+| API request | `upsert_session_failed` | WARNING | `chat_sessions` write failed before streaming; request still proceeds |
+| Pipeline | `alicia_home_resolution_failed` | WARNING | Tier 8 `life_states` read failed; pipeline defaulted Alicia to home |
+| Pipeline | `scene_classification_failed` | WARNING | Scene classification raised; pipeline emits terminal SSE error chunk |
+| Pipeline | `memory_retrieval_failed` | WARNING | `retrieve_memories()` failed; pipeline degrades with empty bundle |
+| Pipeline | `context_assembly_failed` | WARNING | Prompt assembly raised; pipeline emits terminal SSE error chunk |
+| Stream | `upstream_stream_failed` | WARNING | BD-1 stream connect/start failed; pipeline emits terminal SSE error chunk |
+| Validation | `validation_failed_unexpectedly` | WARNING | Whyze-Byte raised unexpectedly on the single-speaker path |
+| Post-turn | `post_turn_task_failed` / `post_turn_task_cancelled` | WARNING | Fire-and-forget task failed or was cancelled after the SSE response closed |
+| Extraction | `extract_episodic_unknown_character` / `extract_episodic_llm_failed` | WARNING | Episodic extraction skipped due to bad character id or BD-1 failure |
+| Phase 8 | `llm_eval_parsed_proposal` | INFO | Successful Phase 8 LLM eval; 4-field proposal attached |
+| Phase 8 | `llm_eval_fallback_to_heuristic` | INFO | Phase 8 fell back; `reason` explains why |
+| Phase 9 | `internal_llm_eval_parsed_proposal` | INFO | Successful Phase 9 LLM eval; 5-field proposal attached |
+| Phase 9 | `internal_llm_eval_fallback_to_heuristic` | INFO | Phase 9 fell back; `reason` explains why |
 | Phase 10.7 | `dreams_qa_verdict` | INFO/WARNING/ERROR | Per-relationship verdict; level scales by verdict (healthy=INFO, drift=WARNING, contradiction=ERROR) |
 | Phase 10.7 | `dreams_qa_pin_created` | INFO | New pin written to `dyad_state_pins` |
-| Phase 10.7 | `dreams_qa_pin_blocked` | WARNING | Phase 9 evaluator skipped a pinned dimension; `field_name` + `relationship_key` in extras |
+| Phase 10.7 | `dreams_qa_pin_blocked` | WARNING | Phase 9 evaluator skipped one or more pinned dimensions; `dyad_key`, `blocked_fields`, `speaker_id` in extras |
 | Phase 10.7 | `dreams_qa_auto_promoted` | WARNING | 3-night drift threshold hit; verdict promoted to `factual_contradiction` |
 | Phase 10.7 | `dreams_qa_memory_lookup_failed` | WARNING | Per-relationship memory window unavailable; QA pass continues with empty memories |
 | Phase 10.7 | `dreams_qa_markdown_lock_unavailable` | WARNING | File lock not acquired (stripped Python build); ledger writes proceed unsynchronized |
@@ -307,18 +314,20 @@ Output is JSON the operator can hand-import into Persona Studio. Reads only the 
 
 ### 4.3 What to grep for
 
-```bash
+```powershell
+# If you redirected stdout/stderr to .\logs\starry-lyfe.log:
+
 # Did Phase 9 skip any pinned writes today?
-grep dreams_qa_pin_blocked /var/log/starry-lyfe/*.log
+Select-String -Path .\logs\starry-lyfe.log -Pattern "dreams_qa_pin_blocked"
 
 # Did the QA pass succeed last night?
-grep dreams_run_complete /var/log/starry-lyfe/*.log | tail -1
+Select-String -Path .\logs\starry-lyfe.log -Pattern "dreams_run_complete" | Select-Object -Last 1
 
-# Was BD-1 the bottleneck on a slow turn?
-grep llm_eval_fallback_to_heuristic /var/log/starry-lyfe/*.log | tail -10
+# Was either evaluator falling back to heuristics?
+Select-String -Path .\logs\starry-lyfe.log -Pattern "llm_eval_fallback_to_heuristic|internal_llm_eval_fallback_to_heuristic" | Select-Object -Last 10
 
-# Did the crew loop hit max speakers?
-grep crew_speaker_chosen /var/log/starry-lyfe/*.log | grep -c "speaker_index=2"
+# Did any post-turn task die after the client already received a reply?
+Select-String -Path .\logs\starry-lyfe.log -Pattern "post_turn_task_failed"
 ```
 
 ### 4.4 Prometheus metrics
@@ -328,10 +337,10 @@ grep crew_speaker_chosen /var/log/starry-lyfe/*.log | grep -c "speaker_index=2"
 | Series | Labels | Meaning |
 |---|---|---|
 | `http_requests_total` | `method`, `path`, `status` | Standard Prom counter |
-| `http_request_duration_seconds` | `path` | Histogram |
-| `http_sse_tokens_total` | `character_id` | Per labeled character (speaker in Crew, focal otherwise). Counts SSE chunks, not LLM tokens (name frozen for stability). |
-| `whyze_byte_violations_total` | `character_id`, `level`, `category` | Per-validation outcome |
-| `bdone_circuit_open` | (gauge) | 1 = open, 0 = closed |
+| `http_chat_completions_total` | `character_id`, `routing_source`, `outcome` | Per-chat request counter from response headers |
+| `http_sse_tokens_total` | `character_id` | Per labeled character. Counts upstream LLM stream deltas, not model tokens (name retained for series stability). |
+| `http_request_duration_seconds` | `method`, `path` | Total request-duration histogram |
+| `http_chat_ttfb_seconds` | `character_id` | Chat-route TTFB approximation (currently observed as request duration) |
 
 ---
 
@@ -339,8 +348,8 @@ grep crew_speaker_chosen /var/log/starry-lyfe/*.log | grep -c "speaker_index=2"
 
 ### 5.1 Daemon vs `--once`
 
-```bash
-# Production (long-running daemon, default schedule "30 3 * * *" = 03:30 daily UTC)
+```powershell
+# Production (long-running daemon, default schedule "30 3 * * *" = 03:30 daily in the scheduler's local timezone)
 .venv/Scripts/python -m starry_lyfe.dreams
 
 # Manual one-shot (smoke test, catch-up after crash, ad-hoc QA pass)
@@ -442,15 +451,14 @@ async def main():
         # See what's pinned
         active = await list_active_pins(session)
         for p in active:
-            print(p["relationship_key"], p["field_name"], p["pinned_value"])
+            print(p["id"], p["relationship_key"], p["field_name"], p["pinned_value"])
 
-        # Resolve
+        # Resolve one active pin by id
+        pin_id = active[0]["id"]
         await unpin_field(
             session,
-            relationship_key="whyze_alicia",
-            pov_character_id="alicia",
-            field_name="marriage_year",
-            resolution_note="Operator confirmed 2022; Alicia's drift was scene-fodder-worthy fragment, not a fact change.",
+            pin_id=pin_id,
+            operator_resolution_note="Operator confirmed the canonical value; runtime updates may resume.",
         )
     await engine.dispose()
 
@@ -483,7 +491,7 @@ A "drifting" trend on a relationship is a structural signal; review the underlyi
 The runner wraps the QA pass in a try/except (`dreams/runner.py`). If `generate_consistency_qa` throws, you'll see `dreams_consistency_qa_failed` at ERROR level and a `consistency_qa: <exc>` warning in `dreams_run_complete`. The rest of the Dreams pass (the 5 per-character generators) still completed successfully.
 
 Common causes:
-- BD-1 circuit breaker open (the QA judge LLM call failed too many times). Check `bdone_circuit_open`.
+- BD-1 is failing upstream or already circuit-open; the QA judge will surface this as `consistency_qa: DreamsLLMError: ...` in the run warnings.
 - A rich YAML is malformed and `enumerate_all(canon)` couldn't enumerate 10 relationships. Check the loader on next boot.
 - `shared_canon.dyads_baseline` keys drifted from the seniority precedence (`adelia=0/bina=1/reina=2/alicia=3`). Run `make validate-canon`.
 
@@ -496,7 +504,7 @@ Common causes:
 The HTTP response closes after step 10. Then `schedule_post_turn_tasks()` spawns three independent `asyncio.create_task` jobs:
 
 1. `extract_episodic()` — pulls memorable beats from the last turn into `episodic_memories` with embedding via LM Studio.
-2. `evaluate_and_update()` — Phase 8 Whyze-dyad evaluator. Updates the focal character's `dyad_state_whyze` row across 5 dimensions, capped at ±0.03 each.
+2. `evaluate_and_update()` — Phase 8 Whyze-dyad evaluator. The row stores 5 fields, but the evaluator currently updates 4 of them (`trust`, `intimacy`, `unresolved_tension`, `repair_history`), each capped at ±0.03.
 3. `evaluate_and_update_internal()` — Phase 9 inter-woman evaluator. Updates each active inter-woman dyad the focal character is part of, ±0.03 each, **with Phase 10.7 pin-consult** before each dimension write.
 
 All three are fire-and-forget. A failure in any one cannot delay or corrupt the user-visible reply (AC-7.10). Failures land in the log via `add_done_callback(_log_task_outcome)`.
@@ -507,7 +515,7 @@ Both Phase 8 and Phase 9 evaluators try the LLM path first. They fall back to th
 
 1. Settings opt-out (`STARRY_LYFE__API__RELATIONSHIP_EVAL_LLM=false` or `INTERNAL_RELATIONSHIP_EVAL_LLM=false`)
 2. No `llm_client` available
-3. Circuit breaker open (`bdone_circuit_open=true`)
+3. `llm_client.circuit_open` is already true
 4. LLM raises `DreamsLLMError`
 5. Parser returns `None` (malformed JSON)
 
@@ -515,9 +523,9 @@ Both paths feed `_clamp_delta()` (final ±0.03 gate) and `_bound01()` ([0, 1] cl
 
 ### 7.3 Reading `dreams_qa_pin_blocked`
 
-When you see `WARNING dreams_qa_pin_blocked relationship_key=adelia_bina field_name=trust pov_character_id=None`, this is **not** an error. It means:
+When you see `WARNING dreams_qa_pin_blocked dyad_key=adelia_bina blocked_fields=['trust'] speaker_id=adelia`, this is **not** an error. It means:
 
-> Phase 9 wanted to update `adelia_bina.trust` based on the latest turn, but `dyad_state_pins` carries an active symmetric pin on that field. The write was skipped. The pin is the operator's standing instruction that this dimension should not move until they resolve.
+> Phase 9 wanted to update one or more fields on `adelia_bina` based on Adelia's latest turn, but `dyad_state_pins` carries an active symmetric pin on those dimensions. The write was skipped. The pin is the operator's standing instruction that those dimensions should not move until they resolve.
 
 If you see this event repeatedly for the same field, it means Phase 9 keeps trying to drift the dimension and the pin keeps blocking it. That's the system working as designed — the pin is doing its job. Resolve the pin (§6.3) only if you have the canonical truth that should replace the pinned value.
 
@@ -576,7 +584,7 @@ make db-seed
 
 ### 8.3 Preserve markers
 
-Any sentence in the rich YAMLs marked with `<!-- PRESERVE -->` is a load-bearing canonical phrase. The preserve-marker enforcement test fails the build if a preserve-marked sentence stops appearing verbatim in the assembled Layer 1 output.
+The load-bearing contract is `meta.preserve_markers[].content_anchor`, not the HTML marker alone. The enforcement bundle checks that each anchor's sentence-level canonical units still reach assembled Layer 1 for the four women (and that Shawn's anchors still exist in his YAML body).
 
 To intentionally retire a preserve marker, remove the marker AND the sentence at the same time, then add a normalization note to `shared_canon.yaml::normalization_notes`. The test reads the ledger and exempts removed markers.
 
@@ -601,21 +609,21 @@ Always returns 200 if the FastAPI process is alive. Use it to verify "is the con
 
 Returns 200 only if:
 - R5 pool is open and a trivial query succeeds.
-- BD-1 is reachable (a HEAD probe to `STARRY_LYFE__EXT__SFW_PROVIDER_URL`) **if** `STARRY_LYFE__API__HEALTH_BD1_PROBE=true` (default).
+- BD-1 is reachable (a HEAD probe to `STARRY_LYFE__BD1__BASE_URL`) **if** `STARRY_LYFE__API__HEALTH_BD1_PROBE=true` (default).
 
 503 with structured reason otherwise:
 
 ```json
 {
-  "ready": false,
+  "status": "not_ready",
   "checks": {
-    "database": "ok",
-    "bd1": "circuit_open"
+    "db": {"ok": true},
+    "llm": {"ok": false, "reason": "BD-1 circuit breaker open"}
   }
 }
 ```
 
-If `bd1=circuit_open`, the BD-1 client tripped its breaker after consecutive failures. The system will keep falling back to the heuristic path on Phase 8/9 evaluators; chat completion will fail until BD-1 recovers or you manually reset by restarting the API service.
+If `checks.llm.reason` says the circuit breaker is open, the BD-1 client tripped after consecutive failures. Phase 8/9 evaluators will keep falling back to heuristics, and live chat generation will not recover until BD-1 recovers or you restart the API service.
 
 ### 9.3 `/v1/models`
 
@@ -629,12 +637,13 @@ Prometheus exposition. See §4.4 for the series list.
 
 ## 10. Troubleshooting
 
-### 10.1 "Chat completion fails with 503"
+### 10.1 "Chat completion returns an upstream error or dies mid-stream"
 
 Likely causes (check in order):
-1. `/health/ready` is 503. Check `bd1` field.
-2. BD-1 circuit open → restart the API service or wait the breaker timeout.
-3. R5 pool exhausted → check `psql` for too many active connections; restart API.
+1. `/health/ready` is 503. Check `checks.db` and `checks.llm`.
+2. The stream emitted a terminal `UPSTREAM_LLM_ERROR` chunk after starting. Inspect `upstream_stream_failed`.
+3. BD-1 is down or circuit-open. Restart the API service after fixing upstream access, or wait for the upstream issue to clear.
+4. R5 pool exhausted or DB unavailable. Check active connections and the readiness payload.
 
 ### 10.2 "Chat completion succeeds but the response is wrong character"
 
@@ -643,19 +652,19 @@ Check character routing precedence (`api/routing/character.py:resolve_character_
 2. Did the user message start with `/<char>`? It wins over `model`.
 3. What did `model` resolve to? Misspellings fall back to the configured default.
 
-Look for `request_received` log line — it records the chosen character ID.
+Check the response headers instead: `X-Character-ID` tells you the winner, and `X-Routing-Source` tells you which surface won (`header`, `inline_override`, `model_field`, `default`).
 
 ### 10.3 "Crew Conversation only produces one speaker"
 
-The crew detection logic requires either:
-- `/all` override at message start, OR
-- ≥2 canonical women in the parsed roster AND ≥1 prior persona response.
+Msty Crew bubble sequencing is client-side now. If only one persona answered, check Msty-side crew settings first:
 
-Check `msty_preprocessed` log — `roster` field tells you what the preprocessor saw. If the roster has fewer than 2 canonical women, Crew mode does not engage.
+- Response behavior is `Auto`, not `Manual`
+- The missing persona is actually included in the crew
+- The conversation is `Contextual` if you expect prior persona replies to influence later bubbles
 
 ### 10.4 "Voice mode mismatch — Adelia is being too formal"
 
-Check `scene_classified` log — `voice_mode_candidates` shows what the classifier proposed. The selected mode is also in `context_assembled`. If the mode is wrong:
+The classifier and assembler do not emit dedicated success-path logs for voice-mode selection today. If the mode is wrong:
 - Did the user message contain a keyword that triggered an unexpected `SceneType`? (e.g., "cancellation" → `transition`)
 - Are present_characters wrong? `assemble_context` may be inferring `solo_pair` vs `group` mistakenly.
 
@@ -676,11 +685,11 @@ Soul cards activate via four gates (`context/soul_cards.py:127::find_activated_c
 3. `with_character` in present characters set
 4. `scene_keyword` substring match in scene_description (case-insensitive)
 
-Check `context_assembled` log — `activated_soul_cards` lists what passed the gates. If the card you expected isn't there, walk through its YAML activation rules and the actual scene_description.
+There is no dedicated success-path `context_assembled` event today. Walk the card's YAML activation rules against the actual `scene_description`, `communication_mode`, and `present_characters` that reached `find_activated_cards()`.
 
 ### 10.7 "Phase 10.7 QA pass produced 9 rows, not 10"
 
-Most likely a `dreams_qa_memory_lookup_failed` for one relationship (it still produces a verdict, but a fallback memory window). Check the warnings list on `dreams_run_complete`; the failed relationship is named in the warning string.
+`dreams_qa_memory_lookup_failed` alone is **not** enough to drop a row; the QA generator still writes a real or placeholder verdict for that relationship. Fewer than 10 rows means the QA pass or a DB write path failed partway through. Check `dreams_consistency_qa_failed`, `dreams_run_complete`, and any database exception around `_persist_one()`.
 
 ### 10.8 "Pin keeps blocking writes I want to allow"
 
@@ -709,17 +718,18 @@ Expected. Integration tests that need real Postgres are skip-gated. If Postgres 
 
 ### 11.2 Backing up the DB
 
-```bash
+```powershell
 # Hot dump while container runs (recommended)
 docker exec Starry-Lyfe pg_dump -U starry_lyfe -d starry_lyfe -F c -f /tmp/starry_lyfe.dump
-docker cp Starry-Lyfe:/tmp/starry_lyfe.dump ./backups/starry_lyfe_$(date +%Y%m%d).dump
+$stamp = Get-Date -Format yyyyMMdd
+docker cp Starry-Lyfe:/tmp/starry_lyfe.dump "./backups/starry_lyfe_$stamp.dump"
 ```
 
 ### 11.3 Restoring
 
-```bash
+```powershell
 # Drop + recreate the schema, then load the dump
-docker exec -i Starry-Lyfe pg_restore -U starry_lyfe -d starry_lyfe -c < ./backups/starry_lyfe_YYYYMMDD.dump
+Get-Content .\backups\starry_lyfe_YYYYMMDD.dump -AsByteStream | docker exec -i Starry-Lyfe pg_restore -U starry_lyfe -d starry_lyfe -c
 ```
 
 ### 11.4 Docker safety rules (CLAUDE.md §2)
@@ -742,10 +752,10 @@ If the DB is gone and there's no recent dump:
 
 ### 12.1 Branch + commit
 
-```bash
+```powershell
 git checkout -b feat/some-scope-description-of-change
 # ... edits ...
-make check                               # ruff + mypy --strict + pytest
+make check                               # current Makefile gate: ruff + mypy + unit pytest bundle
 git add <specific files>                 # never `git add -A` (sensitive files)
 git commit -m "feat(scope): one-line summary
 
@@ -801,10 +811,10 @@ Per CLAUDE.md §2 standing orders:
 | **Canon** | The frozen `Canon` dataclass returned by `load_all_canon()`. Single in-memory source of truth. |
 | **Canon facts** | Tier 1 — flattened immutable facts seeded from rich YAML. |
 | **Communication mode** | `phone` / `letter` / `video_call` / `in_person`. Tags Alicia-away artifacts and gates soul card activation. |
-| **Crew Mode** | Msty-side multi-character conversation. Backend expands via `_run_crew_turn` loop. |
+| **Crew Mode** | Msty-side multi-character conversation. Each persona request lands as its own backend call / bubble. |
 | **Dyad** | A two-party relationship. Six inter-woman dyads (`dyad_state_internal`) + four woman-Whyze dyads (`dyad_state_whyze`). |
 | **Dyad key** | Canonical key per relationship. Inter-woman keys use seniority order (`adelia_bina`, `bina_alicia` — not alphabetical). |
-| **Episodic memory** | Tier 5 — pgvector-embedded events extracted post-turn. 24h primary retrieval window. |
+| **Episodic memory** | Tier 5 — pgvector-embedded events extracted post-turn. Runtime retrieval is semantic top-k, not a hard 24h window. |
 | **F1 / F2 / F3 / F4 / F5** | Audit findings (numbered per audit round). |
 | **Focal character** | The character whose POV the current request is built around. Determined by character routing precedence. |
 | **GNK** | Config protocol droid. All env access through `*/config.py` modules, never `os.environ` elsewhere. |
@@ -813,7 +823,7 @@ Per CLAUDE.md §2 standing orders:
 | **In-person** | A scene with all parties physically together. Triggers Alicia-residence gate. |
 | **Knowledge soul card** | One of 11 per character. Activates conditionally in Layer 6 via scene_keyword / communication_mode / with_character / always. |
 | **Layer N** | One of seven prompt layers in `assemble_context`. Layer 7 is the terminal Whyze-Byte constraint anchor. |
-| **MSE-6** | Observability protocol droid. `structlog` throughout + Prometheus metrics. |
+| **MSE-6** | Observability protocol droid. In the current tree this is standard Python logging to stdout/stderr plus Prometheus metrics. |
 | **Msty Persona** | A single-character conversation handle in Msty Persona Studio. Routes via `model` field. |
 | **Operator** | Whyze. The human at the keyboard. Also a canonical character (`shawn`) in the canon — distinct concepts. |
 | **Pair** | A woman-Whyze relationship. Four pairs: Entangled (Adelia), Circuit (Bina), Kinetic (Reina), Solstice (Alicia). |
@@ -822,20 +832,20 @@ Per CLAUDE.md §2 standing orders:
 | **Phase H** | The assembled-prompt regression bundle. First-class ship gate per **AD-008**. |
 | **Pin** | A row in `dyad_state_pins` blocking Phase 9 from updating a dimension until operator-resolved. |
 | **POV** | "Point of view" — a character's perspective on a relationship or event. Per-character POV is enforced divergent. |
-| **Preserve marker** | `<!-- PRESERVE -->` annotation in rich YAMLs marking load-bearing canonical phrases. Enforced by test. |
+| **Preserve marker** | `meta.preserve_markers[].content_anchor` metadata marking load-bearing canonical phrases. The HTML `<!-- PRESERVE -->` marker can still appear in authored prose, but the enforced contract is the anchor text. |
 | **R5-D4** | Database protocol droid. `db/engine.py` async pool. |
 | **Rich YAML** | One of the 5 per-character `Characters/{id}.yaml` files. Authoritative canonical source. |
 | **Run ID** | UUID assigned per Dreams run. Joins `dreams_qa_log` rows to a single nightly pass. |
-| **Scene Director** | Pre-assembly subsystem (`scene/`) that classifies scenes and selects next speakers. |
+| **Scene Director** | Pre-assembly subsystem (`scene/`) centered on scene classification. The legacy next-speaker scorer remains in-tree but is not part of the active HTTP chat path. |
 | **`SceneState`** | The dataclass output of `classify_scene()`. Drives layer assembly + voice mode + soul card activation. |
 | **`shared_canon`** | The single cross-character objective anchor file. `pairs`, `dyads_baseline`, `interlocks`, `memory_tiers`, marriage, genealogy. |
 | **Soul cards** | YAML blocks with activation rules. 4 pair (always) + 11 knowledge (conditional) per character. |
 | **Soul essence** | Per-character `soul_substrate` block from rich YAML. Guaranteed-surcharge in Layer 1. |
 | **Symmetric pin** | A pin with `pov_character_id=NULL`. Blocks all POVs on that dimension. |
-| **Talk-to-Each-Other Mandate** | Crew-mode scoring rule rewarding woman-to-woman speaker selection after consecutive Whyze turns. |
+| **Talk-to-Each-Other Mandate** | Legacy speaker-selection heuristic retained in `scene/next_speaker.py` tests; not part of the active HTTP chat path. |
 | **Tier N** | One of 7 memory tiers. Tier 1 canon facts, Tier 7 transient somatic state. |
 | **Voice mode** | A category of voice exemplar selection (`domestic`, `intimate`, `conflict`, `repair`, `public`, `group`, `silent`, `solo_pair`, `escalation`, `warm_refusal`, `group_temperature`). |
-| **WAF** | Workflow Acceptance Framework. `make check` = ruff + mypy --strict + pytest. |
+| **WAF** | Workflow Acceptance Framework. In the current Makefile, `make check` = ruff + mypy + unit pytest; run `pytest -q` separately for the full suite. |
 | **WED-15** | Error / retry protocol droid. Circuit breaker + exponential backoff. |
 | **Whyze-Byte** | The two-tier response validator. FAIL = hard stop. WARN = soft finding. |
 | **2-1B** | Health-check protocol droid. `/health/live` + `/health/ready`. |
@@ -858,7 +868,7 @@ Per CLAUDE.md §2 standing orders:
 - Whyze-Byte is mandatory on all outputs. No deliberate bypass.
 - Request-driven. Each message = full pipeline. Only Dreams runs in the background (nightly).
 - Routing precedence: header > inline > model field > default. Production Msty uses model field.
-- Per-character inference parameters in `personas/registry.py`: Adelia 0.82 > Alicia 0.75 > Reina 0.72 > Bina 0.58.
+- Canonical voice inference parameters live in the rich YAML `voice.inference_parameters` surface and render into Layer 5, but the live chat path still honors `request.temperature` when the client provides it (default `0.7` otherwise).
 - ±0.03 per-turn delta cap on relationship evaluators is a hard invariant.
 
 **Activities.**

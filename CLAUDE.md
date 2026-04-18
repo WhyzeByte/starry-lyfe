@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Version:** U1.3-P2.16 | **Format:** U{universal}.{minor}-P{project}.{minor}
+**Version:** U1.3-P2.21 | **Format:** U{universal}.{minor}-P{project}.{minor}
 
 > Universal sections (Part 1) are identical across all repositories.
 > Project sections (Part 2) are customized per service.
@@ -241,7 +241,7 @@ Every service defines a `ServiceError` base exception. Custom exceptions inherit
 | Port | `8001` |
 | Owner | Whyze Byte |
 | Purpose | Character AI: four v7 persona kernels representing the chosen-family architecture — Adelia Raye (ENFP-A, resident, Whyze's partner), Bina Malek (ISFJ-A, resident, married to Reina), Reina Torres (ESTP-A, resident, married to Bina), and Alicia Marin (ESFP-A, resident, Argentine consular officer who travels frequently for operations). All four operate as persistent characters with persistent memory, nightly life simulation, narrated activities, and Whyze-Byte quality validation. |
-| Docs layer (project-specific notes on Part 1 §9) | This project uses the phase-based integration-tracking pattern (`Docs/_phases/`, `Docs/IMPLEMENTATION_PLAN_v7.1.md`, `journal.txt`) **alongside** the universal `Docs/ARCHITECTURE.md` + `Docs/CHANGELOG.md` pattern (post-2026-04-17). Role division: `Docs/ARCHITECTURE.md` is the top-down as-built reference (the map a new engineer opens first); phase reports under `Docs/_phases/` remain the authoritative chronological delivery record with audit + remediation history; `journal.txt` is the Phase 10 YAML-migration ledger. `Docs/CHANGELOG.md` tracks the ARCHITECTURE.md version chain. On conflict between CLAUDE.md and ARCHITECTURE.md, CLAUDE.md wins per §2 Escalation. Legacy pre-v7 documentation remains in `Backups/Docs_Pre_v7/` as historical reference only. |
+| Docs layer (project-specific notes on Part 1 §9) | This project uses the phase-based integration-tracking pattern (`Docs/_phases/`, `Docs/IMPLEMENTATION_PLAN_v7.1.md`, `journal.txt`) **alongside** the universal `Docs/ARCHITECTURE.md` + `Docs/CHANGELOG.md` pattern (post-2026-04-17). Role division: `Docs/ARCHITECTURE.md` is the top-down as-built reference (the map a new engineer opens first); phase reports under `Docs/_phases/` remain the authoritative chronological delivery record with audit + remediation history; `journal.txt` is the Phase 10 YAML-migration ledger. `Docs/CHANGELOG.md` tracks the versioned docs-layer reference chain (`ARCHITECTURE.md`, `OPERATOR_GUIDE.md`, and related governance-visible doc refreshes). On conflict between CLAUDE.md and ARCHITECTURE.md, CLAUDE.md wins per §2 Escalation. Legacy pre-v7 documentation remains in `Backups/Docs_Pre_v7/` as historical reference only. |
 
 ---
 
@@ -252,7 +252,7 @@ Every service defines a `ServiceError` base exception. Custom exceptions inherit
 | Dependency | Protocol Droid | Connection |
 |------------|---------------|------------|
 | PostgreSQL + pgvector | R5 | `STARRY_LYFE__DB__HOST:PORT` |
-| OpenRouter / Anthropic endpoint | BD-1 | `STARRY_LYFE__EXT__SFW_PROVIDER_URL` |
+| BD-1 LLM endpoint | BD-1 | `STARRY_LYFE__BD1__BASE_URL` |
 | Embedding Provider | BD-1 | Configured via GNK |
 
 **Consumed by:** Msty AI via `/v1/chat/completions` (direct OpenAI-compatible — Persona Conversations per-character, Crew Conversations multi-character). Msty is the only client; the service is not exposed to other UIs.
@@ -261,7 +261,7 @@ Every service defines a `ServiceError` base exception. Custom exceptions inherit
 
 ## 13. DATABASE SCHEMA
 
-Schema: `starry_lyfe`. Tables: `chat_sessions`, `character_responses`, `canon_facts`, `episodic_memories`, `relationship_state`, `open_loops`, `pipeline_validations`, `life_states`, `activities`, `consolidated_memories`, `consolidation_log`, `drive_states`, `proactive_intents`, `session_health`, `dreams_qa_log`, `dyad_state_pins`. See ARCHITECTURE.md for full column details.
+Schema: `starry_lyfe`. Tables: `chat_sessions`, `canon_facts`, `character_baselines`, `dyad_state_whyze`, `dyad_state_internal`, `episodic_memories`, `open_loops`, `transient_somatic_states`, `life_states`, `activities`, `consolidated_memories`, `consolidation_log`, `drive_states`, `proactive_intents`, `session_health`, `dreams_qa_log`, `dyad_state_pins`. See ARCHITECTURE.md for full column details.
 
 ---
 
@@ -277,19 +277,21 @@ Schema: `starry_lyfe`. Tables: `chat_sessions`, `character_responses`, `canon_fa
 
 OpenAI-compatible format: `{"model": "...", "messages": [...], "stream": true}` → SSE `data: {"choices": [{"delta": {"content": "..."}}]}`. No separate metadata channel.
 
-Character routing priority: (1) `model` field matching character name `adelia|bina|reina|alicia` — the Msty Persona path. Msty Studio loads each character as a Persona; Persona Conversations send the character's model id in the `model` field. Characters are never forced by HTTP headers in production Msty. (2) Inline `/<char>` override at user message start — dev/test. (3) `X-SC-Force-Character` header — dev/test escape hatch, not the Msty path. (4) pipeline default fallback. Msty **Crew Conversations** (multi-character) are preprocessed by `msty.py::preprocess_msty_request()`: system prompt stripped, prior persona responses extracted from `name`-tagged assistant messages, crew roster parsed into `scene_characters`. The backend's `select_next_speaker()` (Scene Director) scores the next speaker; `_run_crew_turn()` loops up to `CREW_MAX_SPEAKERS` times with inline `**Name:** ` attribution and carry-forward of validated prior speaker text. When Alicia is routed, the pipeline should account for her frequent operational travel; scenes set during periods when she is away on a consular operation should reflect her absence naturally rather than forcing her presence.
+Character routing priority: (1) `X-SC-Force-Character` header — dev/test only, highest precedence. (2) Inline `/<char>` override at user message start — dev/test only. (3) `model` field matching `adelia|bina|reina|alicia` or legacy default alias `starry-lyfe` — the production Msty Persona path. (4) pipeline default fallback. Msty Studio loads each character as a Persona; Persona Conversations send the character's model id in the `model` field, and production Msty should not set the dev/test header or inline override surfaces. Msty **Crew Conversations** (multi-character) are preprocessed by `msty.py::preprocess_msty_request()`: system prompt stripped, prior persona responses extracted from `name`-tagged assistant messages, crew roster parsed into `scene_characters`. The backend uses that roster only for scene classification and prompt assembly. Each request still returns exactly one routed persona response, and Msty owns persona-per-bubble sequencing client-side. Legacy `/all` is stripped as a no-op only and has no routing effect. When Alicia is routed, the pipeline should account for her frequent operational travel; scenes set during periods when she is away on a consular operation should reflect her absence naturally rather than forcing her presence.
 
 ---
 
 ## 15. ENVIRONMENT VARIABLES
 
-**Required:** `STARRY_LYFE__API__PORT`, `STARRY_LYFE__DB__HOST`, `STARRY_LYFE__DB__NAME`, `STARRY_LYFE__DB__USER`, `STARRY_LYFE__DB__PASSWORD`, `STARRY_LYFE__EXT__SFW_PROVIDER_URL`, `STARRY_LYFE__EXT__SFW_PROVIDER_KEY`.
+**Required for normal local operation:** `STARRY_LYFE__API__API_KEY`, `STARRY_LYFE__DB__HOST`, `STARRY_LYFE__DB__NAME`, `STARRY_LYFE__DB__USER`, `STARRY_LYFE__DB__PASSWORD`, `STARRY_LYFE__BD1__API_KEY`.
 
-**Key models (all optional with defaults):**
+**Key runtime knobs (all optional with defaults unless listed above):**
 
 | Variable | Default |
 |----------|---------|
-| `STARRY_LYFE__EXT__SFW_MODEL` | `deepseek/deepseek-v3.2` |
+| `STARRY_LYFE__API__PORT` | `8001` |
+| `STARRY_LYFE__BD1__BASE_URL` | `https://openrouter.ai/api/v1` |
+| `STARRY_LYFE__DREAMS__LLM_MODEL` | `anthropic/claude-sonnet-4-6` |
 | `STARRY_LYFE__EXT__EMBEDDING_MODEL` | `text-embedding-nomic-embed-text-v1.5@q5_k_m` (LM Studio) |
 
 See `.env.example` for the full variable list covering: API host, DB port, logging, embedding config, auth, session timeout, Dreams schedule, environment polling (weather/roads/news), health auditor thresholds, Whyze-Byte settings, and observability.
@@ -314,7 +316,7 @@ See `.env.example` for the full variable list covering: API host, DB port, loggi
 **Pipeline rules:**
 - Whyze-Byte is mandatory on all outputs. Deliberate bypass is never permitted. If unavailable, deliver with warning flag.
 - Request-driven pipeline. Each message = full pipeline run. No persistent background processes except Dreams (nightly batch).
-- Msty routing via Persona model field: `adelia`, `bina`, `reina`, `alicia` model IDs map to characters via the `model` field in each request. Characters are loaded through Msty Personas (Persona Studio, System Prompt Mode = Replace, blank in production). Multi-character scenes use Msty Crew Mode (crew roster in `scene_characters`, prior turns in `prior_responses`). Dev/test overrides: `X-SC-Force-Character` header or inline `/<char>` prefix — neither is used in production Msty. Inline overrides: `/adelia`, `/bina`, `/reina`, `/alicia`, `/all`. The `/alicia` override should note if Alicia is currently away on an operation.
+- Msty routing via Persona model field: `adelia`, `bina`, `reina`, `alicia` model IDs map to characters via the `model` field in each request. Characters are loaded through Msty Personas (Persona Studio, System Prompt Mode = Replace, blank in production). Multi-character scenes use Msty Crew Mode, but Msty still sends one persona request per bubble; the backend uses crew roster/history only for scene classification and prompt assembly. Dev/test overrides: `X-SC-Force-Character` header or inline `/<char>` prefix — neither is used in production Msty. Supported routable inline overrides: `/adelia`, `/bina`, `/reina`, `/alicia`. Legacy `/all` is stripped as a no-op and must not be treated as a backend speaker-selection command. The `/alicia` override should note if Alicia is currently away on an operation.
 - Per-character model parameters (temperature, top_p, penalties) in `personas/registry.py`. Temperature spread across the four characters: Adelia 0.82 > Alicia 0.75 > Reina 0.72 > Bina 0.58. Alicia's parameters sit between Reina's tactical sharpness and Adelia's warmth; see `Docs/IMPLEMENTATION_PLAN_v7.1.md` for the full inference parameter table.
 - Relationship evaluator fires every turn via `evaluate_and_update`. Deltas capped ±0.03 per dimension. Fire-and-forget, never blocks streaming.
 - Constraint validators must not false-positive on natural speech. Bracket detector: citation patterns only. Name detector: stopword-filtered, address markers only.
@@ -465,16 +467,16 @@ Four layers of canonical soul content now reach the model on every assembled pro
 
 ### Test baseline
 
-**1258 passed, 0 failed, 39 environmental Postgres skips, 0 xfailed** as of 2026-04-17 after Phase 10.7 re-audit remediation closure. The delta from the prior governance snapshot is one new passing unit regression (concurrent markdown append preservation) plus one new environmental-skip Postgres integration regression (`run_dreams_pass()` AC-10.26 wiring). `ruff check src tests scripts` clean. `python -m mypy --strict src` clean across 115 source files. Historical per-phase test deltas live in the phase reports under `Docs/_phases/`.
+**1267 passed, 0 failed, 41 environmental Postgres skips, 0 xfailed** as of 2026-04-17 after Phase 11 (Cross-Persona Context Injection) ship (target — see PHASE_11.md §8 for the post-merge count). Phase 11 added +9 unit tests (`tests/unit/api/test_pipeline_crew_contextual.py`) and +2 environmental-skip integration tests (`tests/integration/test_http_chat.py::TestCrewContextualCarryForward`). **Explicit follow-up to action soon:** run the AC-10.26 + AC-11.5 regressions in a migrated Postgres-up environment and record the observed PASSes in the next governance refresh. This is verification follow-up only, not implementation debt. `ruff check src tests scripts` clean. `python -m mypy --strict src` clean across 115 source files. Historical per-phase test deltas live in the phase reports under `Docs/_phases/`.
 
 ### Historical phase records
 
 Detailed per-phase delivery notes, audit remediation logs, test-delta history, and samples live in `Docs/_phases/` (per-phase specs and reports) and `Docs/_audits/` (audit records). Do not re-duplicate that history here. Notable pointers:
 - Phase 2 end audit + C1–C4 / H1–H5 / M1–M4 / L1 remediation: `Docs/_audits/PHASE_2_AUDIT_2026-04-13.md` + `Docs/_phases/REMEDIATION_2026-04-13.md`. L2 (prose.py dead-branch review) is the only deferred item.
 - Operator runtime walkthrough (markdown → 7-layer assembled prompt): `Docs/OPERATOR_GUIDE.md`.
-- Architectural phases 4–7 shipped end-to-end; Phase 8/9 sealed; Phase 10.0–10.7 shipped and post-ship audit/remediation-synchronized. Phase 10.7 closes the architectural track for the v7 build.
+- Architectural phases 4–7 shipped end-to-end; Phase 8/9 sealed; Phase 10.0–10.7 shipped and post-ship audit/remediation-synchronized; **Phase 11 (Cross-Persona Context Injection) shipped 2026-04-17** — closes the Msty Crew Conversations Contextual-mode behavior gap by adding `_format_crew_prior_block` to `pipeline.run_chat_pipeline`. AD-009 added to ARCHITECTURE.md §21. Phase 11 closes the architectural track for the v7 build.
 
-**Backend status:** Architectural phases 1–7 shipped; Phases 8, 9, 10.0–10.7 sealed. Operational work (deployment automation, observability dashboards, Msty persona/crew model-card authoring) remains open outside the architectural track.
+**Backend status:** Architectural phases 1–7 shipped; Phases 8, 9, 10.0–10.7, 11 sealed. Operational work (deployment automation, observability dashboards, Msty persona/crew model-card authoring) remains open outside the architectural track.
 ### Phase 10 Governance Addendum (2026-04-17)
 
 This addendum supersedes older Phase 10 status lines that still pointed
@@ -515,6 +517,11 @@ to 10.5b, 10.5c, or 10.7 as the next open loader-rewire / QA phase.
   `run_dreams_pass()` path end-to-end, the markdown lock path has a
   checked-in concurrent append regression, and the "shared open loops"
   wording is narrowed to the actual `pov_a`-owned semantics.
+- Explicit near-term follow-up: run
+  `tests/integration/test_dreams_db_round_trip.py::test_run_dreams_pass_routes_qa_scene_fodder_through_runner`
+  in a migrated Postgres-up environment and record the observed PASS in
+  the next governance refresh. This is verification follow-up only, not
+  implementation debt.
 - Current verified baseline: **1258 passed, 0 failed, 39 environmental
   Postgres skips, 0 xfailed**.
 - `ruff check src tests scripts` is clean.

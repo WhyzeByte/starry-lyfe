@@ -460,3 +460,70 @@ because it relied on the writer-signature change as evidence of
 integration. Signature changes are necessary but not sufficient — the
 call site must exist. Future Step 9 records should include grep
 verification per AC before claiming PASS.
+
+------------------------------------------------------------
+Phase 11 — Cross-Persona Context Injection (SHIPPED 2026-04-17)
+------------------------------------------------------------
+HIGH-severity gap surfaced while authoring Docs/MSTY_SETUP.md.
+
+Bug: pipeline.run_chat_pipeline extracted Msty Crew Conversations
+prior-persona responses (MstyPreprocessed.prior_responses) for scene
+classification but never injected the actual response text into the
+focal persona's outbound user_prompt. PHASE_7.md §R2-F1 had documented
+a planned _format_crew_prior_block helper; the helper closure note was
+written but the helper was never shipped into pipeline.py. Combined
+with Msty Studio's actual Crew Contextual mode behavior (per
+docs.msty.studio/conversations/crew-chats step 5: "Contextual where
+they are aware of persona responses before theirs"), the operator's
+expected user experience was structurally impossible: each persona
+answered as if speaking alone, with no riff or acknowledgment of the
+prior persona's text.
+
+Fix: add _format_crew_prior_block(prior_responses, current_user_message)
+to pipeline.py + wire-in inside run_chat_pipeline. Frame:
+
+  [Earlier in this conversation:
+  **<character_id>:** <html-escaped, 800-char-capped text> [...truncated]?
+  ]
+
+  <current_user_message>
+
+When prior_responses is empty, helper returns current_user_message
+unchanged — Phase H regression byte-identical for non-crew flows.
+HTML-escape + per-block truncation = Phase 8 R1-F3 lesson applied.
+
+Phase 9 evaluator behavior: post_turn.schedule_post_turn_tasks
+continues to receive focal-only full_response_text. The augmented
+user_prompt is request-side only — dyad deltas score the focal
+persona's output, not the conversation as a whole. Mixing prior
+personas' text into dyad updates would conflate other characters'
+speech into the focal character's deltas. Documented as deferred
+operator-tools-phase consideration.
+
+Tests: +9 unit (tests/unit/api/test_pipeline_crew_contextual.py)
++ 2 environmental-skip integration (test_http_chat.py
+TestCrewContextualCarryForward).
+
+Documentation sweep:
+  - ARCHITECTURE.md 1.0.2 -> 1.1.0: §4 Step-9 row updated; AD-009
+    added to §21; §1 architecturally-complete claim now reads
+    "phases 0 through 11".
+  - OPERATOR_GUIDE.md 2.0.2 -> 2.1.0: §3.2 Crew Conversation setup
+    rewritten to instruct Contextual + Auto and explain the
+    cross-persona injection contract.
+  - MSTY_SETUP.md 1.1.1 -> 1.2.0: §5 explicitly tells the operator
+    to set Crew context to Contextual with verbatim quote from Msty
+    docs step 5; clarifies the Independent vs Contextual user-facing
+    consequence.
+  - PHASE_11.md (new) carries the full spec + AC table + WAF result.
+  - CLAUDE.md P2.20 -> P2.21.
+
+WAF result:
+  - pytest tests/unit/api/test_pipeline_crew_contextual.py: 9 passed.
+  - pytest tests/integration/test_http_chat.py::TestCrewContextualCarryForward:
+    2 skipped (Postgres unreachable locally; expected).
+  - ruff check src tests scripts: clean.
+  - python -m mypy --strict src: clean across 115 source files.
+
+End of Phase 11. The architectural track is complete (phases 0
+through 11). Next work is operational, not architectural.

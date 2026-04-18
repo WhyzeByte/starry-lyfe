@@ -1,35 +1,55 @@
 # Msty Studio Configuration Guide
 
-**Version:** 1.0.0
+**Version:** 1.2.0
 **Date:** 2026-04-17
-**Backend:** Starry-Lyfe v7 on PC `192.168.1.93`, port `8001`
-**Audience:** the operator (Whyze) configuring Msty Studio on a different machine on the LAN.
+**Backend:** Starry-Lyfe v7 on PC `192.168.1.93`, port `8001` (post-Phase-11)
+**Audience:** the operator (Whyze) configuring Msty Studio Desktop on another machine on the LAN.
 
-This guide walks you through setting up Msty Studio on a remote PC to talk to the Starry-Lyfe backend running at `http://192.168.1.93:8001`. End state: five Personas (Adelia, Bina, Reina, Alicia, Shawn) plus optional Crew Conversations that route to your local backend.
+This guide was audited on 2026-04-17 against the current Starry-Lyfe codebase and the current Msty docs. It targets `Msty Studio Desktop`, which Msty's own Quick Start recommends as the default path. Studio Web adds browser/CORS constraints and is not the primary path for this LAN backend.
 
-> If you are setting up Starry-Lyfe itself (running the API + Dreams daemon), see `Docs/OPERATOR_GUIDE.md` §1 first. **This guide assumes the backend is already up on `192.168.1.93:8001`.**
+End state: four routable personas (`adelia`, `bina`, `reina`, `alicia`) plus optional Crew Conversations. The backend also exposes `starry-lyfe` as a legacy alias. It does **not** expose `shawn` today.
+
+> If you are setting up Starry-Lyfe itself, see `Docs/OPERATOR_GUIDE.md` first. This guide assumes the backend is already up on `192.168.1.93:8001`.
 
 ---
 
-## 1. Pre-flight on the backend PC (192.168.1.93)
+## 0. Important compatibility note: auth header
+
+Msty's official docs cover the OpenAI-compatible provider flow: add a provider in `Model Hub > Model Providers`, supply an API key, and point it at an OpenAI-compatible endpoint.
+
+Starry-Lyfe's chat endpoint is stricter than a stock OpenAI clone:
+
+- `POST /v1/chat/completions` accepts **only** `X-API-Key: <key>`.
+- It does **not** accept `Authorization: Bearer <key>`.
+
+The official Msty docs I checked do **not** document an auth-header remap for OpenAI-compatible providers. So before spending time on persona setup, confirm one of these is true in your installed Msty build:
+
+1. Your Msty provider UI exposes custom or additional headers. If so, set `X-API-Key: <your-key>`.
+2. If it does not, put a small reverse proxy in front of Starry-Lyfe that rewrites `Authorization: Bearer <key>` to `X-API-Key: <key>`.
+
+All steps below assume option 1. If you use a proxy, substitute the proxy URL anywhere this guide says `http://192.168.1.93:8001/v1`.
+
+---
+
+## 1. Pre-flight on the backend PC
 
 Before you touch Msty, make sure the backend is reachable from the LAN.
 
-### 1.1 Confirm the API is bound to all interfaces
+### 1.1 Confirm the API bind and key
 
-Your `.env` on `192.168.1.93` must have:
+Your `.env` on `192.168.1.93` must include:
 
-```
+```dotenv
 STARRY_LYFE__API__HOST=0.0.0.0
 STARRY_LYFE__API__PORT=8001
 STARRY_LYFE__API__API_KEY=<choose-a-strong-value>
 ```
 
-`0.0.0.0` (not `127.0.0.1`) is what makes the API reachable from other machines. Pick an `API_KEY` value you'll paste into Msty later — any non-empty string works.
+`0.0.0.0` is what makes the API reachable from other machines.
 
-### 1.2 Open port 8001 on the Windows firewall
+### 1.2 Open Windows firewall for port 8001
 
-On `192.168.1.93`, in an **elevated** PowerShell:
+Run this on the backend PC in an elevated PowerShell:
 
 ```powershell
 New-NetFirewallRule -DisplayName "Starry-Lyfe API (8001)" `
@@ -40,314 +60,291 @@ New-NetFirewallRule -DisplayName "Starry-Lyfe API (8001)" `
   -Profile Private
 ```
 
-Use `-Profile Private` if your LAN is the Private network in Windows. If your LAN is classified as Public, use `-Profile Public` (and consider re-classifying — `Get-NetConnectionProfile`).
+If your LAN is classified as `Public`, either use `-Profile Public` or reclassify the network.
 
-### 1.3 Restart the API after env changes
+### 1.3 Start or restart the API
 
 ```powershell
 .venv\Scripts\python -m starry_lyfe.api.main
 ```
 
-Leave this running in a terminal window. (Or run it as a Windows service / scheduled task if you prefer.)
+Leave it running.
 
-### 1.4 Smoke-test from the Msty PC
+### 1.4 Smoke-test from the Msty machine
 
-From your Msty PC, open a terminal and run:
+From the machine running Msty:
 
-```bash
-# Liveness — should return JSON {"status":"alive"} or similar
-curl http://192.168.1.93:8001/health/live
-
-# Readiness — should return 200 if R5 + BD-1 are reachable from the backend
-curl http://192.168.1.93:8001/health/ready
-
-# Models registry — confirms the backend exposes the persona model IDs
-curl http://192.168.1.93:8001/v1/models
+```powershell
+curl.exe http://192.168.1.93:8001/health/live
+curl.exe http://192.168.1.93:8001/health/ready
+curl.exe http://192.168.1.93:8001/v1/models
 ```
 
-The `/v1/models` response should show **five entries**: `starry-lyfe`, `adelia`, `bina`, `reina`, `alicia`. If you get a connection-refused or a timeout, fix the firewall / host binding before continuing — Msty Studio cannot rescue a network-level fault.
+Expected results:
 
-### 1.5 Auth a real chat call from the Msty PC
+- `/health/live` returns HTTP 200 with `{"status":"live"}`.
+- `/health/ready` returns HTTP 200 only if DB and BD-1 are reachable.
+- `/v1/models` returns 5 model IDs: `starry-lyfe`, `adelia`, `bina`, `reina`, `alicia`.
 
-```bash
-curl -N http://192.168.1.93:8001/v1/chat/completions \
-  -H "X-API-Key: <your-key>" \
-  -H "Content-Type: application/json" \
-  -d '{"model":"adelia","stream":true,"messages":[{"role":"user","content":"Test from Msty PC."}]}'
+### 1.5 Smoke-test a real chat call
+
+```powershell
+curl.exe -N http://192.168.1.93:8001/v1/chat/completions `
+  -H "X-API-Key: <your-key>" `
+  -H "Content-Type: application/json" `
+  -d "{\"model\":\"adelia\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Test from Msty PC.\"}]}"
 ```
 
-You should see a stream of `data: {...}` chunks ending with `data: [DONE]`. **If this fails, Msty Studio will fail too.** Resolve the curl call first.
+You should see `data:` chunks ending with `data: [DONE]`. If this call fails, stop and fix that first. Msty will not rescue a broken network or auth path.
 
 ---
 
-## 2. Auth note — X-API-Key vs Authorization Bearer
+## 2. Add the provider in Msty Studio
 
-The Starry-Lyfe backend authenticates **only** via the custom header `X-API-Key`. It does NOT accept `Authorization: Bearer <key>` (the standard OpenAI auth shape).
+Official Msty path:
 
-Most OpenAI-compatible clients (including Msty) default to Bearer auth. **You must configure Msty's provider to send a custom `X-API-Key` header.** Two ways to do this in Msty Studio depending on the version:
+1. Open `Model Hub`.
+2. Open `Model Providers`.
+3. Select `Add Provider`.
+4. Use Msty's OpenAI-compatible / bring-your-own-provider path.
 
-- **Newer Msty Studio versions:** the custom OpenAI-compatible provider has a "Custom Headers" or "Additional Headers" field under the model provider's advanced settings. Add a header with name `X-API-Key` and value `<your-key>`. If Msty also requires the standard "API Key" field to be non-empty, paste anything (e.g., `unused`) — the backend ignores Bearer-style auth.
-- **Older Msty Studio versions without a custom-header field:** you have two workarounds:
-  1. Run a small reverse proxy on the Msty PC (e.g., `nginx` or `caddy`) that translates `Authorization: Bearer <key>` → `X-API-Key: <key>` before forwarding to `192.168.1.93:8001`. Msty then talks to the proxy.
-  2. Add Bearer-token support to the backend (a one-line change in `src/starry_lyfe/api/endpoints/chat.py::_enforce_api_key` to accept either header). This is operational work outside the architectural track.
+Use these values:
 
-The rest of this guide assumes the **custom-header path** works.
-
----
-
-## 3. Msty Studio: add the model provider
-
-These steps are written for Msty Studio's "Local AI / Custom Provider" workflow. UI labels may shift between Msty versions; the important fields are the same.
-
-### 3.1 Create a custom OpenAI-compatible provider
-
-1. Open Msty Studio.
-2. **Settings → Model Providers → Add Provider** (or whatever your version calls it).
-3. Choose **"Custom (OpenAI-compatible)"** as the provider type.
-4. Fill in:
-
-   | Field | Value |
-   |---|---|
-   | **Provider name** | `Starry-Lyfe` (whatever you want to see in lists) |
-   | **Base URL** | `http://192.168.1.93:8001/v1` |
-   | **API Key** | `<your-key>` (the value of `STARRY_LYFE__API__API_KEY` on the backend PC) |
-   | **Auth header** | If you can choose: select "Custom" and use `X-API-Key`. Otherwise see §2 |
-   | **Custom Headers** | Add `X-API-Key: <your-key>` here if Msty's API Key field maps to Bearer |
-   | **Streaming** | Enabled (SSE) |
-   | **Verify SSL** | Off (LAN HTTP) |
-
-5. **Test the connection.** Msty should be able to fetch the models registry. If it shows 5 models (`starry-lyfe`, `adelia`, `bina`, `reina`, `alicia`), the provider is wired correctly.
-
-### 3.2 Models the backend exposes
-
-After the provider is registered, Msty knows about these models:
-
-| Model ID | Routes to | Purpose |
-|---|---|---|
-| `starry-lyfe` | Configured default character (`adelia` in the shipped `.env.example`) | Legacy compatibility model id; treat as "default character" |
-| `adelia` | Adelia Raye | Production Persona model id |
-| `bina` | Bina Malek | Production Persona model id |
-| `reina` | Reina Torres | Production Persona model id |
-| `alicia` | Alicia Marin | Production Persona model id |
-
-`shawn` is not currently exposed by the backend. See §6 for what to do.
-
----
-
-## 4. Per-character Persona setup
-
-Repeat the steps below **once per woman** (Adelia, Bina, Reina, Alicia). The configuration is identical except for the `Name` and `Model ID` fields.
-
-### 4.1 Adelia Raye
-
-1. **Persona Studio → New Persona.**
-2. Fill in:
-
-   | Field | Value |
-   |---|---|
-   | **Persona name** | `Adelia Raye` |
-   | **Model provider** | `Starry-Lyfe` (the provider you created in §3.1) |
-   | **Model** | `adelia` |
-   | **System Prompt Mode** | `Replace` (this is load-bearing — see §7) |
-   | **System Prompt** | (leave blank — see §7) |
-   | **Streaming** | Enabled |
-   | **Temperature, top_p, frequency_penalty, presence_penalty** | Leave Msty defaults; the backend supplies per-character inference parameters in the assembled prompt body. Msty-side knobs are ignored by the upstream LLM. |
-   | **Max tokens** | Whatever Msty defaults to (typically 4096 or higher) |
-
-3. Save.
-
-### 4.2 Bina Malek
-
-Same as §4.1 but:
-
-- **Persona name:** `Bina Malek`
-- **Model:** `bina`
-
-### 4.3 Reina Torres
-
-Same as §4.1 but:
-
-- **Persona name:** `Reina Torres`
-- **Model:** `reina`
-
-### 4.4 Alicia Marin
-
-Same as §4.1 but:
-
-- **Persona name:** `Alicia Marin`
-- **Model:** `alicia`
-
-> **Alicia caveat:** Alicia travels for operations as a canonical fact. When she is "away" (per Tier 8 `life_states`), the backend will reject in-person scenes with `AliciaAwayContradictionError` (HTTP 400). If Msty surfaces "Bad Request" errors when chatting Alicia, she's away and the scene needs to be remote (mention "phone", "letter", or "video_call" in the user message). See `OPERATOR_GUIDE.md` §10.5.
-
-### 4.5 Smoke-test each Persona
-
-For each Persona, send one message: *"Test from Msty."* Confirm:
-
-1. The reply streams (you see characters appearing, not a single dump after a delay).
-2. The voice sounds character-appropriate (Adelia warm-buoyant, Bina precise-grounded, Reina tactical-direct, Alicia bright-mobile).
-3. No `WHYZE_BYTE_FAIL` chunk in the response (terminal validation didn't trip).
-4. On the backend, `tail` the logs for `request_received` and `context_assembled` — both should fire per request.
-
-If any Persona fails the smoke test, see §8 Troubleshooting.
-
----
-
-## 5. Crew Conversation setup
-
-Crew Conversations let multiple personas respond in sequence to a single user turn. The backend handles next-speaker selection and per-speaker validation.
-
-### 5.1 Create a Crew
-
-1. **Persona Studio → New Crew** (or "Group Chat" / "Conversation Group" depending on Msty version).
-2. Add the personas you want in the crew. Examples:
-   - **The Whole House:** Adelia + Bina + Reina (Alicia adds when home)
-   - **Married Pair:** Bina + Reina
-   - **Adelia + Bina:** the two most-frequent co-presences
-3. **Crew System Prompt:** leave blank.
-4. **Endpoint / model provider:** the same `Starry-Lyfe` provider from §3.1.
-
-### 5.2 How Crew expansion is triggered
-
-The backend expands into multiple speakers when **either**:
-
-- The user message ends with `/all`, OR
-- There are ≥2 canonical women in the parsed roster AND ≥1 prior persona response in the conversation.
-
-If you want all crew members to weigh in on a single message, append `/all` to the user message. Otherwise the backend may pick a single speaker based on the Talk-to-Each-Other Mandate scoring.
-
-### 5.3 Crew speaker cap
-
-The backend caps the number of speakers per turn at `STARRY_LYFE__API__CREW_MAX_SPEAKERS` (default `3`). Each speaker is rendered inline as `**Name:**\n\n<text>` with a blank line between speakers. You'll see attribution markers in the streamed response.
-
----
-
-## 6. Shawn (the operator) — current limitation + workaround
-
-**Shawn is not currently a routable Persona** in the backend. Today's `/v1/models` returns 5 entries: `starry-lyfe`, `adelia`, `bina`, `reina`, `alicia` — Shawn is missing.
-
-Reason: the backend's `CharacterID` enum (`src/starry_lyfe/canon/schemas/enums.py:22`) only includes the four women. Shawn exists in canon as `Characters/shawn_kroon.yaml` (the operator's identity surface) but the API has no character-routing path that resolves `model: shawn`. A request with `model: shawn` falls through to the configured default (`adelia`).
-
-You have three options:
-
-### 6.1 Skip Shawn (recommended for now)
-
-Don't create a Shawn Persona. Shawn is the human at the keyboard — the four women's responses are *to Shawn*. Configuring a "Shawn Persona" that talks back to Shawn doesn't match the canonical model.
-
-### 6.2 Placeholder Shawn Persona that routes to `starry-lyfe`
-
-If you want a slot in Persona Studio for Shawn (cosmetic — for naming consistency in your UI), create one that points at the `starry-lyfe` legacy model ID:
-
-| Field | Value |
+| Setting | Value |
 |---|---|
-| **Persona name** | `Shawn (operator placeholder)` |
-| **Model** | `starry-lyfe` |
-| **System Prompt Mode** | `Replace` |
-| **System Prompt** | blank |
+| Base URL | `http://192.168.1.93:8001/v1` |
+| API Key | the value of `STARRY_LYFE__API__API_KEY` |
+| Custom header | `X-API-Key: <your-key>` if your build exposes custom headers |
 
-Be aware: this Persona will route to whichever character is set as `STARRY_LYFE__API__DEFAULT_CHARACTER` (default `adelia`). It is **not** speaking as Shawn.
+Notes:
 
-### 6.3 Add `shawn` to the backend's character routing
-
-This is the only way to make Msty's `model: shawn` field actually return Shawn-perspective output. It requires backend changes:
-
-1. Add `SHAWN = "shawn"` to `CharacterID` in `src/starry_lyfe/canon/schemas/enums.py`.
-2. Update `_assert_complete_character_keys` callers to include shawn in their per-character maps (kernel paths, voice paths, budget scaling, pair mapping, prose banks, constraint pillars). This is what `_assert_complete_character_keys` enforces at module-import time.
-3. Decide what an "as Shawn" assembled prompt looks like — Shawn's rich YAML carries his identity but no `pair_architecture` block in the same shape as the women.
-4. Add Shawn to the test suite (especially the Phase H regression bundle and the fidelity rubrics).
-
-This is a discrete future-phase scope item, not a flip-the-switch change. Until it ships, skip Shawn or use the `starry-lyfe` placeholder.
+- UI labels may vary a little by Msty version. The stable requirement is an OpenAI-compatible endpoint under `Model Providers`.
+- If your build does **not** expose custom headers, stop here and use the proxy path from Section 0.
+- After saving, Msty should discover 5 models: `starry-lyfe`, `adelia`, `bina`, `reina`, `alicia`.
 
 ---
 
-## 7. Why "System Prompt Mode = Replace, blank" matters
+## 3. Create the personas
 
-This is the single most important Msty setting. Per **AD-001** (architectural decision recorded in `Docs/ARCHITECTURE.md` §21):
+Official Msty path:
 
-> The backend is the sole voice authority. Msty Persona system prompt is `Replace`-mode empty in production.
+1. Open `Persona Studio`.
+2. Create an `Assistant Persona`.
+3. Configure the persona's prompt behavior and model settings.
 
-What that means concretely:
+Create these four personas:
 
-- The full character voice — kernel, soul essence, pair callbacks, soul cards, voice exemplars, scene context, terminal Whyze-Byte constraints — comes from the backend's 7-layer prompt assembler.
-- Anything Msty puts into the system prompt **competes** with that assembled prompt. Even short directives like "Be helpful" or "Respond as Adelia" will fight the canonical voice and produce drift.
-- `Replace` mode tells Msty to send only what you typed (which is nothing) instead of merging with a Msty-default system prompt.
+| Persona name | Model ID |
+|---|---|
+| `Adelia Raye` | `adelia` |
+| `Bina Malek` | `bina` |
+| `Reina Torres` | `reina` |
+| `Alicia Marin` | `alicia` |
 
-If you set **Append** mode or fill the **System Prompt** field, the responses will degrade. Symptoms include character voice flattening, "As an AI…" breaks, refusal of canonical content, or generic chatbot register. If you see those symptoms, check this setting first.
+For each one:
 
----
+1. Select the Starry-Lyfe provider you added in Section 2.
+2. Set the model ID exactly as shown above.
+3. Set `System Prompt Mode` to `Replace`.
+4. Leave the persona system prompt **blank**.
+5. Leave persona few-shot examples and extra instruction add-ons empty unless you intentionally want Msty to inject extra context.
 
-## 8. Troubleshooting
+Why the blank prompt matters:
 
-### 8.1 "Connection refused" / "Cannot reach host"
+- Msty's own docs say Persona Conversations include the persona prompt on every turn.
+- Msty's own docs also say your active system prompt and enabled add-ons still apply.
+- Starry-Lyfe's architecture assumes the backend is the sole voice authority.
 
-- The backend isn't running, OR
-- `STARRY_LYFE__API__HOST` is `127.0.0.1` instead of `0.0.0.0`, OR
-- Windows firewall is blocking inbound 8001.
+So for production voice fidelity:
 
-Re-run the §1.4 curl smoke test from the Msty PC. If curl can't reach the backend either, fix the network layer; Msty cannot help.
+- Keep the persona system prompt blank.
+- Keep project or conversation system prompts blank while using these personas.
+- Avoid persona-level toolsets, RTD, Knowledge Stacks, or other instruction-bearing add-ons unless you explicitly want them to alter the output.
 
-### 8.2 "401 Unauthorized" on every Msty request
+### 3.1 Model-parameter note
 
-The `X-API-Key` header isn't being sent (Msty is using Bearer instead). Re-check §3.1 — the custom header must be `X-API-Key`, not `Authorization`. If your Msty version doesn't support custom headers, see §2 for the proxy workaround.
+Msty supports persona model settings, but Starry-Lyfe does not currently honor every possible chat knob the same way an upstream provider might.
 
-### 8.3 Msty connects but `/v1/models` shows 0 models
+Current backend behavior:
 
-The auth check is failing silently — Msty got a 200 from `/health/live` (no auth required) but `/v1/models` is also unauthenticated. If 0 models, more likely your provider's Base URL is wrong. Confirm it ends with `/v1` (e.g., `http://192.168.1.93:8001/v1`).
+- `max_tokens` is forwarded.
+- `temperature` is forwarded.
+- `top_p`, `frequency_penalty`, and `presence_penalty` are accepted in the request schema but are not applied downstream today.
 
-### 8.4 Chat hangs forever
-
-Streaming is disabled in your Msty provider settings, or your client doesn't recognize SSE chunks. Re-enable streaming in §3.1.
-
-### 8.5 First chunk arrives, then nothing
-
-The backend is producing output but the BD-1 upstream provider (OpenRouter / Anthropic) hit a circuit breaker or timeout mid-stream. Check the backend logs for `bdone_circuit_open` or `upstream_stream_failed`. See `OPERATOR_GUIDE.md` §10.1.
-
-### 8.6 Wrong character is responding
-
-Most likely your Persona's **Model** field is set to the Msty UI's display name instead of the backend model ID. The model field must be exactly one of: `adelia` / `bina` / `reina` / `alicia` / `starry-lyfe` (lowercase, no spaces). If Msty has a dropdown after registering the provider, use it; don't type the name manually.
-
-### 8.7 `WHYZE_BYTE_FAIL` chunk in the response
-
-The backend's Whyze-Byte validator caught a Tier-1 failure (AI-ism, framework leak, XML tag bleed, prompt-marker echo, etc.). The response was streamed up to the failure point but the validator refused to certify it. This is the system protecting voice integrity. See `OPERATOR_GUIDE.md` §4.2 (`whyze_byte_validated` log event) for the violation detail.
-
-### 8.8 `AliciaAwayContradictionError` (HTTP 400) on Alicia chats
-
-Alicia is on operations per Tier 8 `life_states.is_away=true`. Either her travel has been recorded (a Dreams nightly pass set the flag), or her residency is mis-configured. See `OPERATOR_GUIDE.md` §10.5 for the resolution path.
-
-### 8.9 Crew Conversation only produces one speaker
-
-The backend's crew detection needs `/all` at the end of the user message OR a roster of ≥2 canonical women plus ≥1 prior persona response. Add `/all` to test crew expansion explicitly.
-
-### 8.10 Msty shows the response but the character voice feels flat / generic
-
-Almost always: the System Prompt Mode is wrong. Re-check §7. Set every Persona to `Replace` mode with an empty system prompt.
+So the safe default is: keep extra model-parameter tuning minimal unless you are deliberately testing.
 
 ---
 
-## 9. Summary checklist
+## 4. Persona Conversation smoke test
 
-Use this as a deployment dry-run before declaring the Msty integration complete.
+Official Msty path:
 
-- [ ] Backend `.env` has `STARRY_LYFE__API__HOST=0.0.0.0` and a non-empty `API_KEY`.
-- [ ] Windows firewall on the backend PC allows inbound TCP 8001.
-- [ ] Backend API service is running (`.venv\Scripts\python -m starry_lyfe.api.main`).
-- [ ] From the Msty PC, `curl http://192.168.1.93:8001/health/ready` returns 200.
-- [ ] From the Msty PC, the curl smoke test from §1.5 streams a real chat completion.
-- [ ] Msty Studio has a custom OpenAI-compatible provider named `Starry-Lyfe` with base URL `http://192.168.1.93:8001/v1` and an `X-API-Key` custom header set to your API key.
-- [ ] The provider's models list shows 5 entries.
-- [ ] **Persona: Adelia Raye** — model `adelia`, System Prompt Mode `Replace`, blank prompt.
-- [ ] **Persona: Bina Malek** — model `bina`, same settings.
-- [ ] **Persona: Reina Torres** — model `reina`, same settings.
-- [ ] **Persona: Alicia Marin** — model `alicia`, same settings.
-- [ ] **Shawn:** intentional skip per §6.1, OR placeholder per §6.2, OR future backend work per §6.3.
-- [ ] Each woman's Persona returns a streaming response with character-appropriate voice on a smoke-test message.
-- [ ] (Optional) At least one Crew Conversation with `/all` produces multi-speaker output with `**Name:**` attribution.
+1. Select the down arrow next to `New`.
+2. Choose `New Persona Conversation`.
+3. Pick one of the personas above.
 
-When every box is checked, the Msty integration is production-ready.
+For each persona, send:
+
+```text
+Test from Msty.
+```
+
+Confirm:
+
+1. The reply streams instead of arriving as one big dump.
+2. The voice feels correct for the selected character.
+3. You do not get a `401`, `400`, or `WHYZE_BYTE_FAIL`.
+4. The backend terminal does not show obvious auth or upstream errors.
+
+There is no dedicated success-path `context_assembled` log event today, so do not use that as a smoke-test requirement.
+
+### 4.1 Alicia-specific caveat
+
+Alicia is routable as `alicia`, but if she is currently marked away on operations, in-person scenes can fail with `AliciaAwayContradictionError` (HTTP 400). If that happens, use a remote communication framing such as phone, letter, or video call.
 
 ---
 
-## 10. Where to look next
+## 5. Crew Conversations
 
-- **`Docs/OPERATOR_GUIDE.md`** — full backend operator manual: log events, Dreams operations, Phase 10.7 QA workflow, troubleshooting recipes, backup/restore.
-- **`Docs/ARCHITECTURE.md`** — top-down as-built reference for the backend.
-- **`CLAUDE.md` §16** — the operator axioms (no jealousy, activity distribution, character integrity rules) that govern how the Personas should behave once connected.
+Official Msty path:
+
+1. Select the down arrow next to `New`.
+2. Choose `New Crew Conversation`.
+3. Select or create a crew.
+4. Add the personas you want in the crew.
+
+**Required Msty-side settings (Phase 11):**
+
+5. **Context: `Contextual`** (per Msty docs Crew Conversations step 5 — *"Define **Context** for your crew, whether they should be Independent and not be aware of other personas and their response or **Contextual where they are aware of persona responses before theirs**"*). This is the single most important Crew setting for Starry-Lyfe. Selecting `Independent` produces personas that talk past each other — they will not respond to what the prior persona said.
+6. **Trigger: `Auto`** so personas fire automatically in roster order on each user turn.
+
+For Starry-Lyfe specifically (post-Phase-11, AD-009):
+
+- Each persona request returns exactly one routed persona response. Msty owns persona-per-bubble orchestration.
+- In **Contextual** mode Msty includes prior personas' responses as `role="assistant"` messages with a `name` field on each subsequent persona request. The backend's `_format_crew_prior_block` helper extracts those and prepends a framed `[Earlier in this conversation: …]` block to the focal persona's `user_prompt` so the focal persona can riff on what the prior personas said.
+- In **Independent** mode none of this happens — each persona answers the user message in a vacuum. Use Independent only if you explicitly want siloed reactions.
+- Legacy `/all` is stripped if it appears at the start of the user message, but it no longer changes routing and is not required for Crew.
+
+Msty's docs also note that Crew Mode's background handoff prompt can be adjusted in `Settings > Default Prompts`. For Starry-Lyfe, leave that prompt at its default or keep it minimal. Do not author character voice there.
+
+---
+
+## 6. Shawn is not routable today
+
+Current backend reality:
+
+- `/v1/models` exposes `starry-lyfe`, `adelia`, `bina`, `reina`, `alicia`.
+- `shawn` is **not** in the backend's `CharacterID` enum.
+- A request with `model: "shawn"` returns HTTP 400. It does **not** fall back to the default character.
+
+If you want a fifth tile in Msty for convenience, the only honest placeholder is:
+
+| Persona name | Model ID | What it really does |
+|---|---|---|
+| `Starry-Lyfe (default alias)` | `starry-lyfe` | Routes to `STARRY_LYFE__API__DEFAULT_CHARACTER` (default `adelia`) |
+
+That alias is **not** Shawn-perspective output.
+
+---
+
+## 7. Troubleshooting
+
+### 7.1 "Connection refused" or timeout
+
+Usually one of:
+
+- the backend is not running
+- `STARRY_LYFE__API__HOST` is not `0.0.0.0`
+- Windows firewall is still blocking port `8001`
+
+Re-run the Section 1.4 `curl.exe` checks from the Msty machine.
+
+### 7.2 `401 Unauthorized`
+
+The backend did not receive a valid `X-API-Key`.
+
+Most likely causes:
+
+- Msty sent Bearer auth instead of `X-API-Key`
+- the custom-header field is missing in your build
+- the key value does not match `STARRY_LYFE__API__API_KEY`
+
+Fix: use the custom-header path from Section 0, or front the backend with a proxy that rewrites Bearer auth.
+
+### 7.3 `400` unknown model
+
+Use one of:
+
+- `adelia`
+- `bina`
+- `reina`
+- `alicia`
+- `starry-lyfe`
+
+Do not use `shawn`.
+
+### 7.4 The voice feels flat or generic
+
+This is usually an Msty prompt-layer problem, not a backend problem.
+
+Check all of these:
+
+- persona `System Prompt Mode` is `Replace`
+- persona system prompt is blank
+- conversation or project system prompt is blank
+- no persona few-shots or instruction-bearing add-ons are active
+
+Msty's docs explicitly say persona prompts and active system prompts are included in Persona Conversations, so any text there competes with the backend-authored voice.
+
+### 7.5 Crew conversation only produces one speaker
+
+Check all of these:
+
+- you used `Contextual`, not `Independent`
+- the affected persona is actually included in the crew
+- Msty is in `Auto` response mode if you want the whole crew to answer without manual triggers
+- prior persona messages are present when you expect contextual awareness on later bubbles
+
+### 7.6 CORS or browser-security errors
+
+This is most likely if you try to use Studio Web or a build path that behaves like a browser against plain LAN HTTP.
+
+Msty's Settings docs note a `Disable Web Security` option in Desktop, but that is a workaround, not the preferred path. The recommended path for this backend is still `Msty Studio Desktop`.
+
+### 7.7 `WHYZE_BYTE_FAIL`
+
+The backend streamed part of the response, then its terminal validator rejected the output. This is a backend voice-integrity guard, not a Msty formatting issue.
+
+### 7.8 `AliciaAwayContradictionError`
+
+Alicia is marked away. Use a remote communication framing instead of an in-person scene, or wait until the backend marks her home again.
+
+---
+
+## 8. Checklist
+
+- [ ] Backend `.env` uses `STARRY_LYFE__API__HOST=0.0.0.0`
+- [ ] Backend firewall allows inbound TCP `8001`
+- [ ] `curl.exe http://192.168.1.93:8001/health/live` returns 200
+- [ ] `curl.exe http://192.168.1.93:8001/health/ready` returns 200
+- [ ] `curl.exe http://192.168.1.93:8001/v1/models` shows `starry-lyfe`, `adelia`, `bina`, `reina`, `alicia`
+- [ ] Direct `curl.exe` chat test with `X-API-Key` streams successfully
+- [ ] Msty provider uses the OpenAI-compatible endpoint at `http://192.168.1.93:8001/v1`
+- [ ] Msty has a proven path to send `X-API-Key`
+- [ ] Four personas exist: Adelia, Bina, Reina, Alicia
+- [ ] Each persona uses `Replace` mode with a blank prompt
+- [ ] Conversation and project system prompts are blank while using Starry-Lyfe personas
+- [ ] Optional Crew Conversations use `Contextual`
+- [ ] Msty Crew is allowed to own persona-per-bubble sequencing
+- [ ] No one expects `shawn` to work as a model ID
+
+---
+
+## 9. Official Msty docs consulted
+
+- Online Providers: https://docs.msty.studio/managing-models/online-providers
+- Persona Studio: https://docs.msty.studio/studios/persona-studio
+- Persona Conversations: https://docs.msty.studio/conversations/persona-conversations
+- Crew Conversations: https://docs.msty.studio/conversations/crew-chats
+- System Prompt Modes: https://docs.msty.studio/conversations/system-prompts
+- Settings: https://docs.msty.studio/features/settings

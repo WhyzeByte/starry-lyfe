@@ -1,10 +1,10 @@
 # Starry-Lyfe Architecture
 
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Date:** 2026-04-17
-**Status:** As-built reference for the v7 terminal architectural state. Supersedes the 0.9.x stub chain.
+**Status:** As-built reference for the v7 terminal architectural state, post-Phase-11.
 **Consumer:** Msty AI (exclusive). No Open WebUI, no web UI, no other HTTP client.
-**Commit baseline:** `8a7163e` (Phase 10.7 + audit remediation). 1,257 passed / 38 environmental Postgres skips / 0 failed / 0 xfailed. `ruff` + `mypy --strict` clean across 115 source files.
+**Runtime baseline:** post-Phase-11 (Cross-Persona Context Injection). 1,267 passed / 41 environmental Postgres skips / 0 failed / 0 xfailed (target — see PHASE_11.md §8 for the post-merge count). `ruff` + `mypy --strict` clean across 115 Python source files.
 
 > This document describes *what the code is*. The chronological delivery record (phase-by-phase scope, audits, remediation cycles) lives in `Docs/_phases/`. The operator runtime walkthrough (markdown → assembled prompt) lives in `Docs/OPERATOR_GUIDE.md`. Governance authority lives in `CLAUDE.md`. On conflict, **CLAUDE.md wins** (per CLAUDE.md §2 Escalation); this document is then wrong and must be corrected.
 
@@ -14,15 +14,15 @@
 
 Starry-Lyfe is a character AI backend for four canonical v7 persona kernels — **Adelia Raye** (ENFP-A, resident, Whyze's partner), **Bina Malek** (ISFJ-A, resident, married to Reina), **Reina Torres** (ESTP-A, resident, married to Bina), **Alicia Marin** (ESFP-A, resident, Argentine consular officer who travels frequently for operations) — plus the operator **Whyze** (Shawn). It serves Msty AI on port 8001 via an OpenAI-compatible SSE-streaming `/v1/chat/completions` endpoint.
 
-The architecture is distinctive in four ways. **First**, canonical content is single-source-of-truth: five rich per-character YAMLs plus `shared_canon.yaml` are the sole runtime-authoritative authoring surface (post-Phase-10.5c terminal). **Second**, each prompt is assembled through a deterministic seven-layer pipeline with a guaranteed-surcharge budget (soul essence + pair callbacks never trimmed) and a terminal Whyze-Byte constraint anchor. **Third**, a nightly Dreams Engine runs six content generators per canonical character, including a cross-character Consistency QA judge (Phase 10.7) that detects drift between POV perspectives and pins contradicted fields against Phase 9 drift compounding. **Fourth**, two runtime LLM relationship evaluators (Phase 8 for Whyze-dyads, Phase 9 for inter-woman dyads) fire post-turn with a ±0.03-per-dimension delta cap, consulting the pinning table before each write.
+The architecture is distinctive in four ways. **First**, canonical content is single-source-of-truth: five rich per-character YAMLs plus `shared_canon.yaml` are the sole runtime-authoritative authoring surface (post-Phase-10.5c terminal). **Second**, each prompt is assembled through a deterministic seven-layer pipeline with a guaranteed-surcharge budget (soul essence + pair callbacks never trimmed) and a terminal Whyze-Byte constraint anchor. **Third**, a nightly Dreams Engine runs five per-character generators and then one cross-relationship Consistency QA pass (Phase 10.7) that detects drift between POV perspectives and pins contradicted fields against Phase 9 drift compounding. **Fourth**, two runtime LLM relationship evaluators (Phase 8 for Whyze-dyads, Phase 9 for inter-woman dyads) fire post-turn with a ±0.03-per-dimension delta cap; only the Phase 9 inter-woman evaluator currently consults the pinning table before each write.
 
-The system is "architecturally complete" for v7: Phases 0 through 10.7 are shipped, sealed, and audit-synchronized. Remaining work is operational (deployment automation, observability dashboards, Msty persona/crew model-card authoring), not architectural.
+The system is "architecturally complete" for v7: Phases 0 through 11 are shipped, sealed, and audit-synchronized. Remaining work is operational (deployment automation, observability dashboards, Msty persona/crew model-card authoring), not architectural.
 
 ---
 
 ## 2. Context
 
-**Consumer model.** Msty AI loads each character as a Persona (Persona Studio, System Prompt Mode = `Replace`, blank in production per **AD-001**). Single-character conversations use the Msty Persona path (`model` field → character). Multi-character scenes use Msty Crew Mode, where prior persona responses arrive as `name`-tagged assistant messages and are preprocessed into a crew roster. Character routing precedence (first match wins): (1) `X-SC-Force-Character` header (dev/test only), (2) inline `/<char>` override at message start (dev/test only), (3) `model` field (production Msty path), (4) configured default.
+**Consumer model.** Msty AI loads each character as a Persona (Persona Studio, System Prompt Mode = `Replace`, blank in production per **AD-001**). Single-character conversations use the Msty Persona path (`model` field → character). Multi-character scenes use Msty Crew Mode, where prior persona responses arrive as `name`-tagged assistant messages and are preprocessed into a crew roster so each routed persona bubble gets the right multi-person context. Character routing precedence (first match wins): (1) `X-SC-Force-Character` header (dev/test only), (2) inline `/<char>` override at message start (dev/test only), (3) `model` field (production Msty path), (4) configured default.
 
 **Canonical cast.** Four women plus the operator, architecturally "chosen family" — not permission slip. See CLAUDE.md §16 Project Axioms for the load-bearing operator directives: Adelia is Whyze's primary romantic partner; Bina and Reina are married to each other (Adelia introduced them in 2021); all four women are intimate with Whyze in canonical and negotiated configurations; no jealousy (structural absence, not managed tension); children are never present in scenes (childcare always assumed).
 
@@ -75,7 +75,7 @@ The system is "architecturally complete" for v7: Phases 0 through 10.7 are shipp
                                                                 • Episodic memory extraction
                                                                 • Phase 8 Whyze-dyad evaluator
                                                                 • Phase 9 inter-woman evaluator
-                                                                    (both gated by Phase 10.7
+                                                                    (Phase 9 gated by Phase 10.7
                                                                      is_pinned() consult)
 
           ┌────────────────────────────────────────────────────────────────────────┐
@@ -99,25 +99,25 @@ The system is "architecturally complete" for v7: Phases 0 through 10.7 are shipp
 
 ## 4. Request path — twelve-step pipeline
 
-Entry point: `src/starry_lyfe/api/orchestration/pipeline.py:run_chat_pipeline()` (line 468).
+Entry point: `src/starry_lyfe/api/orchestration/pipeline.py:run_chat_pipeline()` (line 137).
 
 | Step | Responsibility | Location |
 |---|---|---|
 | 1 | HTTP receive + Msty preprocessing (system-prompt stripping, prior-response extraction, crew roster parsing) | `api/endpoints/chat.py:91`; `api/routing/msty.py:preprocess_msty_request()` |
-| 2a | Resolve `alicia_home` flag from Tier 8 `life_states` | `api/orchestration/pipeline.py:481` |
+| 2a | Resolve `alicia_home` flag from Tier 8 `life_states` | `api/orchestration/pipeline.py:148` |
 | 2b | Scene classification (pure sync, 8 scene types × 6 modifiers) | `scene/classifier.py:classify_scene()` |
-| 3 | Memory retrieval (canon + episodic + dyad state + somatic + life state + Dreams activities) | `db/retrieval.py`; called at `pipeline.py:500` |
+| 3 | Memory retrieval (canon + episodic + dyad state + somatic + life state + Dreams activities) | `db/retrieval.py`; called at `pipeline.py:172` |
 | 4 | Activity-context auto-population from `MemoryBundle.activities` | Inline in `pipeline.py` |
 | 5 | Seven-layer context assembly | `context/assembler.py:assemble_context()` (line 59) |
 | 6 | BD-1 streaming completion | `dreams/llm.py:BDOne` (shared client) |
 | 7 | LLM honors Layer 7 terminal constraints (unenforced client-side) | Upstream |
 | 8 | Whyze-Byte validation on buffered response | `validation/whyze_byte.py:validate_response()` (line 329) |
-| 9 | Crew loop: `_run_crew_turn` iterates next speakers up to `crew_max_speakers`, per-speaker assemble + validate + attribution | `api/orchestration/pipeline.py:297` |
-| 10 | SSE stream terminator (finish_reason + `[DONE]`) | `pipeline.py:623` |
+| 9 | Msty Crew sequencing is client-side; backend still returns one routed persona response per request | `api/orchestration/pipeline.py` |
+| 10 | SSE stream terminator (finish_reason + `[DONE]`) | `pipeline.py:260` |
 | 11 | Shadow-Persona bookkeeping (Msty-side, not backend) | n/a |
 | 12 | Post-turn fire-and-forget: episodic extraction + Phase 8 + Phase 9 evaluators | `api/orchestration/post_turn.py:schedule_post_turn_tasks()` (line 49) |
 
-**Crew-mode carry-forward:** Later speakers see earlier validated text prepended via `_format_crew_prior_block()`. Attribution (`**Name:** `) is SSE frame content, not LLM output, so it does not increment token metrics. Per-speaker validation FAIL emits an error chunk but does not abort the loop.
+**Crew request handling — Msty Crew Conversations Contextual mode (Phase 11, AD-009):** Per the Msty Studio Crew Conversations docs (`https://docs.msty.studio/conversations/crew-chats` step 5 — *"Contextual where they are aware of persona responses before theirs"*), Msty fans out one HTTP request per persona's turn. Each request carries the prior personas' responses as `role="assistant"` messages with a `name` field set to the persona id. `routing/msty.py::preprocess_msty_request` extracts those into `MstyPreprocessed.prior_responses`, and `pipeline.py::_format_crew_prior_block` then renders them as a framed `[Earlier in this conversation: …]` block prepended to the focal persona's `user_prompt` before BD-1. The HTML-escape + 800-char per-block truncation guard against prompt-frame injection (Phase 8 R1-F3 lesson). When `prior_responses` is empty (single-persona Msty Persona Conversations, dev `/`-override calls), the helper is a no-op and Phase H regression remains byte-identical. The HTTP pipeline still returns exactly one routed persona response per request — backend-side `/all` crew expansion (`_run_crew_turn`) was planned in Phase 7 but never shipped and remains deferred.
 
 **Post-turn isolation:** `schedule_post_turn_tasks()` spawns `asyncio.create_task()` with `add_done_callback(_log_task_outcome)`. The HTTP response closes before any post-turn task completes (AC-7.10). A failing evaluator cannot delay or corrupt the user-visible reply.
 
@@ -181,7 +181,7 @@ Operator-facing walkthrough: `Docs/OPERATOR_GUIDE.md` §3–§9 (render order, l
 | Module | Purpose |
 |---|---|
 | `scene/classifier.py` | `classify_scene()` (line 124) — pure sync; 8 scene types × 6 stackable modifiers; Alicia-residence gate raises `AliciaAwayContradictionError` |
-| `scene/next_speaker.py` | `select_next_speaker()` (line 130) — 7-rule scoring (residence zero-out, Rule of One, Talk-to-Each-Other mandate, w2w continuation, dyad-state fitness, recency suppression, narrative salience); injected `DyadStateProvider` Protocol |
+| `scene/next_speaker.py` | `select_next_speaker()` (line 130) — legacy 7-rule next-speaker scorer retained from the removed backend Crew fanout path; not used by the active HTTP chat pipeline |
 | `scene/errors.py` | `AliciaAwayContradictionError`, `NoValidSpeakerError` |
 
 ### `dreams/` — Dreams Engine
@@ -225,7 +225,7 @@ Operator-facing walkthrough: `Docs/OPERATOR_GUIDE.md` §3–§9 (render order, l
 | `api/endpoints/metrics.py` | `MetricsMiddleware` + GET `/metrics` (Prometheus) | MSE-6 |
 | `api/routing/character.py` | `resolve_character_id()` — 4-stage precedence | — |
 | `api/routing/msty.py` | `preprocess_msty_request()` → `MstyPreprocessed` (stripped prompt, prior responses, roster, canonical ordering) | — |
-| `api/orchestration/pipeline.py` | 12-step `run_chat_pipeline()` + `_run_crew_turn` | — |
+| `api/orchestration/pipeline.py` | Single-speaker `run_chat_pipeline()` for every routed persona request | — |
 | `api/orchestration/post_turn.py` | `schedule_post_turn_tasks()` fire-and-forget task factory | — |
 | `api/orchestration/relationship.py` | Phase 8 `evaluate_and_update()` — Whyze-dyad deltas, ±0.03 cap, LLM-primary + heuristic fallback | — |
 | `api/orchestration/relationship_prompts.py` | `RELATIONSHIP_EVAL_SYSTEM`, `build_eval_prompt()`, `parse_eval_response()`, `RelationshipEvalResponse` | — |
@@ -253,7 +253,7 @@ Entry: `context/assembler.py:assemble_context()` (line 59). Terminal constraint 
 | 4 | Somatic state + life state | Tier 7 `transient_somatic_states` + `life_states` | 500 | — | ✓ |
 | 5 | Voice directives (inference parameters + mode-tagged exemplars) | `voice.inference_parameters` + `voice.few_shots.examples[]` | 900 | — | ✓ |
 | 6 | Scene context (Tier 6 open loops + 11 knowledge soul cards, scene-conditional) | `open_loops` + `soul_cards[]` | 2,400 | — | ✓ |
-| 7 | Whyze-Byte constraints (terminal anchor) | `canon_facts` constraint pillars | 900 | — | ✓ NEVER trimmed |
+| 7 | Whyze-Byte constraints (terminal anchor) | `context/constraints.py` Tier 1 axioms + per-character `behavioral_framework.constraint_pillars[mode]` + scene/modifier-gated blocks | 900 | — | ✓ NEVER trimmed |
 
 **Base total:** 12,500 tokens + per-character kernel scaling + guaranteed surcharges.
 
@@ -334,8 +334,6 @@ Of 15 soul cards per character, 4 pair-always-on cards reserve from the Layer 1 
 | 004 | `004_phase_7_chat_sessions.py` | `chat_sessions` | Phase 7 HTTP service |
 | 005 | `005_phase_10_7_dreams_qa.py` | `dreams_qa_log`, `dyad_state_pins` | Phase 10.7 Consistency QA (head) |
 
-*Note: the CLAUDE.md §13 table-name list carries three legacy names (`character_responses`, `relationship_state`, `pipeline_validations`) that never materialized as tables, and omits `character_baselines`, `dyad_state_whyze`, `dyad_state_internal`, `transient_somatic_states`. This document's table list is authoritative per AD-001 on-conflict rule reversed for database schema — CLAUDE.md §13 is stale here.*
-
 ---
 
 ## 8. Canon authority — terminal six-file YAML surface
@@ -380,16 +378,16 @@ The legacy `soul_essence.py` Python module, the 15 per-character soul card markd
 
 Entry: `dreams/runner.py:run_dreams_pass()` (line 171). Scheduled by `dreams/daemon.py` via apscheduler; manual invocation via `python -m starry_lyfe.dreams --once`.
 
-### Six generators
+### Five per-character generators + one cross-relationship QA pass
 
-| Generator | Kind | LLM? |
-|---|---|---|
-| `generators/schedule.py::generate_schedule` | Deterministic daily schedule from `runtime.routines` | No |
-| `generators/off_screen.py::generate_off_screen` | Overnight events during Whyze absence | BD-1 |
-| `generators/diary.py::generate_diary` | Per-character reflective prose entry | BD-1 |
-| `generators/open_loops.py::generate_open_loops` | Unresolved threads for next session | BD-1 |
-| `generators/activity_design.py::generate_activity_design` | Tomorrow's scene opener + narrator script + choice tree | BD-1 |
-| `generators/consistency_qa.py::generate_consistency_qa` | Phase 10.7 cross-relationship judge across 10 relationships | BD-1 |
+| Generator | Scope | Kind | LLM? |
+|---|---|---|---|
+| `generators/schedule.py::generate_schedule` | Per-character | Deterministic daily schedule from `runtime.routines` | No |
+| `generators/off_screen.py::generate_off_screen` | Per-character | Overnight events during Whyze absence | BD-1 |
+| `generators/diary.py::generate_diary` | Per-character | Per-character reflective prose entry | BD-1 |
+| `generators/open_loops.py::generate_open_loops` | Per-character | Unresolved threads for next session | BD-1 |
+| `generators/activity_design.py::generate_activity_design` | Per-character | Tomorrow's scene opener + narrator script + choice tree | BD-1 |
+| `generators/consistency_qa.py::generate_consistency_qa` | Cross-relationship post-pass | Phase 10.7 judge across all 10 relationships after per-character generation completes | BD-1 |
 
 ### Orchestration
 
@@ -421,7 +419,7 @@ Every exception from the QA pass, the scene-fodder routing, and the weekly diges
 
 | Verdict | Routing |
 |---|---|
-| `healthy_divergence` | Gap is canonical and dramaturgically correct. `scene_fodder[]` strings flow into `open_loops` with `source="dreams_qa"` as scene seeds for next time both halves of the relationship are present. |
+| `healthy_divergence` | Gap is canonical and dramaturgically correct. `scene_fodder[]` strings flow into `open_loops` with `source="dreams_qa"`, owned by the relationship's `pov_a`, with the partner recorded as `best_next_speaker` for the next shared scene seed. |
 | `concerning_drift` | POVs wandering from shared anchor but not yet contradictory. Logged to `dreams_qa_log`. If the same `(relationship_key, field_name)` is flagged on 3 nights running (THRESHOLD_NIGHTS=3, 36h window), `should_promote()` returns True and the verdict is auto-promoted to `factual_contradiction`. |
 | `factual_contradiction` | POV contradicts a `shared_canon.yaml` anchor. Pinned to the canonical value via `dyad_state_pins` (symmetric: `pov_character_id=None`). Phase 9 evaluator then refuses to update the pinned dimension until operator resolves. `dreams_qa_pin_blocked` structlog event fires on every subsequent blocked write. |
 
@@ -439,11 +437,11 @@ Every exception from the QA pass, the scene-fodder routing, and the weekly diges
 
 ## 12. Relationship evaluators
 
-Two post-turn evaluators run in fire-and-forget mode after the HTTP response closes. Both are gated by the Phase 10.7 pin-consult (**AD-005**).
+Two post-turn evaluators run in fire-and-forget mode after the HTTP response closes. Only the Phase 9 inter-woman evaluator is gated by the Phase 10.7 pin-consult (**AD-005**); the Phase 8 Whyze-dyad evaluator is not currently pin-aware.
 
 ### Phase 8 — Whyze-dyads (`api/orchestration/relationship.py::evaluate_and_update`)
 
-Updates the focal character's `dyad_state_whyze` row. Four relationships × 5 dimensions (`trust`, `intimacy`, `conflict`, `unresolved_tension`, `repair_history`, each `[0, 1]`). **Delta cap: ±0.03 per turn per dimension** (hard invariant, **AD-004**).
+Updates the focal character's `dyad_state_whyze` row. The row stores 5 dimensions, but the Phase 8 evaluator currently updates 4 of them: `trust`, `intimacy`, `unresolved_tension`, and `repair_history`. `conflict` exists on the row/model for state-shape continuity, but it is not part of the current Phase 8 prompt/output path. **Delta cap: ±0.03 per evaluated dimension per turn** (hard invariant, **AD-004**).
 
 LLM-primary via `BDOne.complete()` + `relationship_prompts.parse_eval_response`. Heuristic fallback (`_propose_deltas`) fires on any of:
 1. Settings opt-out (`relationship_eval_llm=False`)
@@ -471,10 +469,10 @@ Updates `dyad_state_internal` rows. Six relationships × 5 dimensions. Same ±0.
 **Entry:** `validation/whyze_byte.py::validate_response()` (line 329).
 
 **Two-tier structure:**
-- **Tier 1 (FAIL):** hard stops — AI-isms ("As an AI…"), framework leakage, XML-tag bleed, prompt marker echoes in response. Any FAIL triggers regeneration (single-speaker) or per-speaker error chunk (crew).
+- **Tier 1 (FAIL):** hard stops — AI-isms ("As an AI…"), framework leakage, XML-tag bleed, prompt marker echoes in response. Any FAIL emits a terminal `WHYZE_BYTE_FAIL` error chunk on the routed persona response.
 - **Tier 2 (WARN):** soft findings — repetition, cognitive drift, hand-offs, em-dash hygiene, cross-character contamination (e.g., Bina using Alicia markers). Collected; caller decides regenerate or log.
 
-Result object: `ValidationResult(character_id, passed, violations)`. Gated at pipeline step 8 (single-speaker) and per-speaker inside `_run_crew_turn` (step 9). Crew FAIL emits an error chunk but does not abort the loop; only validated text persists into the next speaker's context.
+Result object: `ValidationResult(character_id, passed, violations)`. Gated once at pipeline step 8 on the routed persona response.
 
 **Fidelity rubrics** (`validation/fidelity.py`). 7 dimensions × 4 characters = 28 rubrics. Static scoring with no LLM calls: per-character marker presence + anti-pattern absence + structural markers. Composite score = `0.5×markers + 0.3×anti_pattern + 0.2×structural`. Full suite completes in under 10 seconds.
 
@@ -492,7 +490,7 @@ Two pure-synchronous functions (no DB, no LLM, test-friendly).
 - `SceneModifiers` — 6 stackable flags
 - `scene_description` — synthesized canonical string
 
-**`scene/next_speaker.py::select_next_speaker()`** (line 130). Injected `DyadStateProvider` Protocol so tests stub and production wraps R5. Seven-rule scoring (order matters):
+**`scene/next_speaker.py::select_next_speaker()`** (line 130). Legacy scorer retained from the removed backend Crew fanout path. It is still documented here because the module remains in-tree, but the active HTTP chat pipeline does not call it. Injected `DyadStateProvider` Protocol so tests stub and production wraps R5. Seven-rule scoring (order matters):
 1. Residence zero-out (Alicia away + in-person → 0)
 2. Rule of One (already spoke this turn → 0)
 3. Talk-to-Each-Other mandate (last 2 turns both to Whyze → reward w2w candidates, penalize others)
@@ -514,7 +512,7 @@ Port 8001. `X-API-Key` header required on `POST /v1/chat/completions`; other end
 | GET | `/health/live` | Liveness probe (always 200 if process alive) | None |
 | GET | `/health/ready` | Readiness — verifies R5 pool open; if `HEALTH_BD1_PROBE=true`, issues a HEAD against the SFW provider | None |
 | GET | `/v1/models` | 5 entries (`starry-lyfe` legacy + 4 character IDs) with fixed epoch 1776816000 | None |
-| POST | `/v1/chat/completions` | OpenAI-compatible chat, SSE streaming. Requests: `{model, messages, stream}`. Responses: `data: {choices: [{delta: {role, content}}]}` chunks terminated with `data: [DONE]`. Crew mode adds inline `**Name:**\n\n` attribution between speakers. | `X-API-Key` |
+| POST | `/v1/chat/completions` | OpenAI-compatible chat, SSE streaming. Requests: `{model, messages, stream}`. Responses: `data: {choices: [{delta: {role, content}}]}` chunks terminated with `data: [DONE]`. One routed persona response per request. | `X-API-Key` |
 | GET | `/metrics` | Prometheus scrape | None |
 
 **FastAPI factory:** `api/app.py::create_app()` (line 59) — lifespan loads `Canon`, DB engine + session factory, `LMStudioEmbeddingService`, `BDOne` client; all stashed on `app.state`. `state_overrides` test hook swaps in stubs.
@@ -523,7 +521,7 @@ Port 8001. `X-API-Key` header required on `POST /v1/chat/completions`; other end
 
 **Character routing** (`api/routing/character.py::resolve_character_id`). Four-stage precedence:
 1. `X-SC-Force-Character` header (dev/test)
-2. Inline `/<char>` or `/all` override at message start (stripped before LLM sees it)
+2. Inline `/<char>` override at message start (stripped before LLM sees it). Legacy `/all` is stripped as a no-op and has no routing effect.
 3. `model` field — the Msty Persona path (production)
 4. `settings.default_character` fallback (`adelia` default)
 
@@ -554,7 +552,7 @@ Unknown IDs raise `CharacterNotFoundError` (HTTP 400).
 | `STARRY_LYFE__API__CORS_ORIGINS` | (empty) | Empty disables CORS |
 | `STARRY_LYFE__API__DEFAULT_CHARACTER` | `adelia` | Fallback when routing precedence exhausts |
 | `STARRY_LYFE__API__HEALTH_BD1_PROBE` | `true` | `/health/ready` HEAD probe against BD-1 provider |
-| `STARRY_LYFE__API__CREW_MAX_SPEAKERS` | `3` | Crew loop iteration cap (CLAUDE.md §16 axiom) |
+| `STARRY_LYFE__API__CREW_MAX_SPEAKERS` | `3` | Legacy compatibility knob from the removed backend Crew fanout path; current HTTP chat flow ignores it |
 | `STARRY_LYFE__API__RELATIONSHIP_EVAL_LLM` | `true` | Phase 8 toggle; false forces heuristic |
 | `STARRY_LYFE__API__RELATIONSHIP_EVAL_MAX_TOKENS` | `200` | Phase 8 LLM budget |
 | `STARRY_LYFE__API__RELATIONSHIP_EVAL_TEMPERATURE` | `0.2` | Phase 8 LLM temperature |
@@ -612,8 +610,8 @@ No dedicated `src/starry_lyfe/protocols/` sub-package today; droid surfaces are 
 
 ## 19. Test architecture
 
-**Current baseline:** 1,257 passed / 0 failed / 38 environmental Postgres skips / 0 xfailed.
-**WAF gate:** `make check` = `ruff check` + `mypy --strict` + `pytest` (full suite). Clean on commit `8a7163e`.
+**Current baseline:** 1,258 passed / 0 failed / 39 environmental Postgres skips / 0 xfailed.
+**WAF gate:** `make check` = `ruff check` + `mypy --strict` + `pytest` (full suite). Clean on the current post-Phase-10.7 re-audit remediation tree.
 
 ### Taxonomy
 
@@ -675,6 +673,8 @@ No separate `Docs/decisions/` ADR tree; decisions live inline here and in phase 
 
 - **AD-008 — Phase H regression bundle is a first-class ship gate.** Every phase that touches prompt assembly must re-run the Phase H regression and produce byte-identical output on the unchanged code paths. Drift in assembled prompts is a regression regardless of test count. (Phase H; reaffirmed every phase through 10.7.)
 
+- **AD-009 — Cross-persona context injection in single-speaker requests.** Msty Studio's Crew Conversations Contextual mode delivers prior personas' assistant turns alongside each focal persona request. The backend's `pipeline._format_crew_prior_block` renders those into a framed `[Earlier in this conversation: …]` block prepended to the focal `user_prompt` so the focal persona can riff on what the prior personas just said. HTML-escaped + 800-char per-block truncated (Phase 8 R1-F3 lesson). No-op when `prior_responses` is empty (preserves Phase H regression byte-identity for non-crew flows). The augmented prompt is request-side only — the Phase 9 inter-woman evaluator continues to receive focal-only `response_text` because dyad deltas score the focal persona's output, not the conversation as a whole. (Phase 11.)
+
 ---
 
 ## 22. Evolution summary
@@ -685,7 +685,7 @@ The v7 architectural track spans phases 0 → 10.7, shipped across 2026-04-12 to
 - **Phase 4 (Whyze-Byte Validation Pipeline, 2026-04-13)** — two-tier validator.
 - **Phase 5 (Scene Director, 2026-04-14)** — classifier + next-speaker scoring.
 - **Phase 6 (Dreams Engine, 2026-04-15)** — nightly batch, five generators + writers + consolidation.
-- **Phase 7 (HTTP Service on Port 8001, 2026-04-15)** — FastAPI, SSE, Crew mode, Msty preprocessing.
+- **Phase 7 (HTTP Service on Port 8001, 2026-04-15)** — FastAPI, SSE, OpenAI-compatible chat surface, Msty preprocessing.
 - **Phase 8 (LLM Relationship Evaluator, sealed 2026-04-15)** — Whyze-dyads; shared Pydantic primitives.
 - **Phase 9 (Inter-woman DyadStateInternal evaluator, sealed 2026-04-16)** — six dyads, Alicia-orbital gate, all-six divergence.
 - **Phase 10.0 – 10.7 (YAML Source-of-Truth Migration + Dreams Consistency QA, 2026-04-16 → 2026-04-17)** — gap audit, schema+loader, kernel/voice cutover, soul essence + cards cutover, constraint pillars, archive + governance (10.5), schema hardening (10.5b), narrow-canon loader rewire to terminal 6-file surface (10.5c), preserve-marker enforcement hardening (10.6), Dreams Consistency QA + Phase 9 pin-consult + audit remediation (10.7).
@@ -695,6 +695,16 @@ Chronological migration ledger: `journal.txt` at repo root.
 ---
 
 ## 23. Changelog
+
+### [1.0.1] — 2026-04-17
+
+- Accuracy sync after documentation red-team.
+- Runtime baseline updated to 1,258 passed / 39 environmental Postgres skips; hash-bound 1.0.0 snapshot wording removed from the live header and test-architecture section.
+- Dreams topology clarified as 5 per-character generators plus 1 cross-relationship QA pass.
+- Phase 10.7 `healthy_divergence` routing wording narrowed to the current `pov_a`-owned open-loop semantics with `best_next_speaker`.
+- Relationship evaluator section corrected: Phase 8 remains a 4-field evaluator and is not currently pin-aware; Phase 9 is the evaluator gated by `is_pinned()`.
+- Layer 7 source-of-truth corrected to `context/constraints.py` Tier 1 axioms + per-character YAML constraint pillars + scene-gated blocks.
+- Obsolete note about overriding CLAUDE.md §13 for schema truth removed after CLAUDE.md database-schema sync.
 
 ### [1.0.0] — 2026-04-17
 

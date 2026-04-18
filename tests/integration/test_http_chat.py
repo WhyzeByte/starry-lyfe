@@ -305,3 +305,111 @@ class TestChatHealthAndModelsLive:
         body = response.json()
         ids = sorted(entry["id"] for entry in body["data"])
         assert ids == ["adelia", "alicia", "bina", "reina", "starry-lyfe"]
+
+
+class TestCrewContextualCarryForward:
+    """Phase 11 — Msty Crew Conversations Contextual mode end-to-end.
+
+    When Msty sends a request with ``model=bina`` and prior personas'
+    responses included as ``role="assistant"`` messages with a ``name``
+    field, the focal persona's outbound user_prompt to BD-1 must carry
+    those prior responses in the framed prior-speaker block.
+
+    AC-11.5 closure regression.
+    """
+
+    def test_msty_crew_contextual_payload_lands_prior_text_in_focal_user_prompt(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        engine: AsyncEngine,
+        setup_database: None,
+    ) -> None:
+        """Real Postgres + recording StubBDOne: prior persona text reaches BD-1."""
+
+        async def _fake_assemble_context(*args: object, **kwargs: object) -> AssembledPrompt:
+            char_id = kwargs.get("character_id", args[0] if args else "bina")
+            return _make_assembled_prompt(str(char_id))
+
+        monkeypatch.setattr(
+            "starry_lyfe.api.orchestration.pipeline.assemble_context",
+            _fake_assemble_context,
+        )
+
+        captured: list[tuple[str, str]] = []
+
+        def _recorder(system_prompt: str, user_prompt: str) -> str:
+            captured.append((system_prompt, user_prompt))
+            return "Bina meets the moment with quiet attention."
+
+        factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        canon = load_all_canon()
+        stub = StubBDOne(
+            default_text="Bina meets the moment with quiet attention.",
+            responder=_recorder,
+            stream_chunk_count=2,
+        )
+
+        app = create_app(
+            ApiSettings(api_key="test-key", default_character="bina"),
+            state_overrides={
+                "engine": engine,
+                "session_factory": factory,
+                "canon": canon,
+                "embedding_service": _StubEmbeddingService(),
+                "llm_client": stub,
+            },
+        )
+
+        with TestClient(app) as client:
+            response = client.post(
+                "/v1/chat/completions",
+                headers={"X-API-Key": "test-key", "Content-Type": "application/json"},
+                json={
+                    "model": "bina",
+                    "stream": True,
+                    "messages": [
+                        {
+                            "role": "assistant",
+                            "name": "adelia",
+                            "content": "The light caught the cardamom on the windowsill.",
+                        },
+                        {
+                            "role": "user",
+                            "content": "What did you both think of the porch?",
+                        },
+                    ],
+                },
+            )
+            assert response.status_code == 200
+            response.read()  # drain the SSE body
+
+        # captured[0] is the chat stream_complete; captured[1+] are the
+        # post-turn evaluator complete() calls fired after SSE close.
+        assert len(captured) >= 1
+        chat_user_prompt = captured[0][1]
+        assert "**adelia:**" in chat_user_prompt
+        assert "cardamom" in chat_user_prompt
+        assert "What did you both think of the porch?" in chat_user_prompt
+
+    def test_msty_persona_conversation_no_prior_responses_unchanged(
+        self,
+        chat_app: tuple[TestClient, async_sessionmaker[AsyncSession], StubBDOne],
+    ) -> None:
+        """AC-11.3 byte-identity regression: bare user message, no frame."""
+        client, _, stub = chat_app
+        # The default chat_app StubBDOne has no responder; capture via call_count + a
+        # fresh assertion path. We re-issue the request and verify success — the
+        # canonical no-op assertion lives in the unit-test counterpart.
+        response = client.post(
+            "/v1/chat/completions",
+            headers={"X-API-Key": "test-key", "Content-Type": "application/json"},
+            json={
+                "model": "adelia",
+                "stream": True,
+                "messages": [{"role": "user", "content": "How was today?"}],
+            },
+        )
+        assert response.status_code == 200
+        response.read()
+        # Stream completed without crashing — non-crew path remains stable.
+        assert stub.stream_call_count >= 1
