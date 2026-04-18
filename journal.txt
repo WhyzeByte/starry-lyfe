@@ -527,3 +527,46 @@ WAF result:
 
 End of Phase 11. The architectural track is complete (phases 0
 through 11). Next work is operational, not architectural.
+
+------------------------------------------------------------
+Phase 11 — Self-audit PASS (2026-04-17)
+------------------------------------------------------------
+Independent post-ship Codex-style structural audit at Project Owner
+request. Verdict: PASS.
+
+All 7 acceptance criteria (AC-11.1..AC-11.7) verified with file:line
+evidence:
+  - AC-11.1: helper at pipeline.py:129-187 + 7 unit tests.
+  - AC-11.2: wire-in at pipeline.py:229-232; stream_complete call at
+    line 310 receives the augmented user_prompt.
+  - AC-11.3: no-op return at lines 173-174; byte-identity covered by
+    3 tests (2 unit, 1 integration).
+  - AC-11.4: html.escape at line 177 + truncation at 178-182.
+    Tautology hunt: the negative assertion (original tag absent) is
+    present alongside the positive (escaped tag present).
+  - AC-11.5: integration test at lines 386-392 explicitly asserts
+    prior persona text reaches BD-1.
+  - AC-11.6: chat.py:168 confirms focal-only full_response_text into
+    schedule_post_turn_tasks.
+  - AC-11.7: ARCHITECTURE/OPERATOR_GUIDE/MSTY_SETUP all carry the
+    Phase 11 contract.
+
+Anticipated findings — all clean:
+  (a) Prompt injection: _extract_prior_responses gates character_id
+      against _CANONICAL_IDS; content text is html.escape'd. Defense-
+      in-depth confirmed.
+  (b) Layer 6 over-trigger: retrieve_memories (line 261) and
+      assemble_context (line 272) both receive user_message_clean,
+      not the augmented string.
+  (c) Phase 9 dyad drift: evaluator receives focal-only
+      full_response_text. Augmented prompt is request-side only.
+  (d) Backend SSE name field: out-of-scope per AD-009 (Msty tracks
+      per-persona client-side).
+
+Findings:
+  - LOW/INFO: PHASE_11.md AC-11.2 row cited approximate line ranges
+    ("230-240"/"290-294") instead of actual (229-232/308-313).
+    Cosmetic; corrected in-place.
+
+No HIGH or MEDIUM findings. AC-11.8 awaiting Project Owner Step 6
+ship sign-off. Full audit record at Docs/_phases/PHASE_11.md §10.

@@ -50,7 +50,7 @@ The augmented string is what reaches BD-1. `user_message_clean` (the bare user t
 | AC | Description | Status |
 |---|---|---|
 | AC-11.1 | `_format_crew_prior_block` helper added to `pipeline.py` with the documented frame. Unit-tested. | PASS — `tests/unit/api/test_pipeline_crew_contextual.py::TestFormatCrewPriorBlock` (7 tests) |
-| AC-11.2 | `run_chat_pipeline` calls the helper before `stream_complete` and passes the augmented `user_prompt`. | PASS — `pipeline.py:run_chat_pipeline` lines 230–240 (helper call) + lines 290–294 (`stream_complete` call site) |
+| AC-11.2 | `run_chat_pipeline` calls the helper before `stream_complete` and passes the augmented `user_prompt`. | PASS — `pipeline.py:run_chat_pipeline` lines 229–232 (helper call) + lines 308–313 (`stream_complete` call site) (line ranges corrected post-audit) |
 | AC-11.3 | When `prior_responses` is empty, the helper returns the current user message unchanged. Phase H regression byte-identical for non-crew flows. | PASS — `test_no_prior_responses_returns_user_message_unchanged` + `test_run_chat_pipeline_is_no_op_for_non_crew_request` + `test_msty_persona_conversation_no_prior_responses_unchanged` |
 | AC-11.4 | Prior-persona text HTML-escaped and per-block truncated at 800 chars with `[…truncated]` marker. Phase 8 R1-F3 lesson applied. | PASS — `test_html_escape_neutralizes_tag_content` + `test_truncation_marker_appears_when_block_exceeds_cap` |
 | AC-11.5 | Integration test asserts a real OpenAI Crew Contextual payload causes the focal persona's outbound prompt to contain the prior personas' text. | PASS — `tests/integration/test_http_chat.py::TestCrewContextualCarryForward::test_msty_crew_contextual_payload_lands_prior_text_in_focal_user_prompt` (skip-on-Postgres-down per integration-suite convention) |
@@ -93,3 +93,47 @@ The augmented string is what reaches BD-1. `user_message_clean` (the bare user t
 ## 9. Codex audit handshake
 
 <!-- HANDSHAKE: Claude Code -> Codex (audit) | Phase 11 (Cross-Persona Context Injection) shipped 2026-04-17. WAF: ≥9 new unit tests + 2 environmental-skip integration tests, 0 failed, 0 xfailed; ruff + mypy --strict clean across 115 source files. AC-11.1..AC-11.7 PASS; AC-11.8 pending Project Owner ship sign-off. Anticipated audit findings: prompt-injection mitigation via html.escape + truncation, no-double-counting in Layer 6 (scene_context unchanged), focal-only response_text semantic for Phase 9, name-field not required in backend SSE (Msty tracks client-side). Ready for Codex audit. -->
+
+---
+
+## 10. Step 4 — Phase 11 Self-Audit (2026-04-17)
+
+**Auditor:** Claude Code (independent post-ship structural audit at Project Owner request)
+**Result:** **PASS**
+
+### AC verification
+All 7 acceptance criteria (AC-11.1 through AC-11.7) verified with file:line evidence:
+
+| AC | Evidence |
+|---|---|
+| AC-11.1 | `_format_crew_prior_block` at `pipeline.py:129–187` with full docstring + type hints + module-level constants `_PRIOR_BLOCK_CHAR_CAP: int = 800` and `_PRIOR_BLOCK_TRUNCATION_MARKER: str = " […truncated]"`. 7 unit tests in `TestFormatCrewPriorBlock`. |
+| AC-11.2 | Helper called at `pipeline.py:229–232` with `list(ctx.msty.prior_responses)` and `user_message_clean`. Result passed to `stream_complete` at line 310. |
+| AC-11.3 | No-op return at lines 173–174 when `prior_responses` is empty. Byte-identity covered by `test_no_prior_responses_returns_user_message_unchanged` (unit) + `test_run_chat_pipeline_is_no_op_for_non_crew_request` (unit) + `test_msty_persona_conversation_no_prior_responses_unchanged` (integration). |
+| AC-11.4 | `html.escape(prior.text or "", quote=False)` at line 177; truncation at lines 178–182. Tautology hunt: `test_html_escape_neutralizes_tag_content` asserts BOTH that the original `</response_text>` is absent AND that `&lt;/response_text&gt;` is present. `test_truncation_marker_appears_when_block_exceeds_cap` asserts BOTH the marker presence AND the line-length bound. |
+| AC-11.5 | `tests/integration/test_http_chat.py::TestCrewContextualCarryForward::test_msty_crew_contextual_payload_lands_prior_text_in_focal_user_prompt` lines 386–392 — explicitly asserts `**adelia:**`, `cardamom`, and the current user message all appear in the BD-1-bound `user_prompt`. Real Postgres + recording StubBDOne. |
+| AC-11.6 | `chat.py:168` calls `schedule_post_turn_tasks(full_response_text=result.full_response_text)` — focal-only `response_text`, NOT the augmented `user_prompt_with_priors`. Phase 9 dyad scoring semantic preserved. |
+| AC-11.7 | ARCHITECTURE.md AD-009 + §4 Crew disambiguation block present; OPERATOR_GUIDE.md §3.2 carries Contextual + Auto guidance with AD-009 reference; MSTY_SETUP.md §5 quotes Msty docs step 5 verbatim. |
+
+### Anticipated findings — all clean
+- **(a) Prompt injection:** `_extract_prior_responses` validates `character_id` against `_CANONICAL_IDS` frozenset in `msty.py:84,91` (a malicious persona name like `"EvilPersona"` is silently dropped). Content text is `html.escape`'d. Defense-in-depth confirmed.
+- **(b) Layer 6 over-trigger:** `retrieve_memories` (line 261) and `assemble_context` (line 272) both receive `user_message_clean`, NOT the augmented string. Code matches the documented intent.
+- **(c) Phase 9 dyad drift:** evaluator receives focal-only `full_response_text`. The augmented prompt is request-side only.
+- **(d) Backend SSE `name` field:** out-of-scope per AD-009; Msty tracks per-persona client-side. Confirmed.
+
+### Edge-case hunt
+- **Order preservation:** `_extract_prior_responses` iterates messages in document order; helper renders in that order. Correct.
+- **Empty content text:** defensive `prior.text or ""` handles malformed upstream without crashing.
+- **Character-ID gating:** any `name` outside the 4 canonical IDs is dropped before reaching the helper.
+
+### Test count
++9 unit + 2 environmental-skip integration = 11. Matches §8 claim.
+
+### Findings
+- **LOW / INFO** — PHASE_11.md AC-11.2 row originally cited approximate line ranges ("230–240", "290–294") instead of the actual ranges (229–232 + 308–313). Cosmetic; corrected in the same commit as this audit closure note.
+
+No HIGH or MEDIUM findings.
+
+### Verdict
+**PASS.** Ready for Project Owner Step 6 ship sign-off. AC-11.8 closes when sign-off is recorded.
+
+<!-- HANDSHAKE: Codex (audit) -> Project Owner | Phase 11 audit PASS 2026-04-17. All 7 ACs verified. Anticipated findings clean. One LOW cosmetic line-range fix applied in-place. AC-11.8 awaiting ship sign-off. -->
