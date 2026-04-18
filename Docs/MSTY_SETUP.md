@@ -1,8 +1,8 @@
 # Msty Studio Configuration Guide
 
-**Version:** 1.3.0
+**Version:** 1.4.0
 **Date:** 2026-04-17
-**Backend:** Starry-Lyfe v7 on PC `192.168.1.93`, port `8001` (post-Phase-11)
+**Backend:** Starry-Lyfe v7 on PC `192.168.1.93`, port `8001` (post-Phase-11, containerized)
 **Audience:** the operator (Whyze) configuring Msty Studio Desktop on another machine on the LAN.
 
 This guide was audited on 2026-04-17 against the current Starry-Lyfe codebase and the current Msty docs. It targets `Msty Studio Desktop`, which Msty's own Quick Start recommends as the default path. Studio Web adds browser/CORS constraints and is not the primary path for this LAN backend.
@@ -59,9 +59,9 @@ Replace the placeholder line in `.env` with your real value, then continue to §
 
 > **Why didn't Claude Code just tell me the API key value?** It did — see the chat transcript where `.env` was created. The reason it's not pasted into this markdown file is that `Docs/MSTY_SETUP.md` is committed to git on a public-or-shared repo. Hard-coding the API key into the doc would leak the secret. The key lives in `.env` (gitignored); you read it when you need it.
 
-### 1.2 Open Windows firewall for port 8001 — needs your elevated PowerShell
+### 1.2 Open Windows firewall for port 8001 — one-time, your elevated PowerShell
 
-Claude Code attempted this and got `Access is denied` because the Bash sandbox can't elevate. **Right-click PowerShell → "Run as administrator"** on `192.168.1.93`, then paste:
+Already done on this PC (verified 2026-04-17). If you ever need to recreate the rule, **right-click PowerShell → "Run as administrator"** on `192.168.1.93`, then paste:
 
 ```powershell
 New-NetFirewallRule -DisplayName "Starry-Lyfe API (8001)" `
@@ -72,35 +72,57 @@ New-NetFirewallRule -DisplayName "Starry-Lyfe API (8001)" `
   -Profile Private,Public
 ```
 
-This is a **one-time setup step.** Verify with:
+Verify with:
 
 ```powershell
 Get-NetFirewallRule -DisplayName "Starry-Lyfe API (8001)" | Format-Table DisplayName, Enabled, Action, Direction
 ```
 
-You should see one row, `Enabled=True`, `Action=Allow`, `Direction=Inbound`.
+### 1.3 Daily startup — the "click ▶ in Docker Desktop" flow
 
-### 1.3 Make sure Docker Desktop + Postgres are running — also needs you
+Both Postgres AND the API run as containers in a single `starry-lyfe` Docker Compose stack (post-Phase-11). Daily startup is one click:
 
-Claude Code can't launch Docker Desktop's UI from the Bash sandbox. **Open Docker Desktop from your Start menu** and wait for the whale icon to go solid. Then bring up the Postgres container:
+1. **Launch Docker Desktop** from the Start menu and wait for the whale icon to go solid.
+2. **Containers tab → click ▶ next to `starry-lyfe`** (or just leave Docker Desktop set to auto-start on boot — both containers carry `restart: unless-stopped` so they come back up on their own).
 
-```powershell
-cd C:\Users\Whyze\OneDrive\Cosmology\0_ARCHE\0.4_FOUNDRY\Starry-Lyfe
-make docker-up
-```
+That's it. Postgres comes up, the API waits for Postgres to be healthy, then both are listening:
 
-(`make docker-up` is idempotent — safe to run even if the container is already up.)
+- Postgres on `localhost:5432`
+- API on `0.0.0.0:8001` (LAN-reachable from the Msty PC)
 
-### 1.4 Start the API service
-
-After §1.2, §1.3, and after pasting your BD-1 key into `.env` (§1.1):
+**First-time only** (or when dependencies in `requirements.txt` change), build the API image:
 
 ```powershell
 cd C:\Users\Whyze\OneDrive\Cosmology\0_ARCHE\0.4_FOUNDRY\Starry-Lyfe
-.venv\Scripts\python -m starry_lyfe.api.main
+docker compose -f docker/docker-compose.yml build api
+docker compose -f docker/docker-compose.yml up -d
 ```
 
-Leave that PowerShell window open — closing it stops the API. (For a longer-running setup, register it as a Windows scheduled task or service; that's deferred operational work outside this guide.)
+Subsequent starts: open Docker Desktop, click ▶. Done.
+
+**Code or character-YAML edits** propagate live — `src/` and `Characters/` are bind-mounted into the API container read-only. The rich_loader's mtime-keyed cache picks them up on the next request without a container restart. No rebuild needed for code-only or YAML-only changes.
+
+### 1.4 (Verification) confirm both containers are running
+
+```powershell
+docker ps --filter "name=Starry-Lyfe" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+```
+
+Expected:
+
+```
+NAMES             STATUS                    PORTS
+Starry-Lyfe-API   Up N seconds              0.0.0.0:8001->8001/tcp
+Starry-Lyfe       Up N seconds (healthy)    0.0.0.0:5432->5432/tcp
+```
+
+If `Starry-Lyfe-API` isn't listed, the API failed to boot — check logs:
+
+```powershell
+docker logs Starry-Lyfe-API --tail 50
+```
+
+Most common cause: `STARRY_LYFE__BD1__API_KEY` placeholder still in `.env` (see §1.1). Fix `.env`, then `docker compose -f docker/docker-compose.yml restart api`.
 
 ### 1.5 Smoke-test from the Msty machine
 

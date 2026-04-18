@@ -1,5 +1,15 @@
 name: starry-lyfe
 
+# Two-service stack:
+#   - postgres: pgvector/pg16 with healthcheck.
+#   - api:      Starry-Lyfe HTTP API on port 8001.
+#
+# Operator workflow: open Docker Desktop, find the `starry-lyfe` stack
+# under Containers, click ▶. Both services come up; api waits for
+# postgres to be healthy first. With `restart: unless-stopped`, both
+# auto-resume the next time Docker Desktop boots (so you can also just
+# launch Docker and they come up on their own).
+
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -17,6 +27,46 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+    networks:
+      - starry-lyfe-net
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: starry-lyfe-api:latest
+    container_name: Starry-Lyfe-API
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ../.env
+    environment:
+      # Override the .env DB host: inside the container, postgres is at
+      # the compose service name, not localhost.
+      STARRY_LYFE__DB__HOST: postgres
+      # LM Studio runs on the host machine; reach it via the special
+      # host-gateway DNS that Docker Desktop sets up.
+      STARRY_LYFE__EXT__EMBEDDING_BASE_URL: http://host.docker.internal:1234/v1
+    extra_hosts:
+      # Required so host.docker.internal resolves on Linux daemons too.
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8001:8001"
+    volumes:
+      # Live-mount the rich character YAMLs so on-host edits propagate
+      # immediately (rich_loader caches on file mtime, so the next
+      # request picks up the change without a container restart).
+      - ../Characters:/app/Characters:ro
+      # Live-mount the source so dev iteration doesn't require a rebuild
+      # for code-only changes. Dependency changes still need
+      # `docker compose build api`.
+      - ../src:/app/src:ro
+      # Live-mount alembic so migrations applied on the host can also
+      # be applied from inside the container if needed.
+      - ../alembic:/app/alembic:ro
+    restart: unless-stopped
     networks:
       - starry-lyfe-net
 

@@ -1,0 +1,28 @@
+.venv/
+.git/
+.github/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.test_tmp/
+.pytest_tmp/
+__pycache__/
+*.py[cod]
+*.egg-info/
+htmlcov/
+.coverage
+.coverage.*
+
+# Don't bake the operator's secret env into the image; compose mounts it.
+.env
+.env.local
+.env.*.local
+
+# Doc artifacts not needed in the image
+Docs/_dreams_qa/*.md
+Backups/
+
+# Local working state
+.claude/
+.idea/
+.vscode/

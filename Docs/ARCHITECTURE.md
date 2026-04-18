@@ -587,7 +587,7 @@ The authoritative list always lives in `.env.example`. Drift detection (CLAUDE.m
 
 **SFW completion provider.** OpenRouter or Anthropic endpoint via `BDOne` (`dreams/llm.py`). Default model `deepseek/deepseek-v3.2`; override via env. 30-second default timeout. Circuit breaker tracks consecutive failures; backoff + jitter on retry.
 
-**No API Dockerfile today.** `uvicorn` runs locally against the containerized Postgres. Containerizing the API service is deferred operational work.
+**API also containerized** (post-Phase-11, 2026-04-17). `docker/Dockerfile` is a multi-stage Python 3.11-slim build; `docker/docker-compose.yml` runs `postgres` + `api` together as the `starry-lyfe` stack. The API container bind-mounts `src/`, `Characters/`, and `alembic/` from the host (read-only) so character-YAML and code edits propagate live without a rebuild — only `requirements.txt` changes need `docker compose build api`. Both containers carry `restart: unless-stopped` so they auto-resume on Docker Desktop boot. Operator workflow is documented in `Docs/MSTY_SETUP.md` §1.3.
 
 ---
 
