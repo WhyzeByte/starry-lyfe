@@ -213,6 +213,44 @@ class TestChatCompletionAuth:
         )
         assert response.status_code == 401
 
+    def test_authorization_bearer_correct_key_accepted(self, stub_app: TestClient) -> None:
+        """Standard OpenAI auth (Authorization: Bearer <key>) is accepted."""
+        response = stub_app.post(
+            "/v1/chat/completions",
+            headers={"Authorization": "Bearer test-key"},
+            json={
+                "model": "adelia",
+                "messages": [{"role": "user", "content": "hi"}],
+                "stream": True,
+            },
+        )
+        assert response.status_code == 200
+
+    def test_authorization_bearer_wrong_key_returns_401(self, stub_app: TestClient) -> None:
+        response = stub_app.post(
+            "/v1/chat/completions",
+            headers={"Authorization": "Bearer wrong"},
+            json={
+                "model": "adelia",
+                "messages": [{"role": "user", "content": "hi"}],
+                "stream": True,
+            },
+        )
+        assert response.status_code == 401
+
+    def test_malformed_authorization_header_returns_401(self, stub_app: TestClient) -> None:
+        """Anything other than 'Bearer <token>' is rejected."""
+        response = stub_app.post(
+            "/v1/chat/completions",
+            headers={"Authorization": "Basic test-key"},
+            json={
+                "model": "adelia",
+                "messages": [{"role": "user", "content": "hi"}],
+                "stream": True,
+            },
+        )
+        assert response.status_code == 401
+
 
 class TestChatCompletionRouting:
     def test_header_overrides_model_field(self, stub_app: TestClient) -> None:

@@ -69,22 +69,50 @@ def _detect_client_type(user_agent: str | None, has_force_header: bool) -> str:
     return "other"
 
 
-def _enforce_api_key(provided: str | None, expected: str) -> None:
+def _extract_bearer_token(authorization: str | None) -> str | None:
+    """Pull the token out of an ``Authorization: Bearer <token>`` header.
+
+    Standard OpenAI-compatible clients (Msty Studio, the openai SDK,
+    LangChain, etc.) send the API key as an Authorization Bearer token,
+    not as ``X-API-Key``. Returns the token if the header is present
+    and well-formed, else None.
+    """
+    if not authorization:
+        return None
+    parts = authorization.strip().split(maxsplit=1)
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        return None
+    token = parts[1].strip()
+    return token or None
+
+
+def _enforce_api_key(
+    x_api_key: str | None,
+    authorization: str | None,
+    expected: str,
+) -> None:
     """Raise ``AuthError`` unless the request carries the configured key.
 
+    Accepts EITHER ``X-API-Key: <key>`` (the legacy header used by curl
+    smoke tests and dev tools) OR ``Authorization: Bearer <key>`` (the
+    standard OpenAI-compatible auth that Msty Studio and other clients
+    send by default).
+
     A missing key is treated the same as a wrong key — both produce
-    401 with the same envelope shape. We deliberately do not return
-    404 for a missing key (some setups suggest hiding existence
-    behind 404, but our endpoints are public-discoverable via
-    /v1/models so the masquerade is pointless).
+    401 with the same envelope shape.
     """
     if not expected:
         # Deployment chose not to set an API key. Reject loud rather
         # than silently accept anything — matches the lesson-#2
         # "no silent fallback" pattern.
         raise AuthError("server has no STARRY_LYFE__API__API_KEY configured")
-    if provided is None or provided != expected:
-        raise AuthError("missing or invalid X-API-Key header")
+    bearer_token = _extract_bearer_token(authorization)
+    if x_api_key == expected or bearer_token == expected:
+        return
+    raise AuthError(
+        "missing or invalid API key — send X-API-Key: <key> or "
+        "Authorization: Bearer <key>"
+    )
 
 
 @router.post("/v1/chat/completions")
@@ -97,12 +125,13 @@ async def chat_completions(
     embedding: EmbeddingDep,
     llm: LLMDep,
     x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+    authorization: str | None = Header(default=None, alias="Authorization"),
     x_sc_force_character: str | None = Header(default=None, alias="X-SC-Force-Character"),
     x_session_id: str | None = Header(default=None, alias="X-Session-ID"),
     user_agent: str | None = Header(default=None, alias="User-Agent"),
 ) -> StreamingResponse:
     """Handle a single chat completion request, returning an SSE stream."""
-    _enforce_api_key(x_api_key, settings.api_key)
+    _enforce_api_key(x_api_key, authorization, settings.api_key)
 
     msty = preprocess_msty_request(request.messages)
     routing = resolve_character_id(

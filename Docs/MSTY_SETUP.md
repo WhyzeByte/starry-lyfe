@@ -1,8 +1,8 @@
 # Msty Studio Configuration Guide
 
-**Version:** 1.4.0
+**Version:** 1.5.0
 **Date:** 2026-04-17
-**Backend:** Starry-Lyfe v7 on PC `192.168.1.93`, port `8001` (post-Phase-11, containerized)
+**Backend:** Starry-Lyfe v7 on PC `192.168.1.93`, port `8001` (containerized; accepts standard OpenAI Bearer auth)
 **Audience:** the operator (Whyze) configuring Msty Studio Desktop on another machine on the LAN.
 
 This guide was audited on 2026-04-17 against the current Starry-Lyfe codebase and the current Msty docs. It targets `Msty Studio Desktop`, which Msty's own Quick Start recommends as the default path. Studio Web adds browser/CORS constraints and is not the primary path for this LAN backend.
@@ -13,21 +13,14 @@ End state: four routable personas (`adelia`, `bina`, `reina`, `alicia`) plus opt
 
 ---
 
-## 0. Important compatibility note: auth header
+## 0. Auth — works with standard OpenAI clients
 
-Msty's official docs cover the OpenAI-compatible provider flow: add a provider in `Model Hub > Model Providers`, supply an API key, and point it at an OpenAI-compatible endpoint.
+Starry-Lyfe's `POST /v1/chat/completions` accepts EITHER auth style:
 
-Starry-Lyfe's chat endpoint is stricter than a stock OpenAI clone:
+- `Authorization: Bearer <key>` — what every standard OpenAI-compatible client (Msty Studio included) sends by default. **Use this path.** Just paste your API key into Msty's "API Key" field; Msty does the rest.
+- `X-API-Key: <key>` — legacy header used by curl smoke tests and dev tools. Still supported.
 
-- `POST /v1/chat/completions` accepts **only** `X-API-Key: <key>`.
-- It does **not** accept `Authorization: Bearer <key>`.
-
-The official Msty docs I checked do **not** document an auth-header remap for OpenAI-compatible providers. So before spending time on persona setup, confirm one of these is true in your installed Msty build:
-
-1. Your Msty provider UI exposes custom or additional headers. If so, set `X-API-Key: <your-key>`.
-2. If it does not, put a small reverse proxy in front of Starry-Lyfe that rewrites `Authorization: Bearer <key>` to `X-API-Key: <key>`.
-
-All steps below assume option 1. If you use a proxy, substitute the proxy URL anywhere this guide says `http://192.168.1.93:8001/v1`.
+You do NOT need to configure a custom header in Msty. Older versions of this guide instructed you to. That was correct at the time but is no longer required (the backend was updated 2026-04-17 to accept both auth styles).
 
 ---
 
@@ -167,8 +160,7 @@ Use these values:
 | Setting | Value |
 |---|---|
 | Base URL | `http://192.168.1.93:8001/v1` |
-| API Key | the value of `STARRY_LYFE__API__API_KEY` from the backend's `.env` (open the file in a text editor and copy the line after the `=`). Claude Code generated this value on 2026-04-17. |
-| Custom header | `X-API-Key: <same-value-as-above>` if your build exposes custom headers (required — see §0; backend rejects `Authorization: Bearer`) |
+| API Key | the value of `STARRY_LYFE__API__API_KEY` from the backend's `.env` (open the file in a text editor and copy the line after the `=`). Claude Code generated this value on 2026-04-17. Msty will send it as `Authorization: Bearer <key>` — the backend accepts that natively (see §0). No custom header needed. |
 
 Notes:
 
