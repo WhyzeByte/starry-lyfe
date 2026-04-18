@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Version:** U1.3-P2.22 | **Format:** U{universal}.{minor}-P{project}.{minor}
+**Version:** U1.3-P2.23 | **Format:** U{universal}.{minor}-P{project}.{minor}
 
 > Universal sections (Part 1) are identical across all repositories.
 > Project sections (Part 2) are customized per service.
@@ -474,7 +474,7 @@ Four layers of canonical soul content now reach the model on every assembled pro
 Detailed per-phase delivery notes, audit remediation logs, test-delta history, and samples live in `Docs/_phases/` (per-phase specs and reports) and `Docs/_audits/` (audit records). Do not re-duplicate that history here. Notable pointers:
 - Phase 2 end audit + C1–C4 / H1–H5 / M1–M4 / L1 remediation: `Docs/_audits/PHASE_2_AUDIT_2026-04-13.md` + `Docs/_phases/REMEDIATION_2026-04-13.md`. L2 (prose.py dead-branch review) is the only deferred item.
 - Operator runtime walkthrough (markdown → 7-layer assembled prompt): `Docs/OPERATOR_GUIDE.md`.
-- Architectural phases 4–7 shipped end-to-end; Phase 8/9 sealed; Phase 10.0–10.7 shipped and post-ship audit/remediation-synchronized; **Phase 11 (Cross-Persona Context Injection) shipped + AUDITED PASS 2026-04-17** — closes the Msty Crew Conversations Contextual-mode behavior gap by adding `_format_crew_prior_block` to `pipeline.run_chat_pipeline`. AD-009 added to ARCHITECTURE.md §21. Independent post-ship structural audit returned PASS on all 7 ACs with one LOW/INFO cosmetic finding (line-range fix) closed in-place. Full audit record at `Docs/_phases/PHASE_11.md` §10. Phase 11 closes the architectural track for the v7 build; AC-11.8 awaiting Project Owner Step 6 ship sign-off.
+- Architectural phases 4–7 shipped end-to-end; Phase 8/9 sealed; Phase 10.0–10.7 shipped and post-ship audit/remediation-synchronized; **Phase 11 (Cross-Persona Context Injection) shipped 2026-04-17 → Codex Round 1 audit FAIL → R1 REMEDIATION COMPLETE 2026-04-17** — pending Codex Round 2 re-audit. The inadequate self-audit recorded earlier is marked SUPERSEDED in PHASE_11.md §10 with the lesson captured (self-audit ≠ independent audit). R1 remediation closed all 4 Codex findings: F1 stale Crew test suite (4-passed), F2 prompt-frame injection bypass (new `_sanitize_prior_text` helper + 3 adversarial regression tests), F3 unbounded aggregate prior-frame size (new `_PRIOR_FRAME_TOTAL_CHAR_CAP` + `_apply_aggregate_cap` + 1 regression test), F4 phase-record gate-state (status reopen + new §12/§13/§14). Post-audit operational fixes (Bearer auth `40f72cc`, containerization `d8672f3`, `.env` scaffolding `f6af9fd`) recorded honestly in PHASE_11.md §13. Phase 11 closes the architectural track for the v7 build; AC-11.8 awaits Project Owner Step 6 ship sign-off after Codex Round 2 PASS.
 
 **Backend status:** Architectural phases 1–7 shipped; Phases 8, 9, 10.0–10.7 sealed; Phase 11 audit-PASSed and awaiting Step 6 ship sign-off. Operational work (deployment automation, observability dashboards, Msty persona/crew model-card authoring) remains open outside the architectural track.
 ### Phase 10 Governance Addendum (2026-04-17)

@@ -570,3 +570,74 @@ Findings:
 
 No HIGH or MEDIUM findings. AC-11.8 awaiting Project Owner Step 6
 ship sign-off. Full audit record at Docs/_phases/PHASE_11.md §10.
+
+------------------------------------------------------------
+Phase 11 — Codex Round 1 audit FAIL + R1 remediation (2026-04-17)
+------------------------------------------------------------
+Codex independently re-audited Phase 11 after the inadequate self-
+audit and returned FAIL with two High and two Medium findings:
+
+  F1 [High]   — Stale broader Crew suite (test_pipeline_crew.py
+                imported helpers that never shipped: 9 failures + 3
+                errors hidden behind PHASE_11.md §8's silent gloss).
+  F2 [High]   — Prompt-frame injection bypass: html.escape alone did
+                not stop newline-spoofs-fake-speaker, leading
+                **name:** continuation-line, or closing-bracket
+                attacks. Codex live probes constructed all three.
+  F3 [Medium] — Unbounded aggregate prior-frame size: per-block cap
+                worked, no aggregate cap. 20 × 900-char priors →
+                16,574-char preamble.
+  F4 [Medium] — PHASE_11.md gate-state overstatement: SHIPPED +
+                Self-Audit PASS recorded before independent audit
+                existed.
+
+R1 remediation closes all four:
+
+  F1 — _DummySession.add + .flush no-op stubs added to satisfy the
+       new chat_session.upsert_session call site. The pre-Phase-11
+       assertion (`recorded[0][1] == "Alicia, your take?"`) updated
+       to assert the post-Phase-11 prior-frame contract. Result:
+       4-passed-0-failed for that file; 55-passed-0-failed for the
+       broader API bundle (5 files including test_http_chat.py
+       integration against live Postgres).
+
+  F2 — New _sanitize_prior_text helper at pipeline.py: HTML-escape
+       → collapse newlines to single space → neutralize **name:**
+       markdown speaker patterns via numeric char refs
+       (&#42;&#42;name:&#42;&#42;) → escape ] → &#93;. New
+       module-level _SPEAKER_PATTERN_RE. New
+       TestPhase11R1AdversarialRegression class with 3 regression
+       tests reproducing Codex's adversarial scenarios verbatim.
+
+  F3 — New module-level constants _PRIOR_FRAME_TOTAL_CHAR_CAP=4000
+       and _PRIOR_FRAME_OVERFLOW_MARKER. New _apply_aggregate_cap
+       walks blocks newest → oldest, drops oldest first if cap
+       exceeded. _format_crew_prior_block inserts overflow marker
+       at the top of the bracket frame when truncation occurred.
+       New regression test reproduces Codex scenario 3 verbatim.
+
+  F4 — PHASE_11.md status reopened from SHIPPED to "R1 REMEDIATION
+       COMPLETE — pending Codex Round 2 re-audit". §10 self-audit
+       marked SUPERSEDED with the lesson captured: self-audit by
+       the agent that wrote the code is not a substitute for an
+       independent adversarial audit. New §12 R1 remediation record.
+       New §13 captures post-audit operational fixes (Bearer auth
+       40f72cc, containerization d8672f3, .env scaffolding f6af9fd)
+       that shipped during real Msty integration but were not Codex
+       findings. New §14 Codex Round 2 audit handshake placeholder.
+
+WAF after R1:
+  - pytest test_pipeline_crew_contextual.py → 13 passed (9 + 4 new)
+  - pytest test_pipeline_crew.py → 4 passed
+  - Broader API bundle (5 files) → 55 passed, 0 failed, 0 errors
+  - ruff + mypy --strict clean
+  - CLAUDE.md P-version P2.22 → P2.23
+
+Lessons recorded in PHASE_11.md §12:
+  1. Self-audit ≠ independent audit. Future phases: Step 4
+     Self-Audit is a pre-flight check, not a verdict. Codex audit
+     at Step 4 is the authoritative gate.
+  2. Adversarial-input regression tests should ship with every
+     prompt-injection-defense feature.
+  3. Unbounded loops over external input deserve aggregate caps
+     from day one (per-item AND total, with sentinel marker).
